@@ -3,7 +3,7 @@ import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
 import { NHL_TEAMS, getTeamName, getTeamLogo } from "@/lib/nhlTeams";
-import { updateFavoriteTeam, submitStanleyCupPick } from "./actions";
+import { updateFavoriteTeam, submitStanleyCupPick, uploadAvatar } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
@@ -27,12 +27,13 @@ export default async function ProfilPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, favorite_team")
+    .select("username, favorite_team, avatar_url")
     .eq("id", user.id)
     .single();
 
   const username = profile?.username ?? user.email ?? "Joueur";
   const favoriteTeam = profile?.favorite_team as string | null | undefined;
+  const avatarUrl = profile?.avatar_url as string | null | undefined;
 
   const { data: predictions } = await supabase
     .from("predictions")
@@ -90,9 +91,33 @@ export default async function ProfilPage() {
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
 
-          <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-3xl font-bold text-neutral-400">
-            {username.slice(0, 1).toUpperCase()}
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={username}
+              className="h-24 w-24 rounded-full border border-neutral-700 object-cover"
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-3xl font-bold text-neutral-400">
+              {username.slice(0, 1).toUpperCase()}
+            </div>
+          )}
+
+          <form action={uploadAvatar} className="flex items-center gap-2">
+            <input
+              type="file"
+              name="avatar"
+              accept="image/png,image/jpeg,image/webp"
+              required
+              className="text-xs text-neutral-400 file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-2 file:py-1 file:text-xs file:text-neutral-200"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white"
+            >
+              Changer
+            </button>
+          </form>
 
           {favoriteTeam && (
             <div className="flex items-center gap-2">

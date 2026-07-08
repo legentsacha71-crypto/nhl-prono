@@ -33,6 +33,60 @@ export async function updateFavoriteTeam(formData: FormData) {
   revalidatePath("/profil");
 }
 
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_AVATAR_SIZE = 3 * 1024 * 1024; // 3 Mo
+
+export async function uploadAvatar(formData: FormData) {
+  const file = formData.get("avatar") as File | null;
+
+  if (!file || file.size === 0) {
+    throw new Error("Aucune image sélectionnée.");
+  }
+
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+    throw new Error("Format d'image non supporté (jpg, png ou webp uniquement).");
+  }
+
+  if (file.size > MAX_AVATAR_SIZE) {
+    throw new Error("L'image est trop lourde (3 Mo maximum).");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non connecté.");
+  }
+
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${user.id}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("avatars").getPublicUrl(path);
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ avatar_url: `${publicUrl}?t=${Date.now()}` })
+    .eq("id", user.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  revalidatePath("/profil");
+}
+
 export async function submitStanleyCupPick(formData: FormData) {
   const teamAbbrev = formData.get("teamAbbrev") as string;
 
