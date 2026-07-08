@@ -4,6 +4,7 @@ import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
 import { NHL_TEAMS, getTeamName, getTeamLogo } from "@/lib/nhlTeams";
 import { updateFavoriteTeam, submitStanleyCupPick } from "./actions";
+import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
 export default async function ProfilPage() {
@@ -14,7 +15,8 @@ export default async function ProfilPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen p-6 pb-24">
+      <div className="min-h-screen p-6 pt-20 pb-24">
+        <TopBar />
         <p className="text-center text-neutral-400">
           Connecte-toi pour voir ton profil.
         </p>
@@ -82,7 +84,8 @@ export default async function ProfilPage() {
   );
 
   return (
-    <div className="min-h-screen p-6 pb-24">
+    <div className="min-h-screen p-6 pt-20 pb-24">
+      <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-2xl font-bold text-sky-400">{username}</h1>

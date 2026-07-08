@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
       const { data: predictions, error: predError } = await supabase
         .from("predictions")
-        .select("id, away_score, home_score")
+        .select("id, user_id, away_score, home_score")
         .eq("game_id", gameId)
         .is("points", null);
 
@@ -73,6 +73,12 @@ export async function GET(request: NextRequest) {
           .from("predictions")
           .update({ points, is_exact_score: isExactScore })
           .eq("id", prediction.id);
+
+        await supabase.from("notifications").insert({
+          user_id: prediction.user_id,
+          message: `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points.`,
+        });
+
         gradedPredictions++;
       }
 

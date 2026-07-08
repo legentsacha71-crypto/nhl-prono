@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 function generateInviteCode(): string {
   // Pas de 0/O ni 1/I pour éviter les confusions à la lecture.
@@ -74,7 +75,7 @@ export async function joinLeague(formData: FormData) {
 
   const { data: league, error } = await supabase
     .from("leagues")
-    .select("id")
+    .select("id, name, owner_id")
     .eq("code", code)
     .single();
 
@@ -94,6 +95,20 @@ export async function joinLeague(formData: FormData) {
         ? "Tu es déjà membre de cette ligue."
         : memberError.message;
     redirect(`/leagues?error=${encodeURIComponent(message)}`);
+  }
+
+  if (league.owner_id !== user.id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+
+    const admin = createAdminClient();
+    await admin.from("notifications").insert({
+      user_id: league.owner_id,
+      message: `${profile?.username ?? "Un joueur"} a rejoint ta ligue "${league.name}".`,
+    });
   }
 
   revalidatePath("/leagues");

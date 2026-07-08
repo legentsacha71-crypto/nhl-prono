@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
+import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
 export default async function LeagueDetailPage({
@@ -29,7 +30,8 @@ export default async function LeagueDetailPage({
   const ranking = await getRanking(supabase, memberIds);
 
   return (
-    <div className="min-h-screen p-6 pb-24">
+    <div className="min-h-screen p-6 pt-20 pb-24">
+      <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-center text-sky-400">

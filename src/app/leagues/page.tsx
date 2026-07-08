@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { createLeague, joinLeague } from "./actions";
+import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
 export default async function LeaguesPage({
@@ -28,7 +29,8 @@ export default async function LeaguesPage({
     .filter((l): l is League => !!l);
 
   return (
-    <div className="min-h-screen p-6 pb-24">
+    <div className="min-h-screen p-6 pt-20 pb-24">
+      <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <h1 className="text-2xl font-bold text-center text-sky-400">
           Mes ligues
