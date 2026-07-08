@@ -1,0 +1,25 @@
+// Liste statique des favoris pour le pick "Meilleur buteur de la saison".
+// À mettre à jour à la main chaque saison si besoin (trades, retraites, etc.),
+// comme la liste des équipes dans nhlTeams.ts.
+export const TOP_SCORER_CANDIDATES: string[] = [
+  "Connor McDavid",
+  "Nikita Kucherov",
+  "Nathan MacKinnon",
+  "Auston Matthews",
+  "David Pastrnak",
+  "Leon Draisaitl",
+  "Kirill Kaprizov",
+  "Jack Hughes",
+  "Artemi Panarin",
+  "Mikko Rantanen",
+  "Matthew Tkachuk",
+  "Brady Tkachuk",
+  "Sidney Crosby",
+  "Alex Ovechkin",
+  "William Nylander",
+  "Elias Pettersson",
+  "Cale Makar",
+  "Jason Robertson",
+  "Mitch Marner",
+  "Sebastian Aho",
+];

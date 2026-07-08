@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { getStanleyCupOdds } from "@/lib/oddsApi";
+import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 
 export async function updateFavoriteTeam(formData: FormData) {
   const favoriteTeam = formData.get("favoriteTeam") as string;
@@ -125,6 +126,52 @@ export async function submitStanleyCupPick(formData: FormData) {
       user_id: user.id,
       team_abbrev: teamAbbrev,
       odds_price: teamOdds.price,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/profil");
+}
+
+export async function submitTopScorerPick(formData: FormData) {
+  const playerName = formData.get("playerName") as string;
+
+  if (!playerName || !TOP_SCORER_CANDIDATES.includes(playerName)) {
+    throw new Error("Joueur invalide.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non connecté.");
+  }
+
+  const { data: season } = await supabase
+    .from("top_scorer_season")
+    .select("lock_at, winner_player")
+    .eq("id", 1)
+    .single();
+
+  if (
+    !season ||
+    season.winner_player ||
+    new Date(season.lock_at) <= new Date()
+  ) {
+    throw new Error("Les pronostics meilleur buteur sont verrouillés.");
+  }
+
+  const { error } = await supabase.from("top_scorer_picks").upsert(
+    {
+      user_id: user.id,
+      player_name: playerName,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

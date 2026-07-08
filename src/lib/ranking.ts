@@ -49,6 +49,22 @@ export async function getRanking(
     );
   }
 
+  let topScorerQuery = supabase
+    .from("top_scorer_picks")
+    .select("user_id, points")
+    .not("points", "is", null);
+  if (userIds) {
+    topScorerQuery = topScorerQuery.in("user_id", userIds);
+  }
+  const { data: topScorerPicks } = await topScorerQuery;
+
+  for (const p of topScorerPicks ?? []) {
+    pointsByUser.set(
+      p.user_id,
+      (pointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),
+    );
+  }
+
   return (profiles ?? [])
     .map((profile) => ({
       userId: profile.id as string,

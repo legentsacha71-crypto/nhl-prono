@@ -3,6 +3,7 @@ import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
 import { NHL_TEAMS, getTeamName, getTeamLogo } from "@/lib/nhlTeams";
+import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import {
   updateFavoriteTeam,
   submitStanleyCupPick,
@@ -10,6 +11,7 @@ import {
   sendFriendRequest,
   respondToFriendRequest,
   removeFriend,
+  submitTopScorerPick,
 } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -78,6 +80,21 @@ export default async function ProfilPage() {
       stanleyCupOdds = [];
     }
   }
+
+  const { data: topScorerSeason } = await supabase
+    .from("top_scorer_season")
+    .select("lock_at, winner_player, points_reward")
+    .eq("id", 1)
+    .single();
+
+  const { data: myTopScorerPick } = await supabase
+    .from("top_scorer_picks")
+    .select("player_name, points")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isTopScorerLocked =
+    !topScorerSeason || new Date(topScorerSeason.lock_at) <= new Date();
 
   const recent = all.slice(0, 8);
   const results = await Promise.all(
@@ -426,10 +443,64 @@ export default async function ProfilPage() {
           </div>
 
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-            <p className="mb-1 text-sm font-medium text-neutral-300">
+            <p className="mb-2 text-sm font-medium text-neutral-300">
               Meilleur buteur de la saison
             </p>
-            <p className="text-sm text-neutral-500">Bientôt disponible.</p>
+
+            {!topScorerSeason ? (
+              <p className="text-sm text-neutral-500">
+                Pas encore configuré pour cette saison.
+              </p>
+            ) : topScorerSeason.winner_player ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-300">
+                  {myTopScorerPick
+                    ? `Ton pick : ${myTopScorerPick.player_name}`
+                    : "Tu n'avais pas fait de pick."}
+                </span>
+                <span className="font-medium text-sky-400">
+                  {myTopScorerPick?.points ?? 0} pts
+                </span>
+              </div>
+            ) : isTopScorerLocked ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-300">
+                  {myTopScorerPick
+                    ? `Ton pick (verrouillé) : ${myTopScorerPick.player_name}`
+                    : "Verrouillé, tu n'as pas fait de pick."}
+                </span>
+                <span className="text-neutral-500">En attente du résultat</span>
+              </div>
+            ) : (
+              <form
+                action={submitTopScorerPick}
+                className="flex items-center gap-2"
+              >
+                <select
+                  name="playerName"
+                  defaultValue={myTopScorerPick?.player_name ?? ""}
+                  className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100"
+                >
+                  <option value="">Choisir un joueur…</option>
+                  {TOP_SCORER_CANDIDATES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
+                >
+                  {myTopScorerPick ? "Modifier" : "Valider"}
+                </button>
+              </form>
+            )}
+            {topScorerSeason && !topScorerSeason.winner_player && (
+              <p className="mt-2 text-xs text-neutral-500">
+                Bonne réponse = {topScorerSeason.points_reward} points.
+              </p>
+            )}
           </div>
         </div>
       </div>
