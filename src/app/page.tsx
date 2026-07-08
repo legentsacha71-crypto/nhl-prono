@@ -1,6 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
+import { getRegularSeasonStartDate } from "@/lib/nhl";
 import { signout } from "./login/actions";
 import BottomNav from "@/components/BottomNav";
+import SeasonCountdown from "@/components/SeasonCountdown";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -16,6 +18,8 @@ export default async function Home() {
         .single()
     : { data: null };
 
+  const seasonStartDate = await getRegularSeasonStartDate();
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 pb-24">
       <div className="text-center">
@@ -28,6 +32,8 @@ export default async function Home() {
           Content de te revoir, {profile?.username ?? user?.email}
         </p>
       </div>
+
+      {seasonStartDate && <SeasonCountdown targetDate={seasonStartDate} />}
 
       <form action={signout}>
         <button className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300">

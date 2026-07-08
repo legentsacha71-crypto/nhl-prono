@@ -23,6 +23,7 @@ type NhlApiGame = {
 
 type NhlScheduleResponse = {
   gameWeek: { games: NhlApiGame[] }[];
+  regularSeasonStartDate: string;
 };
 
 function toGame(g: NhlApiGame): NhlGame {
@@ -59,4 +60,25 @@ export async function getUpcomingGames(): Promise<NhlGame[]> {
     .flatMap((day) => day.games)
     .filter((g) => new Date(g.startTimeUTC).getTime() > now)
     .map(toGame);
+}
+
+// Tant que le calendrier de la nouvelle saison n'est pas publié, l'API
+// renvoie encore la date de la saison précédente (donc déjà passée) :
+// dans ce cas on retourne null plutôt qu'un compte à rebours cassé.
+export async function getRegularSeasonStartDate(): Promise<string | null> {
+  const res = await fetch("https://api-web.nhle.com/v1/schedule/now", {
+    next: { revalidate: 3600 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API NHL: ${res.status}`);
+  }
+
+  const data: NhlScheduleResponse = await res.json();
+
+  if (new Date(data.regularSeasonStartDate).getTime() <= Date.now()) {
+    return null;
+  }
+
+  return data.regularSeasonStartDate;
 }
