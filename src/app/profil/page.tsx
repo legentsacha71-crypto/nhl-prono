@@ -137,7 +137,9 @@ export default async function ProfilPage() {
           </div>
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
             <p className="text-lg font-bold text-sky-400">{exactScoreCount}</p>
-            <p className="text-xs text-neutral-500">Score exact</p>
+            <p className="text-xs text-neutral-500">
+              {exactScoreCount > 1 ? "Scores exacts" : "Score exact"}
+            </p>
           </div>
         </div>
 
