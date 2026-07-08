@@ -3,7 +3,14 @@ import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
 import { NHL_TEAMS, getTeamName, getTeamLogo } from "@/lib/nhlTeams";
-import { updateFavoriteTeam, submitStanleyCupPick, uploadAvatar } from "./actions";
+import {
+  updateFavoriteTeam,
+  submitStanleyCupPick,
+  uploadAvatar,
+  sendFriendRequest,
+  respondToFriendRequest,
+  removeFriend,
+} from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
@@ -82,6 +89,50 @@ export default async function ProfilPage() {
         return { prediction: p, result: null };
       }
     }),
+  );
+
+  const { data: friendshipRows } = await supabase
+    .from("friendships")
+    .select(
+      "id, status, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(username), addressee:profiles!friendships_addressee_id_fkey(username)",
+    )
+    .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+
+  type FriendshipRow = {
+    id: string;
+    status: string;
+    requester_id: string;
+    addressee_id: string;
+    requester: { username: string } | null;
+    addressee: { username: string } | null;
+  };
+  const friendshipRowsTyped = (friendshipRows ??
+    []) as unknown as FriendshipRow[];
+
+  const pointsByUserId = new Map(
+    ranking.map((entry) => [entry.userId, entry.totalPoints]),
+  );
+
+  const friends = friendshipRowsTyped
+    .filter((f) => f.status === "accepted")
+    .map((f) => {
+      const isRequester = f.requester_id === user.id;
+      const friendId = isRequester ? f.addressee_id : f.requester_id;
+      const friendUsername = isRequester
+        ? f.addressee?.username
+        : f.requester?.username;
+      return {
+        friendshipId: f.id,
+        username: friendUsername ?? "Joueur",
+        points: pointsByUserId.get(friendId) ?? 0,
+      };
+    });
+
+  const incomingRequests = friendshipRowsTyped.filter(
+    (f) => f.status === "pending" && f.addressee_id === user.id,
+  );
+  const outgoingRequests = friendshipRowsTyped.filter(
+    (f) => f.status === "pending" && f.requester_id === user.id,
   );
 
   return (
@@ -212,9 +263,107 @@ export default async function ProfilPage() {
 
         <div>
           <h2 className="mb-2 font-medium text-neutral-200">Mes amis</h2>
-          <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-            Bientôt disponible.
-          </p>
+
+          <form
+            action={sendFriendRequest}
+            className="mb-3 flex items-center gap-2"
+          >
+            <input
+              name="username"
+              type="text"
+              placeholder="Pseudo de ton ami"
+              required
+              className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
+            >
+              Ajouter
+            </button>
+          </form>
+
+          {incomingRequests.length > 0 && (
+            <div className="mb-3 space-y-2">
+              {incomingRequests.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between rounded-lg border border-sky-800 bg-sky-950 p-3 text-sm"
+                >
+                  <span className="text-sky-100">
+                    {r.requester?.username ?? "?"} veut être ton ami
+                  </span>
+                  <div className="flex gap-2">
+                    <form action={respondToFriendRequest}>
+                      <input type="hidden" name="friendshipId" value={r.id} />
+                      <input type="hidden" name="action" value="accept" />
+                      <button
+                        type="submit"
+                        className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white"
+                      >
+                        Accepter
+                      </button>
+                    </form>
+                    <form action={respondToFriendRequest}>
+                      <input type="hidden" name="friendshipId" value={r.id} />
+                      <input type="hidden" name="action" value="decline" />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300"
+                      >
+                        Refuser
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {friends.length === 0 ? (
+            <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+              Aucun ami pour le moment.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {friends.map((f) => (
+                <li
+                  key={f.friendshipId}
+                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm"
+                >
+                  <span className="text-neutral-200">{f.username}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-sky-400">
+                      {f.points} pts
+                    </span>
+                    <form action={removeFriend}>
+                      <input
+                        type="hidden"
+                        name="friendshipId"
+                        value={f.friendshipId}
+                      />
+                      <button
+                        type="submit"
+                        className="text-xs text-neutral-500 hover:text-red-400"
+                      >
+                        Retirer
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {outgoingRequests.length > 0 && (
+            <p className="mt-2 text-xs text-neutral-500">
+              En attente :{" "}
+              {outgoingRequests
+                .map((r) => r.addressee?.username)
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+          )}
         </div>
 
         <div className="space-y-3">

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { getStanleyCupOdds } from "@/lib/oddsApi";
 
@@ -131,6 +132,169 @@ export async function submitStanleyCupPick(formData: FormData) {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  revalidatePath("/profil");
+}
+
+export async function sendFriendRequest(formData: FormData) {
+  const username = (formData.get("username") as string)?.trim();
+  if (!username) {
+    throw new Error("Pseudo requis.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non connecté.");
+  }
+
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, username")
+    .ilike("username", username)
+    .maybeSingle();
+
+  if (!target) {
+    throw new Error("Aucun joueur avec ce pseudo.");
+  }
+  if (target.id === user.id) {
+    throw new Error("Tu ne peux pas t'ajouter toi-même.");
+  }
+
+  const { data: existing } = await supabase
+    .from("friendships")
+    .select("id, status")
+    .or(
+      `and(requester_id.eq.${user.id},addressee_id.eq.${target.id}),and(requester_id.eq.${target.id},addressee_id.eq.${user.id})`,
+    )
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error(
+      existing.status === "accepted"
+        ? "Vous êtes déjà amis."
+        : "Une demande est déjà en attente.",
+    );
+  }
+
+  const { error } = await supabase.from("friendships").insert({
+    requester_id: user.id,
+    addressee_id: target.id,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  const admin = createAdminClient();
+  await admin.from("notifications").insert({
+    user_id: target.id,
+    message: `${myProfile?.username ?? "Un joueur"} t'a envoyé une demande d'ami.`,
+  });
+
+  revalidatePath("/profil");
+}
+
+export async function respondToFriendRequest(formData: FormData) {
+  const friendshipId = formData.get("friendshipId") as string;
+  const action = formData.get("action") as string;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non connecté.");
+  }
+
+  const { data: friendship } = await supabase
+    .from("friendships")
+    .select("id, requester_id, addressee_id")
+    .eq("id", friendshipId)
+    .single();
+
+  if (!friendship || friendship.addressee_id !== user.id) {
+    throw new Error("Demande introuvable.");
+  }
+
+  if (action === "accept") {
+    const { error: acceptError } = await supabase
+      .from("friendships")
+      .update({ status: "accepted" })
+      .eq("id", friendshipId);
+
+    if (acceptError) {
+      throw new Error(acceptError.message);
+    }
+
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+
+    const admin = createAdminClient();
+    await admin.from("notifications").insert({
+      user_id: friendship.requester_id,
+      message: `${myProfile?.username ?? "Un joueur"} a accepté ta demande d'ami.`,
+    });
+  } else {
+    const { error: declineError } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", friendshipId);
+
+    if (declineError) {
+      throw new Error(declineError.message);
+    }
+  }
+
+  revalidatePath("/profil");
+}
+
+export async function removeFriend(formData: FormData) {
+  const friendshipId = formData.get("friendshipId") as string;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non connecté.");
+  }
+
+  const { data: friendship } = await supabase
+    .from("friendships")
+    .select("id, requester_id, addressee_id")
+    .eq("id", friendshipId)
+    .single();
+
+  if (
+    !friendship ||
+    (friendship.requester_id !== user.id && friendship.addressee_id !== user.id)
+  ) {
+    throw new Error("Amitié introuvable.");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("friendships")
+    .delete()
+    .eq("id", friendshipId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
   }
 
   revalidatePath("/profil");
