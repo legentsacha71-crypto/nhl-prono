@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { submitPrediction } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import TeamBadge from "@/components/TeamBadge";
 
 function formatDayLabel(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -88,10 +89,10 @@ export default async function MatchesPage() {
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-1 flex-col items-center gap-1">
-                      <img
-                        src={game.awayTeam.logo}
-                        alt={game.awayTeam.name}
-                        className="h-10 w-10"
+                      <TeamBadge
+                        abbrev={game.awayTeam.abbrev}
+                        name={game.awayTeam.name}
+                        size={40}
                       />
                       <span className="text-sm text-neutral-200">
                         {game.awayTeam.name}
@@ -99,10 +100,10 @@ export default async function MatchesPage() {
                     </div>
                     <span className="px-2 text-sm text-neutral-600">@</span>
                     <div className="flex flex-1 flex-col items-center gap-1">
-                      <img
-                        src={game.homeTeam.logo}
-                        alt={game.homeTeam.name}
-                        className="h-10 w-10"
+                      <TeamBadge
+                        abbrev={game.homeTeam.abbrev}
+                        name={game.homeTeam.name}
+                        size={40}
                       />
                       <span className="text-sm text-neutral-200">
                         {game.homeTeam.name}

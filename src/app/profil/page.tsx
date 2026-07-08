@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
-import { NHL_TEAMS, getTeamName, getTeamLogo } from "@/lib/nhlTeams";
+import { NHL_TEAMS, getTeamName } from "@/lib/nhlTeams";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import {
   updateFavoriteTeam,
@@ -15,6 +15,7 @@ import {
 } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import TeamBadge from "@/components/TeamBadge";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -195,11 +196,7 @@ export default async function ProfilPage() {
 
           {favoriteTeam && (
             <div className="flex items-center gap-2">
-              <img
-                src={getTeamLogo(favoriteTeam)}
-                alt={favoriteTeam}
-                className="h-8 w-8"
-              />
+              <TeamBadge abbrev={favoriteTeam} name={getTeamName(favoriteTeam)} size={32} />
               <span className="text-sm text-neutral-300">
                 {getTeamName(favoriteTeam)}
               </span>

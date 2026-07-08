@@ -1,49 +1,58 @@
 export type NhlTeamInfo = {
   abbrev: string;
   name: string;
+  // Couleurs du maillot de l'équipe — utilisées pour un badge coloré à la
+  // place du logo officiel (voir TeamBadge.tsx), afin d'éviter toute
+  // reproduction de la propriété intellectuelle de la LNH.
+  primaryColor: string;
+  secondaryColor: string;
 };
 
 export const NHL_TEAMS: NhlTeamInfo[] = [
-  { abbrev: "ANA", name: "Anaheim Ducks" },
-  { abbrev: "BOS", name: "Boston Bruins" },
-  { abbrev: "BUF", name: "Buffalo Sabres" },
-  { abbrev: "CGY", name: "Calgary Flames" },
-  { abbrev: "CAR", name: "Carolina Hurricanes" },
-  { abbrev: "CHI", name: "Chicago Blackhawks" },
-  { abbrev: "COL", name: "Colorado Avalanche" },
-  { abbrev: "CBJ", name: "Columbus Blue Jackets" },
-  { abbrev: "DAL", name: "Dallas Stars" },
-  { abbrev: "DET", name: "Detroit Red Wings" },
-  { abbrev: "EDM", name: "Edmonton Oilers" },
-  { abbrev: "FLA", name: "Florida Panthers" },
-  { abbrev: "LAK", name: "Los Angeles Kings" },
-  { abbrev: "MIN", name: "Minnesota Wild" },
-  { abbrev: "MTL", name: "Montréal Canadiens" },
-  { abbrev: "NSH", name: "Nashville Predators" },
-  { abbrev: "NJD", name: "New Jersey Devils" },
-  { abbrev: "NYI", name: "New York Islanders" },
-  { abbrev: "NYR", name: "New York Rangers" },
-  { abbrev: "OTT", name: "Ottawa Senators" },
-  { abbrev: "PHI", name: "Philadelphia Flyers" },
-  { abbrev: "PIT", name: "Pittsburgh Penguins" },
-  { abbrev: "SJS", name: "San Jose Sharks" },
-  { abbrev: "SEA", name: "Seattle Kraken" },
-  { abbrev: "STL", name: "St. Louis Blues" },
-  { abbrev: "TBL", name: "Tampa Bay Lightning" },
-  { abbrev: "TOR", name: "Toronto Maple Leafs" },
-  { abbrev: "UTA", name: "Utah Mammoth" },
-  { abbrev: "VAN", name: "Vancouver Canucks" },
-  { abbrev: "VGK", name: "Vegas Golden Knights" },
-  { abbrev: "WSH", name: "Washington Capitals" },
-  { abbrev: "WPG", name: "Winnipeg Jets" },
+  { abbrev: "ANA", name: "Anaheim Ducks", primaryColor: "#F47A38", secondaryColor: "#111111" },
+  { abbrev: "BOS", name: "Boston Bruins", primaryColor: "#111111", secondaryColor: "#FFB81C" },
+  { abbrev: "BUF", name: "Buffalo Sabres", primaryColor: "#002654", secondaryColor: "#FCB514" },
+  { abbrev: "CGY", name: "Calgary Flames", primaryColor: "#D2001C", secondaryColor: "#FAAF19" },
+  { abbrev: "CAR", name: "Carolina Hurricanes", primaryColor: "#CC0000", secondaryColor: "#000000" },
+  { abbrev: "CHI", name: "Chicago Blackhawks", primaryColor: "#CF0A2C", secondaryColor: "#000000" },
+  { abbrev: "COL", name: "Colorado Avalanche", primaryColor: "#6F263D", secondaryColor: "#236192" },
+  { abbrev: "CBJ", name: "Columbus Blue Jackets", primaryColor: "#002654", secondaryColor: "#CE1126" },
+  { abbrev: "DAL", name: "Dallas Stars", primaryColor: "#006847", secondaryColor: "#111111" },
+  { abbrev: "DET", name: "Detroit Red Wings", primaryColor: "#CE1126", secondaryColor: "#A2AAAD" },
+  { abbrev: "EDM", name: "Edmonton Oilers", primaryColor: "#FF4C00", secondaryColor: "#041E42" },
+  { abbrev: "FLA", name: "Florida Panthers", primaryColor: "#C8102E", secondaryColor: "#041E42" },
+  { abbrev: "LAK", name: "Los Angeles Kings", primaryColor: "#111111", secondaryColor: "#A2AAAD" },
+  { abbrev: "MIN", name: "Minnesota Wild", primaryColor: "#154734", secondaryColor: "#EAAA00" },
+  { abbrev: "MTL", name: "Montréal Canadiens", primaryColor: "#AF1E2D", secondaryColor: "#001E62" },
+  { abbrev: "NSH", name: "Nashville Predators", primaryColor: "#FFB81C", secondaryColor: "#041E42" },
+  { abbrev: "NJD", name: "New Jersey Devils", primaryColor: "#CE1126", secondaryColor: "#000000" },
+  { abbrev: "NYI", name: "New York Islanders", primaryColor: "#00539B", secondaryColor: "#F47D30" },
+  { abbrev: "NYR", name: "New York Rangers", primaryColor: "#0038A8", secondaryColor: "#CE1126" },
+  { abbrev: "OTT", name: "Ottawa Senators", primaryColor: "#C52032", secondaryColor: "#000000" },
+  { abbrev: "PHI", name: "Philadelphia Flyers", primaryColor: "#F74902", secondaryColor: "#000000" },
+  { abbrev: "PIT", name: "Pittsburgh Penguins", primaryColor: "#FCB514", secondaryColor: "#000000" },
+  { abbrev: "SJS", name: "San Jose Sharks", primaryColor: "#006D75", secondaryColor: "#000000" },
+  { abbrev: "SEA", name: "Seattle Kraken", primaryColor: "#001628", secondaryColor: "#99D9D9" },
+  { abbrev: "STL", name: "St. Louis Blues", primaryColor: "#002F87", secondaryColor: "#FCB514" },
+  { abbrev: "TBL", name: "Tampa Bay Lightning", primaryColor: "#002868", secondaryColor: "#000000" },
+  { abbrev: "TOR", name: "Toronto Maple Leafs", primaryColor: "#00205B", secondaryColor: "#A2AAAD" },
+  { abbrev: "UTA", name: "Utah Mammoth", primaryColor: "#69B3E7", secondaryColor: "#000000" },
+  { abbrev: "VAN", name: "Vancouver Canucks", primaryColor: "#00205B", secondaryColor: "#00843D" },
+  { abbrev: "VGK", name: "Vegas Golden Knights", primaryColor: "#B4975A", secondaryColor: "#333F42" },
+  { abbrev: "WSH", name: "Washington Capitals", primaryColor: "#C8102E", secondaryColor: "#041E42" },
+  { abbrev: "WPG", name: "Winnipeg Jets", primaryColor: "#041E42", secondaryColor: "#004C97" },
 ];
 
 export function getTeamName(abbrev: string): string {
   return NHL_TEAMS.find((t) => t.abbrev === abbrev)?.name ?? abbrev;
 }
 
-export function getTeamLogo(abbrev: string): string {
-  return `https://assets.nhle.com/logos/nhl/svg/${abbrev}_light.svg`;
+export function getTeamColors(abbrev: string): { primary: string; secondary: string } {
+  const team = NHL_TEAMS.find((t) => t.abbrev === abbrev);
+  return {
+    primary: team?.primaryColor ?? "#404040",
+    secondary: team?.secondaryColor ?? "#171717",
+  };
 }
 
 function normalize(name: string): string {

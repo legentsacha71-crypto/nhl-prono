@@ -2,13 +2,12 @@ export type NhlGame = {
   id: number;
   startTimeUTC: string;
   gameState: string;
-  awayTeam: { abbrev: string; name: string; logo: string };
-  homeTeam: { abbrev: string; name: string; logo: string };
+  awayTeam: { abbrev: string; name: string };
+  homeTeam: { abbrev: string; name: string };
 };
 
 type NhlTeam = {
   abbrev: string;
-  logo: string;
   commonName: { default: string };
   placeName: { default: string };
 };
@@ -34,12 +33,10 @@ function toGame(g: NhlApiGame): NhlGame {
     awayTeam: {
       abbrev: g.awayTeam.abbrev,
       name: `${g.awayTeam.placeName.default} ${g.awayTeam.commonName.default}`,
-      logo: g.awayTeam.logo,
     },
     homeTeam: {
       abbrev: g.homeTeam.abbrev,
       name: `${g.homeTeam.placeName.default} ${g.homeTeam.commonName.default}`,
-      logo: g.homeTeam.logo,
     },
   };
 }
