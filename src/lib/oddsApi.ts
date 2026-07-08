@@ -35,8 +35,11 @@ export async function getStanleyCupOdds(): Promise<StanleyCupOdds[]> {
 
   // Le marché "vainqueur" (outrights) vit sous une clé de sport dédiée,
   // différente de "icehockey_nhl" qui sert aux cotes de matchs (h2h, etc.).
+  // La LNH étant une ligue nord-américaine, ce sont les bookmakers "us" qui
+  // couvrent ce marché (les bookmakers "eu" n'ont quasiment aucune offre
+  // dessus) — d'où l'utilisation de regions=us plutôt que eu.
   const res = await fetch(
-    `https://api.the-odds-api.com/v4/sports/icehockey_nhl_championship_winner/odds?apiKey=${apiKey}&regions=eu&markets=outrights`,
+    `https://api.the-odds-api.com/v4/sports/icehockey_nhl_championship_winner/odds?apiKey=${apiKey}&regions=us&markets=outrights`,
     { next: { revalidate: 3600 } },
   );
 
