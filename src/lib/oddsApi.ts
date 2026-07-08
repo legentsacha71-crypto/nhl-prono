@@ -33,13 +33,16 @@ export async function getStanleyCupOdds(): Promise<StanleyCupOdds[]> {
     throw new Error("ODDS_API_KEY manquant.");
   }
 
+  // Le marché "vainqueur" (outrights) vit sous une clé de sport dédiée,
+  // différente de "icehockey_nhl" qui sert aux cotes de matchs (h2h, etc.).
   const res = await fetch(
-    `https://api.the-odds-api.com/v4/sports/icehockey_nhl/odds?apiKey=${apiKey}&regions=eu&markets=outrights`,
+    `https://api.the-odds-api.com/v4/sports/icehockey_nhl_championship_winner/odds?apiKey=${apiKey}&regions=eu&markets=outrights`,
     { next: { revalidate: 3600 } },
   );
 
   if (!res.ok) {
-    throw new Error(`Erreur The Odds API: ${res.status}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(`Erreur The Odds API: ${res.status}${body ? ` — ${body}` : ""}`);
   }
 
   const events: OddsApiEvent[] = await res.json();
