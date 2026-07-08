@@ -73,11 +73,17 @@ export default async function ProfilPage() {
   const isLocked = !season || new Date(season.lock_at) <= new Date();
 
   let stanleyCupOdds: StanleyCupOdds[] = [];
+  let stanleyCupOddsError: string | null = null;
   if (season && !isLocked) {
     try {
       stanleyCupOdds = await getStanleyCupOdds();
-    } catch {
-      stanleyCupOdds = [];
+      if (stanleyCupOdds.length === 0) {
+        stanleyCupOddsError =
+          "Aucune cote disponible pour l'instant (le marché n'est peut-être pas encore ouvert par les bookmakers).";
+      }
+    } catch (err) {
+      stanleyCupOddsError =
+        err instanceof Error ? err.message : "Erreur lors de la récupération des cotes.";
     }
   }
 
@@ -415,6 +421,8 @@ export default async function ProfilPage() {
                 </span>
                 <span className="text-neutral-500">En attente du résultat</span>
               </div>
+            ) : stanleyCupOddsError ? (
+              <p className="text-sm text-amber-500">{stanleyCupOddsError}</p>
             ) : (
               <form
                 action={submitStanleyCupPick}
