@@ -79,7 +79,7 @@ export default async function ProfilPage() {
       stanleyCupOdds = await getStanleyCupOdds();
       if (stanleyCupOdds.length === 0) {
         stanleyCupOddsError =
-          "Aucune cote disponible pour l'instant (le marché n'est peut-être pas encore ouvert par les bookmakers).";
+          "Aucune cote disponible pour l'instant : notre fournisseur de cotes n'active le suivi de la NHL qu'à l'approche de la saison. Reviens un peu plus près de la reprise.";
       }
     } catch (err) {
       stanleyCupOddsError =
