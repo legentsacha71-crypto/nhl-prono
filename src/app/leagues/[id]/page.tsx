@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
+import BottomNav from "@/components/BottomNav";
 
 export default async function LeagueDetailPage({
   params,
@@ -28,12 +29,15 @@ export default async function LeagueDetailPage({
   const ranking = await getRanking(supabase, memberIds);
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 pb-24">
       <div className="mx-auto w-full max-w-md space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-center">{league.name}</h1>
-          <p className="mt-1 text-center text-sm text-gray-500">
-            Code d&apos;invitation : <span className="font-mono">{league.code}</span>
+          <h1 className="text-2xl font-bold text-center text-sky-400">
+            {league.name}
+          </h1>
+          <p className="mt-1 text-center text-sm text-neutral-500">
+            Code d&apos;invitation :{" "}
+            <span className="font-mono text-neutral-300">{league.code}</span>
           </p>
         </div>
 
@@ -41,23 +45,29 @@ export default async function LeagueDetailPage({
           {ranking.map((entry, index) => (
             <li
               key={entry.userId}
-              className="flex items-center justify-between rounded-md border border-gray-200 p-3"
+              className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3"
             >
-              <span>
-                <span className="mr-2 text-sm text-gray-400">{index + 1}</span>
+              <span className="text-neutral-200">
+                <span className="mr-2 text-sm text-neutral-500">
+                  {index + 1}
+                </span>
                 {entry.username}
               </span>
-              <span className="font-medium">{entry.totalPoints} pts</span>
+              <span className="font-medium text-sky-400">
+                {entry.totalPoints} pts
+              </span>
             </li>
           ))}
         </ol>
 
         <p className="text-center">
-          <Link href="/leagues" className="text-sm text-blue-600">
+          <Link href="/leagues" className="text-sm text-sky-400">
             Retour à mes ligues
           </Link>
         </p>
       </div>
+
+      <BottomNav />
     </div>
   );
 }

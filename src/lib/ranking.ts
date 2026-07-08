@@ -33,6 +33,22 @@ export async function getRanking(
     );
   }
 
+  let stanleyCupQuery = supabase
+    .from("stanley_cup_picks")
+    .select("user_id, points")
+    .not("points", "is", null);
+  if (userIds) {
+    stanleyCupQuery = stanleyCupQuery.in("user_id", userIds);
+  }
+  const { data: stanleyCupPicks } = await stanleyCupQuery;
+
+  for (const p of stanleyCupPicks ?? []) {
+    pointsByUser.set(
+      p.user_id,
+      (pointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),
+    );
+  }
+
   return (profiles ?? [])
     .map((profile) => ({
       userId: profile.id as string,
