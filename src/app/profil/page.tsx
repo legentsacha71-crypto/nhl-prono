@@ -34,14 +34,14 @@ export default async function ProfilPage() {
 
   const { data: predictions } = await supabase
     .from("predictions")
-    .select("game_id, away_score, home_score, points, updated_at")
+    .select("game_id, away_score, home_score, points, is_exact_score, updated_at")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
   const all = predictions ?? [];
   const graded = all.filter((p) => p.points !== null);
   const totalPoints = graded.reduce((sum, p) => sum + (p.points ?? 0), 0);
-  const bestScore = graded.reduce((max, p) => Math.max(max, p.points ?? 0), 0);
+  const exactScoreCount = graded.filter((p) => p.is_exact_score).length;
 
   const ranking = await getRanking(supabase);
   const rank = ranking.findIndex((entry) => entry.userId === user.id) + 1;
@@ -136,8 +136,8 @@ export default async function ProfilPage() {
             <p className="text-xs text-neutral-500">Points</p>
           </div>
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
-            <p className="text-lg font-bold text-sky-400">{bestScore}</p>
-            <p className="text-xs text-neutral-500">Meilleur prono</p>
+            <p className="text-lg font-bold text-sky-400">{exactScoreCount}</p>
+            <p className="text-xs text-neutral-500">Score exact</p>
           </div>
         </div>
 

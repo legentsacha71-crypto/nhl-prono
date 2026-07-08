@@ -65,10 +65,13 @@ export async function GET(request: NextRequest) {
           actualAway: result.regulationAwayScore,
           grid,
         });
+        const isExactScore =
+          prediction.home_score === result.regulationHomeScore &&
+          prediction.away_score === result.regulationAwayScore;
 
         await supabase
           .from("predictions")
-          .update({ points })
+          .update({ points, is_exact_score: isExactScore })
           .eq("id", prediction.id);
         gradedPredictions++;
       }
