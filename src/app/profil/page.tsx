@@ -199,10 +199,10 @@ export default async function ProfilPage() {
             <img
               src={avatarUrl}
               alt={username}
-              className="h-24 w-24 rounded-full border border-neutral-700 object-cover"
+              className="h-24 w-24 rounded-full border border-neutral-700 object-cover shadow-lg shadow-black/30 ring-2 ring-neutral-800 transition-transform duration-200 hover:scale-105"
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-3xl font-bold text-neutral-400">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 text-3xl font-bold text-neutral-400 shadow-lg shadow-black/30 ring-2 ring-neutral-800 transition-transform duration-200 hover:scale-105">
               {username.slice(0, 1).toUpperCase()}
             </div>
           )}
@@ -213,11 +213,11 @@ export default async function ProfilPage() {
               name="avatar"
               accept="image/png,image/jpeg,image/webp"
               required
-              className="text-xs text-neutral-400 file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-2 file:py-1 file:text-xs file:text-neutral-200"
+              className="text-xs text-neutral-400 file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-2 file:py-1 file:text-xs file:text-neutral-200 file:transition-colors file:duration-150 hover:file:bg-neutral-700"
             />
             <button
               type="submit"
-              className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500"
             >
               Changer
             </button>
@@ -230,15 +230,15 @@ export default async function ProfilPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20 transition-transform duration-200 hover:-translate-y-0.5">
             <p className="text-lg font-bold text-sky-400">{all.length}</p>
             <p className="text-xs text-neutral-500">Pronos</p>
           </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20 transition-transform duration-200 hover:-translate-y-0.5">
             <p className="text-lg font-bold text-sky-400">{totalPoints}</p>
             <p className="text-xs text-neutral-500">Points</p>
           </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20 transition-transform duration-200 hover:-translate-y-0.5">
             <p className="text-lg font-bold text-sky-400">{exactScoreCount}</p>
             <p className="text-xs text-neutral-500">
               {exactScoreCount > 1 ? "Scores exacts" : "Score exact"}
@@ -246,15 +246,17 @@ export default async function ProfilPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-center">
-          <p className="text-sm text-neutral-400">Classement général</p>
+        <div className="rounded-lg border border-neutral-800 bg-gradient-to-r from-sky-500/10 to-neutral-900 p-4 text-center shadow-lg shadow-black/20">
+          <p className="text-sm text-neutral-400">🏆 Classement général</p>
           <p className="text-lg font-medium text-neutral-100">
             {rank > 0 ? `#${rank} sur ${ranking.length}` : "Pas encore classé"}
           </p>
         </div>
 
         <div>
-          <h2 className="mb-2 font-medium text-neutral-200">Mes pronos récents</h2>
+          <h2 className="mb-2 font-medium text-neutral-200">
+            🏒 Mes pronos récents
+          </h2>
           {recent.length === 0 ? (
             <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
               Aucun prono pour le moment.
@@ -264,7 +266,7 @@ export default async function ProfilPage() {
               {results.map(({ prediction, result }) => (
                 <li
                   key={prediction.game_id}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm"
+                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
                 >
                   <span className="text-neutral-300">
                     {result
@@ -274,7 +276,15 @@ export default async function ProfilPage() {
                       (prono {prediction.away_score}-{prediction.home_score})
                     </span>
                   </span>
-                  <span className="font-medium text-sky-400">
+                  <span
+                    className={`font-medium ${
+                      prediction.points === null
+                        ? "text-neutral-500"
+                        : prediction.points > 0
+                          ? "text-emerald-400"
+                          : "text-neutral-600"
+                    }`}
+                  >
                     {prediction.points !== null
                       ? `${prediction.points} pts`
                       : "en attente"}
@@ -286,7 +296,7 @@ export default async function ProfilPage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-medium text-neutral-200">Mes amis</h2>
+          <h2 className="mb-2 font-medium text-neutral-200">👥 Mes amis</h2>
 
           <form
             action={sendFriendRequest}
@@ -297,11 +307,11 @@ export default async function ProfilPage() {
               type="text"
               placeholder="Pseudo de ton ami"
               required
-              className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500"
+              className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
             />
             <button
               type="submit"
-              className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
+              className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500"
             >
               Ajouter
             </button>
@@ -312,7 +322,7 @@ export default async function ProfilPage() {
               {incomingRequests.map((r) => (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between rounded-lg border border-sky-800 bg-sky-950 p-3 text-sm"
+                  className="flex items-center justify-between rounded-lg border border-sky-800 bg-sky-950 p-3 text-sm shadow-md shadow-sky-950/30"
                 >
                   <span className="text-sky-100">
                     {r.requester?.username ?? "?"} veut être ton ami
@@ -323,7 +333,7 @@ export default async function ProfilPage() {
                       <input type="hidden" name="action" value="accept" />
                       <button
                         type="submit"
-                        className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white"
+                        className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition-colors duration-150 hover:bg-sky-500"
                       >
                         Accepter
                       </button>
@@ -333,7 +343,7 @@ export default async function ProfilPage() {
                       <input type="hidden" name="action" value="decline" />
                       <button
                         type="submit"
-                        className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300"
+                        className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900"
                       >
                         Refuser
                       </button>
@@ -353,7 +363,7 @@ export default async function ProfilPage() {
               {friends.map((f) => (
                 <li
                   key={f.friendshipId}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm"
+                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
                 >
                   <span className="text-neutral-200">{f.username}</span>
                   <div className="flex items-center gap-3">
@@ -368,7 +378,7 @@ export default async function ProfilPage() {
                       />
                       <button
                         type="submit"
-                        className="text-xs text-neutral-500 hover:text-red-400"
+                        className="text-xs text-neutral-500 transition-colors duration-150 hover:text-red-400"
                       >
                         Retirer
                       </button>
@@ -392,7 +402,7 @@ export default async function ProfilPage() {
 
         <div className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h2 className="font-medium text-neutral-200">Mes favoris</h2>
+            <h2 className="font-medium text-neutral-200">⭐ Mes favoris</h2>
             {lockGroups.size > 0 && (
               <div className="text-right text-xs text-neutral-500">
                 {[...lockGroups.entries()].map(([lockAt, labels]) => (
@@ -404,7 +414,7 @@ export default async function ProfilPage() {
             )}
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
             <p className="mb-2 text-sm font-medium text-neutral-300">
               Vainqueur de la coupe Stanley
             </p>
@@ -447,7 +457,7 @@ export default async function ProfilPage() {
             )}
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
             <p className="mb-2 text-sm font-medium text-neutral-300">
               Meilleur buteur de la saison
             </p>
