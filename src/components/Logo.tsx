@@ -19,9 +19,6 @@ export default function Logo({ size = "md", className = "" }: LogoProps) {
     >
       <span>La Nuit</span>
       <span className="text-sky-400">Hockey</span>
-      <span aria-hidden className="not-italic">
-        🏒
-      </span>
     </span>
   );
 }

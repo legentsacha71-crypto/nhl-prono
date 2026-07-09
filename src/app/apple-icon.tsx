@@ -31,7 +31,6 @@ export default function AppleIcon() {
         >
           LNH
         </div>
-        <div style={{ fontSize: 40, marginTop: 4 }}>🏒</div>
       </div>
     ),
     { ...size },
