@@ -5,6 +5,7 @@ import { signout } from "./login/actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
+import Logo from "@/components/Logo";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -26,11 +27,7 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 pt-20 pb-24">
       <TopBar />
       <div className="text-center">
-        <img
-          src="/logo-la-nuit-nhl.png"
-          alt="La Nuit NHL"
-          className="mx-auto h-24 w-auto"
-        />
+        <Logo size="lg" className="justify-center" />
         <p className="mt-2 text-neutral-400">
           Content de te revoir, {profile?.username ?? user?.email}
         </p>

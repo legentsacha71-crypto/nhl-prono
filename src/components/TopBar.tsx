@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import Logo from "@/components/Logo";
 
 export default async function TopBar() {
   const supabase = await createClient();
@@ -21,11 +22,7 @@ export default async function TopBar() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-neutral-800 bg-neutral-900/95 backdrop-blur pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-2">
         <Link href="/" className="flex items-center gap-2">
-          <img
-            src="/logo-la-nuit-nhl.png"
-            alt="La Nuit NHL"
-            className="h-8 w-auto"
-          />
+          <Logo size="sm" />
         </Link>
 
         <div className="flex items-center gap-4">

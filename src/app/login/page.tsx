@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { login } from "./actions";
+import Logo from "@/components/Logo";
 
 export default async function LoginPage({
   searchParams,
@@ -11,11 +12,7 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
-        <img
-          src="/logo-la-nuit-nhl.png"
-          alt="La Nuit NHL"
-          className="mx-auto h-20 w-auto"
-        />
+        <Logo size="md" className="justify-center" />
         <h2 className="text-center text-neutral-400">Se connecter</h2>
 
         {error && (

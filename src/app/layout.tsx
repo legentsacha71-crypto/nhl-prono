@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "La Nuit NHL",
-  description: "Pronostics de scores NHL entre amis",
+  title: "La Nuit Hockey",
+  description: "Pronostics de scores de hockey entre amis",
 };
 
 export default function RootLayout({
