@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
-import { NHL_TEAMS, getTeamName } from "@/lib/nhlTeams";
+import { getTeamName } from "@/lib/nhlTeams";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import {
   updateFavoriteTeam,
@@ -15,7 +15,7 @@ import {
 } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
-import TeamBadge from "@/components/TeamBadge";
+import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -194,42 +194,10 @@ export default async function ProfilPage() {
             </button>
           </form>
 
-          <details className="group relative">
-            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 marker:content-none [&::-webkit-details-marker]:hidden">
-              {favoriteTeam ? (
-                <>
-                  <TeamBadge abbrev={favoriteTeam} name={getTeamName(favoriteTeam)} size={28} />
-                  <span>{getTeamName(favoriteTeam)}</span>
-                </>
-              ) : (
-                <span className="text-neutral-400">Choisir une équipe favorite</span>
-              )}
-              <span className="ml-auto text-neutral-500 transition-transform group-open:rotate-180">
-                ▾
-              </span>
-            </summary>
-
-            <div className="absolute left-1/2 z-50 mt-2 w-80 max-w-[90vw] -translate-x-1/2 rounded-xl border border-neutral-800 bg-neutral-950 p-3 shadow-xl">
-              <form action={updateFavoriteTeam}>
-                <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
-                  {NHL_TEAMS.map((team) => (
-                    <button
-                      key={team.abbrev}
-                      type="submit"
-                      name="favoriteTeam"
-                      value={team.abbrev}
-                      className="flex flex-col items-center gap-1 rounded-lg p-1 hover:bg-neutral-900"
-                    >
-                      <TeamBadge abbrev={team.abbrev} name={team.name} size={40} />
-                      <span className="text-center text-[9px] leading-tight text-neutral-400">
-                        {team.abbrev}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </form>
-            </div>
-          </details>
+          <FavoriteTeamPicker
+            favoriteTeam={favoriteTeam}
+            updateFavoriteTeam={updateFavoriteTeam}
+          />
         </div>
 
         <div className="grid grid-cols-3 gap-3 text-center">
