@@ -194,35 +194,42 @@ export default async function ProfilPage() {
             </button>
           </form>
 
-          {favoriteTeam && (
-            <div className="flex items-center gap-2">
-              <TeamBadge abbrev={favoriteTeam} name={getTeamName(favoriteTeam)} size={32} />
-              <span className="text-sm text-neutral-300">
-                {getTeamName(favoriteTeam)}
+          <details className="group relative">
+            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 marker:content-none [&::-webkit-details-marker]:hidden">
+              {favoriteTeam ? (
+                <>
+                  <TeamBadge abbrev={favoriteTeam} name={getTeamName(favoriteTeam)} size={28} />
+                  <span>{getTeamName(favoriteTeam)}</span>
+                </>
+              ) : (
+                <span className="text-neutral-400">Choisir une équipe favorite</span>
+              )}
+              <span className="ml-auto text-neutral-500 transition-transform group-open:rotate-180">
+                ▾
               </span>
-            </div>
-          )}
+            </summary>
 
-          <form action={updateFavoriteTeam} className="flex items-center gap-2">
-            <select
-              name="favoriteTeam"
-              defaultValue={favoriteTeam ?? ""}
-              className="rounded-md border border-neutral-700 bg-neutral-900 p-1 text-xs text-neutral-100"
-            >
-              <option value="">Équipe favorite…</option>
-              {NHL_TEAMS.map((team) => (
-                <option key={team.abbrev} value={team.abbrev}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white"
-            >
-              OK
-            </button>
-          </form>
+            <div className="absolute left-1/2 z-50 mt-2 w-80 max-w-[90vw] -translate-x-1/2 rounded-xl border border-neutral-800 bg-neutral-950 p-3 shadow-xl">
+              <form action={updateFavoriteTeam}>
+                <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
+                  {NHL_TEAMS.map((team) => (
+                    <button
+                      key={team.abbrev}
+                      type="submit"
+                      name="favoriteTeam"
+                      value={team.abbrev}
+                      className="flex flex-col items-center gap-1 rounded-lg p-1 hover:bg-neutral-900"
+                    >
+                      <TeamBadge abbrev={team.abbrev} name={team.name} size={40} />
+                      <span className="text-center text-[9px] leading-tight text-neutral-400">
+                        {team.abbrev}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </form>
+            </div>
+          </details>
         </div>
 
         <div className="grid grid-cols-3 gap-3 text-center">
