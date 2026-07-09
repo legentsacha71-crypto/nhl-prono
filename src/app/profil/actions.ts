@@ -7,9 +7,7 @@ import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { getStanleyCupOdds } from "@/lib/oddsApi";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 
-export async function updateFavoriteTeam(formData: FormData) {
-  const favoriteTeam = formData.get("favoriteTeam") as string;
-
+export async function updateFavoriteTeam(favoriteTeam: string | null) {
   if (favoriteTeam && !NHL_TEAMS.some((t) => t.abbrev === favoriteTeam)) {
     throw new Error("Équipe invalide.");
   }

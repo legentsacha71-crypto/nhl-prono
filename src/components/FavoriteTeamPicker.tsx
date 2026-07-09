@@ -6,7 +6,7 @@ import { NHL_TEAMS, getTeamName } from "@/lib/nhlTeams";
 
 type FavoriteTeamPickerProps = {
   favoriteTeam: string | null | undefined;
-  updateFavoriteTeam: (formData: FormData) => Promise<void>;
+  updateFavoriteTeam: (favoriteTeam: string | null) => Promise<void>;
 };
 
 // Ancienne version basée sur <details>/<summary> : cliquer sur une équipe
@@ -21,13 +21,19 @@ export default function FavoriteTeamPicker({
 }: FavoriteTeamPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function handlePick(abbrev: string) {
     setIsOpen(false);
-    const formData = new FormData();
-    formData.set("favoriteTeam", abbrev);
-    startTransition(() => {
-      updateFavoriteTeam(formData);
+    setError(null);
+    startTransition(async () => {
+      try {
+        await updateFavoriteTeam(abbrev);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Erreur lors de la sauvegarde.",
+        );
+      }
     });
   }
 
@@ -79,6 +85,12 @@ export default function FavoriteTeamPicker({
             ))}
           </div>
         </div>
+      )}
+
+      {error && (
+        <p className="absolute left-1/2 mt-1 w-max max-w-[90vw] -translate-x-1/2 text-xs text-red-400">
+          {error}
+        </p>
       )}
     </div>
   );
