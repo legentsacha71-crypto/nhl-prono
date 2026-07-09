@@ -3,7 +3,7 @@ import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
 import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
 import { getTeamName } from "@/lib/nhlTeams";
-import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
+import { TOP_SCORER_CANDIDATES, getTopScorerPoints } from "@/lib/nhlScorers";
 import {
   updateFavoriteTeam,
   submitStanleyCupPick,
@@ -102,7 +102,7 @@ export default async function ProfilPage() {
 
   const { data: topScorerSeason } = await supabase
     .from("top_scorer_season")
-    .select("lock_at, winner_player, points_reward")
+    .select("lock_at, winner_player")
     .eq("id", 1)
     .single();
 
@@ -484,7 +484,11 @@ export default async function ProfilPage() {
                     ? `Ton pick (verrouillé) : ${myTopScorerPick.player_name}`
                     : "Verrouillé, tu n'as pas fait de pick."}
                 </span>
-                <span className="text-neutral-500">En attente du résultat</span>
+                <span className="text-neutral-500">
+                  {myTopScorerPick
+                    ? `${getTopScorerPoints(myTopScorerPick.player_name) ?? 0} pts si bon`
+                    : "En attente du résultat"}
+                </span>
               </div>
             ) : (
               <TopScorerPicker
@@ -495,7 +499,9 @@ export default async function ProfilPage() {
             )}
             {topScorerSeason && !topScorerSeason.winner_player && (
               <p className="mt-2 text-xs text-neutral-500">
-                Bonne réponse = {topScorerSeason.points_reward} points.
+                Les points varient selon le joueur choisi : plus il est
+                outsider, plus tu gagnes de points s&apos;il devient meilleur
+                buteur.
               </p>
             )}
           </div>

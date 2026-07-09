@@ -135,7 +135,10 @@ export async function submitStanleyCupPick(teamAbbrev: string) {
 }
 
 export async function submitTopScorerPick(playerName: string) {
-  if (!playerName || !TOP_SCORER_CANDIDATES.includes(playerName)) {
+  if (
+    !playerName ||
+    !TOP_SCORER_CANDIDATES.some((c) => c.name === playerName)
+  ) {
     throw new Error("Joueur invalide.");
   }
 

@@ -2,8 +2,14 @@
 
 import { useState, useTransition } from "react";
 
+type TopScorerCandidate = {
+  name: string;
+  probability: number;
+  points: number;
+};
+
 type TopScorerPickerProps = {
-  players: string[];
+  players: TopScorerCandidate[];
   initialPlayer: string | null;
   submitPick: (playerName: string) => Promise<void>;
 };
@@ -24,6 +30,8 @@ export default function TopScorerPicker({
   const [saved, setSaved] = useState(initialPlayer);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const selectedCandidate = players.find((p) => p.name === selected);
 
   function handleSave() {
     if (!selected) {
@@ -53,9 +61,9 @@ export default function TopScorerPicker({
           className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
         >
           <option value="">Choisir un joueur…</option>
-          {players.map((name) => (
-            <option key={name} value={name}>
-              {name}
+          {players.map((p) => (
+            <option key={p.name} value={p.name}>
+              {p.name} ({p.points} pts)
             </option>
           ))}
         </select>
@@ -68,6 +76,15 @@ export default function TopScorerPicker({
           {isPending ? "…" : "Sauvegarder"}
         </button>
       </div>
+      {selectedCandidate && (
+        <p className="text-xs text-neutral-500">
+          S&apos;il devient meilleur buteur, tu gagnes{" "}
+          <span className="font-medium text-sky-400">
+            {selectedCandidate.points} points
+          </span>{" "}
+          (probabilité estimée : {selectedCandidate.probability}%).
+        </p>
+      )}
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
