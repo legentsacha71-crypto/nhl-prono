@@ -6,6 +6,7 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
 import Logo from "@/components/Logo";
+import RulesCard from "@/components/RulesCard";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -34,6 +35,8 @@ export default async function Home() {
       </div>
 
       {seasonStartDate && <SeasonCountdown targetDate={seasonStartDate} />}
+
+      <RulesCard />
 
       <div className="grid w-full max-w-md grid-cols-2 gap-3">
         <Link
