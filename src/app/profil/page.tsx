@@ -8,6 +8,7 @@ import {
 } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES, getTopScorerPoints } from "@/lib/nhlScorers";
 import { getRingForPoints, getNextRingTier } from "@/lib/profileRings";
+import RingInfoBadge from "@/components/RingInfoBadge";
 import {
   updateFavoriteTeam,
   submitStanleyCupPick,
@@ -193,7 +194,7 @@ export default async function ProfilPage() {
             <img
               src={ring.image}
               alt={`Palier ${ring.label}`}
-              className="pointer-events-none absolute inset-0 h-28 w-28"
+              className="pointer-events-none absolute inset-0 h-28 w-28 object-contain"
             />
             <div className="absolute inset-0 flex items-center justify-center">
               {avatarUrl ? (
@@ -210,11 +211,11 @@ export default async function ProfilPage() {
             </div>
           </div>
 
-          <p className="text-xs font-medium text-neutral-400">
+          <p className="flex items-center gap-1 text-xs font-medium text-neutral-400">
             {ring.label}
+            <RingInfoBadge />
             {nextRingTier && (
               <span className="text-neutral-600">
-                {" "}
                 · encore {nextRingTier.threshold - combinedPoints} pts pour{" "}
                 {nextRingTier.label}
               </span>
