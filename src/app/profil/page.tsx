@@ -7,6 +7,7 @@ import {
   getStanleyCupPoints,
 } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES, getTopScorerPoints } from "@/lib/nhlScorers";
+import { getRingForPoints, getNextRingTier } from "@/lib/profileRings";
 import {
   updateFavoriteTeam,
   submitStanleyCupPick,
@@ -73,6 +74,10 @@ export default async function ProfilPage() {
 
   const ranking = await getRanking(supabase);
   const rank = ranking.findIndex((entry) => entry.userId === user.id) + 1;
+  const combinedPoints =
+    ranking.find((entry) => entry.userId === user.id)?.totalPoints ?? 0;
+  const ring = getRingForPoints(combinedPoints);
+  const nextRingTier = getNextRingTier(combinedPoints);
 
   const { data: season } = await supabase
     .from("stanley_cup_season")
@@ -183,17 +188,38 @@ export default async function ProfilPage() {
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
 
-          {avatarUrl ? (
+          <div className="relative h-28 w-28">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={avatarUrl}
-              alt={username}
-              className="h-24 w-24 rounded-full border border-neutral-700 object-cover shadow-lg shadow-black/30 ring-2 ring-neutral-800 transition-transform duration-200 hover:scale-105"
+              src={ring.image}
+              alt={`Palier ${ring.label}`}
+              className="pointer-events-none absolute inset-0 h-28 w-28"
             />
-          ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 text-3xl font-bold text-neutral-400 shadow-lg shadow-black/30 ring-2 ring-neutral-800 transition-transform duration-200 hover:scale-105">
-              {username.slice(0, 1).toUpperCase()}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={username}
+                  className="h-24 w-24 rounded-full border border-neutral-700 object-cover shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 text-3xl font-bold text-neutral-400 shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-105">
+                  {username.slice(0, 1).toUpperCase()}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          <p className="text-xs font-medium text-neutral-400">
+            {ring.label}
+            {nextRingTier && (
+              <span className="text-neutral-600">
+                {" "}
+                · encore {nextRingTier.threshold - combinedPoints} pts pour{" "}
+                {nextRingTier.label}
+              </span>
+            )}
+          </p>
 
           <form action={uploadAvatar} className="flex items-center gap-2">
             <input
