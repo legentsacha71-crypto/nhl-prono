@@ -190,12 +190,6 @@ export default async function ProfilPage() {
           <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
 
           <div className="relative h-28 w-28">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={ring.image}
-              alt={`Palier ${ring.label}`}
-              className="pointer-events-none absolute inset-0 h-28 w-28 object-contain"
-            />
             <div className="absolute inset-0 flex items-center justify-center">
               {avatarUrl ? (
                 <img
@@ -209,6 +203,12 @@ export default async function ProfilPage() {
                 </div>
               )}
             </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ring.image}
+              alt={`Palier ${ring.label}`}
+              className="pointer-events-none absolute inset-0 z-10 h-28 w-28 object-contain"
+            />
           </div>
 
           <p className="flex items-center gap-1 text-xs font-medium text-neutral-400">
