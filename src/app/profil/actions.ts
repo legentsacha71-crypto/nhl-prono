@@ -87,9 +87,7 @@ export async function uploadAvatar(formData: FormData) {
   revalidatePath("/profil");
 }
 
-export async function submitStanleyCupPick(formData: FormData) {
-  const teamAbbrev = formData.get("teamAbbrev") as string;
-
+export async function submitStanleyCupPick(teamAbbrev: string) {
   if (!teamAbbrev || !NHL_TEAMS.some((t) => t.abbrev === teamAbbrev)) {
     throw new Error("Équipe invalide.");
   }
@@ -136,9 +134,7 @@ export async function submitStanleyCupPick(formData: FormData) {
   revalidatePath("/profil");
 }
 
-export async function submitTopScorerPick(formData: FormData) {
-  const playerName = formData.get("playerName") as string;
-
+export async function submitTopScorerPick(playerName: string) {
   if (!playerName || !TOP_SCORER_CANDIDATES.includes(playerName)) {
     throw new Error("Joueur invalide.");
   }

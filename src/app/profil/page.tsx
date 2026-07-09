@@ -16,6 +16,8 @@ import {
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
+import StanleyCupPicker from "@/components/StanleyCupPicker";
+import TopScorerPicker from "@/components/TopScorerPicker";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -396,30 +398,14 @@ export default async function ProfilPage() {
             ) : stanleyCupOddsError ? (
               <p className="text-sm text-amber-500">{stanleyCupOddsError}</p>
             ) : (
-              <form
-                action={submitStanleyCupPick}
-                className="flex items-center gap-2"
-              >
-                <select
-                  key={myPick?.team_abbrev ?? ""}
-                  name="teamAbbrev"
-                  defaultValue={myPick?.team_abbrev ?? ""}
-                  className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100"
-                >
-                  <option value="">Choisir une équipe…</option>
-                  {stanleyCupOdds.map((o) => (
-                    <option key={o.abbrev} value={o.abbrev}>
-                      {o.name} (cote {o.price.toFixed(2)})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
-                >
-                  {myPick ? "Modifier" : "Valider"}
-                </button>
-              </form>
+              <StanleyCupPicker
+                options={stanleyCupOdds.map((o) => ({
+                  abbrev: o.abbrev,
+                  label: `${o.name} (cote ${o.price.toFixed(2)})`,
+                }))}
+                initialTeam={myPick?.team_abbrev ?? null}
+                submitPick={submitStanleyCupPick}
+              />
             )}
           </div>
 
@@ -453,30 +439,11 @@ export default async function ProfilPage() {
                 <span className="text-neutral-500">En attente du résultat</span>
               </div>
             ) : (
-              <form
-                action={submitTopScorerPick}
-                className="flex items-center gap-2"
-              >
-                <select
-                  key={myTopScorerPick?.player_name ?? ""}
-                  name="playerName"
-                  defaultValue={myTopScorerPick?.player_name ?? ""}
-                  className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100"
-                >
-                  <option value="">Choisir un joueur…</option>
-                  {TOP_SCORER_CANDIDATES.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
-                >
-                  {myTopScorerPick ? "Modifier" : "Valider"}
-                </button>
-              </form>
+              <TopScorerPicker
+                players={TOP_SCORER_CANDIDATES}
+                initialPlayer={myTopScorerPick?.player_name ?? null}
+                submitPick={submitTopScorerPick}
+              />
             )}
             {topScorerSeason && !topScorerSeason.winner_player && (
               <p className="mt-2 text-xs text-neutral-500">
