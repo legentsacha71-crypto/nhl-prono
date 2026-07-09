@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 type StanleyCupPickerOption = {
   abbrev: string;
   label: string;
+  points: number;
+  probability?: number;
 };
 
 type StanleyCupPickerProps = {
@@ -25,6 +27,8 @@ export default function StanleyCupPicker({
   const [saved, setSaved] = useState(initialTeam);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const selectedOption = options.find((o) => o.abbrev === selected);
 
   function handleSave() {
     if (!selected) {
@@ -56,7 +60,7 @@ export default function StanleyCupPicker({
           <option value="">Choisir une équipe…</option>
           {options.map((o) => (
             <option key={o.abbrev} value={o.abbrev}>
-              {o.label}
+              {o.label} ({o.points} pts)
             </option>
           ))}
         </select>
@@ -69,6 +73,17 @@ export default function StanleyCupPicker({
           {isPending ? "…" : "Sauvegarder"}
         </button>
       </div>
+      {selectedOption && (
+        <p className="text-xs text-neutral-500">
+          Si elle gagne la coupe, tu gagnes{" "}
+          <span className="font-medium text-sky-400">
+            {selectedOption.points} points
+          </span>
+          {selectedOption.probability !== undefined &&
+            ` (probabilité estimée : ${selectedOption.probability}%)`}
+          .
+        </p>
+      )}
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );

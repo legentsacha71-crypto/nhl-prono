@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NHL_TEAMS } from "@/lib/nhlTeams";
-import { getStanleyCupOdds } from "@/lib/oddsApi";
+import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 
 export async function updateFavoriteTeam(favoriteTeam: string | null) {
@@ -88,7 +88,10 @@ export async function uploadAvatar(formData: FormData) {
 }
 
 export async function submitStanleyCupPick(teamAbbrev: string) {
-  if (!teamAbbrev || !NHL_TEAMS.some((t) => t.abbrev === teamAbbrev)) {
+  if (
+    !teamAbbrev ||
+    !STANLEY_CUP_CANDIDATES.some((c) => c.abbrev === teamAbbrev)
+  ) {
     throw new Error("Équipe invalide.");
   }
 
@@ -111,17 +114,10 @@ export async function submitStanleyCupPick(teamAbbrev: string) {
     throw new Error("Les pronostics coupe Stanley sont verrouillés.");
   }
 
-  const odds = await getStanleyCupOdds();
-  const teamOdds = odds.find((o) => o.abbrev === teamAbbrev);
-  if (!teamOdds) {
-    throw new Error("Cote indisponible pour cette équipe.");
-  }
-
   const { error } = await supabase.from("stanley_cup_picks").upsert(
     {
       user_id: user.id,
       team_abbrev: teamAbbrev,
-      odds_price: teamOdds.price,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

@@ -1,8 +1,11 @@
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
-import { getStanleyCupOdds, type StanleyCupOdds } from "@/lib/oddsApi";
 import { getTeamName } from "@/lib/nhlTeams";
+import {
+  STANLEY_CUP_CANDIDATES,
+  getStanleyCupPoints,
+} from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES, getTopScorerPoints } from "@/lib/nhlScorers";
 import {
   updateFavoriteTeam,
@@ -79,26 +82,11 @@ export default async function ProfilPage() {
 
   const { data: myPick } = await supabase
     .from("stanley_cup_picks")
-    .select("team_abbrev, odds_price, points")
+    .select("team_abbrev, points")
     .eq("user_id", user.id)
     .maybeSingle();
 
   const isLocked = !season || new Date(season.lock_at) <= new Date();
-
-  let stanleyCupOdds: StanleyCupOdds[] = [];
-  let stanleyCupOddsError: string | null = null;
-  if (season && !isLocked) {
-    try {
-      stanleyCupOdds = await getStanleyCupOdds();
-      if (stanleyCupOdds.length === 0) {
-        stanleyCupOddsError =
-          "Aucune cote disponible pour l'instant : notre fournisseur de cotes n'active le suivi de la NHL qu'à l'approche de la saison. Reviens un peu plus près de la reprise.";
-      }
-    } catch (err) {
-      stanleyCupOddsError =
-        err instanceof Error ? err.message : "Erreur lors de la récupération des cotes.";
-    }
-  }
 
   const { data: topScorerSeason } = await supabase
     .from("top_scorer_season")
@@ -441,19 +429,29 @@ export default async function ProfilPage() {
                     ? `Ton pick (verrouillé) : ${getTeamName(myPick.team_abbrev)}`
                     : "Verrouillé, tu n'as pas fait de pick."}
                 </span>
-                <span className="text-neutral-500">En attente du résultat</span>
+                <span className="text-neutral-500">
+                  {myPick
+                    ? `${getStanleyCupPoints(myPick.team_abbrev) ?? 0} pts si bon`
+                    : "En attente du résultat"}
+                </span>
               </div>
-            ) : stanleyCupOddsError ? (
-              <p className="text-sm text-amber-500">{stanleyCupOddsError}</p>
             ) : (
               <StanleyCupPicker
-                options={stanleyCupOdds.map((o) => ({
-                  abbrev: o.abbrev,
-                  label: `${o.name} (cote ${o.price.toFixed(2)})`,
+                options={STANLEY_CUP_CANDIDATES.map((c) => ({
+                  abbrev: c.abbrev,
+                  label: getTeamName(c.abbrev),
+                  points: c.points,
+                  probability: c.probability,
                 }))}
                 initialTeam={myPick?.team_abbrev ?? null}
                 submitPick={submitStanleyCupPick}
               />
+            )}
+            {season && !season.winner_team && (
+              <p className="mt-2 text-xs text-neutral-500">
+                Les points varient selon l&apos;équipe choisie : plus elle est
+                outsider, plus tu gagnes de points si elle gagne la coupe.
+              </p>
             )}
           </div>
 
