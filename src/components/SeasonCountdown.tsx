@@ -31,27 +31,24 @@ export default function SeasonCountdown({
   if (!timeLeft) return null;
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-center">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-center shadow-lg shadow-black/20">
       <p className="mb-2 text-sm text-neutral-400">
         Début de la saison régulière
       </p>
       <div className="flex justify-center gap-4">
-        <div>
-          <p className="text-xl font-bold text-sky-400">{timeLeft.days}</p>
-          <p className="text-xs text-neutral-500">jours</p>
-        </div>
-        <div>
-          <p className="text-xl font-bold text-sky-400">{timeLeft.hours}</p>
-          <p className="text-xs text-neutral-500">h</p>
-        </div>
-        <div>
-          <p className="text-xl font-bold text-sky-400">{timeLeft.minutes}</p>
-          <p className="text-xs text-neutral-500">min</p>
-        </div>
-        <div>
-          <p className="text-xl font-bold text-sky-400">{timeLeft.seconds}</p>
-          <p className="text-xs text-neutral-500">s</p>
-        </div>
+        {[
+          { value: timeLeft.days, label: "jours" },
+          { value: timeLeft.hours, label: "h" },
+          { value: timeLeft.minutes, label: "min" },
+          { value: timeLeft.seconds, label: "s" },
+        ].map((unit) => (
+          <div key={unit.label}>
+            <p className="bg-gradient-to-b from-sky-300 to-sky-500 bg-clip-text text-2xl font-black text-transparent drop-shadow-[0_0_10px_rgba(56,189,248,0.25)]">
+              {unit.value}
+            </p>
+            <p className="text-xs text-neutral-500">{unit.label}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -18,7 +18,9 @@ export default function Logo({ size = "md", className = "" }: LogoProps) {
       className={`inline-flex items-center gap-2 font-black italic tracking-tight text-neutral-100 ${SIZES[size]} ${className}`}
     >
       <span>La Nuit</span>
-      <span className="text-sky-400">Hockey</span>
+      <span className="bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent drop-shadow-[0_0_14px_rgba(56,189,248,0.35)]">
+        Hockey
+      </span>
     </span>
   );
 }

@@ -51,7 +51,7 @@ export default function StanleyCupPicker({
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
           disabled={isPending}
-          className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100"
+          className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
         >
           <option value="">Choisir une équipe…</option>
           {options.map((o) => (
@@ -64,7 +64,7 @@ export default function StanleyCupPicker({
           type="button"
           onClick={handleSave}
           disabled={isPending || !selected || selected === saved}
-          className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-md shadow-sky-950/40 transition-all duration-150 hover:bg-sky-500 active:scale-[0.97] disabled:opacity-50 disabled:hover:bg-sky-600 disabled:active:scale-100"
         >
           {isPending ? "…" : "Sauvegarder"}
         </button>

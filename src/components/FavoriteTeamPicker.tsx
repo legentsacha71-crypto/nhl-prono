@@ -42,7 +42,7 @@ export default function FavoriteTeamPicker({
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100"
+        className="flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 shadow-sm shadow-black/20 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-800"
       >
         {favoriteTeam ? (
           <>
@@ -75,7 +75,7 @@ export default function FavoriteTeamPicker({
                 type="button"
                 onClick={() => handlePick(team.abbrev)}
                 disabled={isPending}
-                className="flex flex-col items-center gap-1 rounded-lg p-1 hover:bg-neutral-900 disabled:opacity-50"
+                className="flex flex-col items-center gap-1 rounded-lg p-1 transition-colors duration-150 hover:bg-neutral-900 disabled:opacity-50"
               >
                 <TeamBadge abbrev={team.abbrev} name={team.name} size={40} />
                 <span className="text-center text-[9px] leading-tight text-neutral-400">

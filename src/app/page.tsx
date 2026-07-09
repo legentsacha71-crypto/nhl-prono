@@ -41,7 +41,7 @@ export default async function Home() {
       <div className="grid w-full max-w-md grid-cols-2 gap-3">
         <Link
           href="/chat"
-          className="flex flex-col items-center gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:bg-neutral-800"
+          className="flex flex-col items-center gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-800/60 hover:bg-neutral-800 hover:shadow-lg active:translate-y-0"
         >
           <span className="text-2xl">💬</span>
           <span className="text-sm font-medium text-neutral-200">
@@ -50,7 +50,7 @@ export default async function Home() {
         </Link>
         <Link
           href="/notifications"
-          className="flex flex-col items-center gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:bg-neutral-800"
+          className="flex flex-col items-center gap-1 rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-800/60 hover:bg-neutral-800 hover:shadow-lg active:translate-y-0"
         >
           <span className="text-2xl">🔔</span>
           <span className="text-sm font-medium text-neutral-200">
@@ -60,7 +60,7 @@ export default async function Home() {
       </div>
 
       <form action={signout}>
-        <button className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300">
+        <button className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900 hover:text-neutral-100">
           Se déconnecter
         </button>
       </form>
