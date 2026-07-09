@@ -19,6 +19,16 @@ import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import StanleyCupPicker from "@/components/StanleyCupPicker";
 import TopScorerPicker from "@/components/TopScorerPicker";
 
+function formatLockCountdown(lockAt: string): string {
+  const diffMs = new Date(lockAt).getTime() - Date.now();
+  const days = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const dateLabel = new Date(lockAt).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+  });
+  return `${days} jour${days > 1 ? "s" : ""} (${dateLabel})`;
+}
+
 export default async function ProfilPage() {
   const supabase = await createClient();
   const {
@@ -104,6 +114,23 @@ export default async function ProfilPage() {
 
   const isTopScorerLocked =
     !topScorerSeason || new Date(topScorerSeason.lock_at) <= new Date();
+
+  const lockEntries: { label: string; lockAt: string }[] = [];
+  if (season && !season.winner_team && !isLocked) {
+    lockEntries.push({ label: "Coupe Stanley", lockAt: season.lock_at });
+  }
+  if (topScorerSeason && !topScorerSeason.winner_player && !isTopScorerLocked) {
+    lockEntries.push({
+      label: "Meilleur buteur",
+      lockAt: topScorerSeason.lock_at,
+    });
+  }
+  const lockGroups = new Map<string, string[]>();
+  for (const entry of lockEntries) {
+    const labels = lockGroups.get(entry.lockAt) ?? [];
+    labels.push(entry.label);
+    lockGroups.set(entry.lockAt, labels);
+  }
 
   const recent = all.slice(0, 8);
   const results = await Promise.all(
@@ -364,7 +391,18 @@ export default async function ProfilPage() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="font-medium text-neutral-200">Mes favoris</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h2 className="font-medium text-neutral-200">Mes favoris</h2>
+            {lockGroups.size > 0 && (
+              <div className="text-right text-xs text-neutral-500">
+                {[...lockGroups.entries()].map(([lockAt, labels]) => (
+                  <p key={lockAt}>
+                    🔒 {labels.join(" & ")} : {formatLockCountdown(lockAt)}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
             <p className="mb-2 text-sm font-medium text-neutral-300">
