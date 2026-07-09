@@ -401,6 +401,7 @@ export default async function ProfilPage() {
                 className="flex items-center gap-2"
               >
                 <select
+                  key={myPick?.team_abbrev ?? ""}
                   name="teamAbbrev"
                   defaultValue={myPick?.team_abbrev ?? ""}
                   className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100"
@@ -457,6 +458,7 @@ export default async function ProfilPage() {
                 className="flex items-center gap-2"
               >
                 <select
+                  key={myTopScorerPick?.player_name ?? ""}
                   name="playerName"
                   defaultValue={myTopScorerPick?.player_name ?? ""}
                   className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100"
