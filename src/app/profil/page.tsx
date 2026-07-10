@@ -17,8 +17,6 @@ import {
   respondToFriendRequest,
   removeFriend,
   submitTopScorerPick,
-  createCheckoutSession,
-  createPortalSession,
 } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -56,14 +54,13 @@ export default async function ProfilPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, favorite_team, avatar_url, is_premium")
+    .select("username, favorite_team, avatar_url")
     .eq("id", user.id)
     .single();
 
   const username = profile?.username ?? user.email ?? "Joueur";
   const favoriteTeam = profile?.favorite_team as string | null | undefined;
   const avatarUrl = profile?.avatar_url as string | null | undefined;
-  const isPremium = profile?.is_premium ?? false;
 
   const { data: predictions } = await supabase
     .from("predictions")
@@ -262,66 +259,6 @@ export default async function ProfilPage() {
               {exactScoreCount > 1 ? "Scores exacts" : "Score exact"}
             </p>
           </div>
-        </div>
-
-        <div className="rounded-lg border border-amber-500/30 bg-neutral-900 p-4 shadow-md shadow-black/20">
-          {isPremium ? (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-neutral-200">
-                ⭐ Abonnement <span className="font-medium text-amber-400">Premium</span> actif
-              </p>
-              <form action={createPortalSession}>
-                <button
-                  type="submit"
-                  className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors duration-150 hover:bg-neutral-800"
-                >
-                  Gérer
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-neutral-200">
-                ⭐ Passe en <span className="text-amber-400">Premium</span>
-              </p>
-              <p className="text-xs text-neutral-500">
-                Boost x2 sur un match par semaine, plus de pub, et plus à
-                venir.
-              </p>
-              <div className="flex gap-2">
-                <form action={createCheckoutSession} className="flex-1">
-                  <input type="hidden" name="plan" value="monthly" />
-                  <button
-                    type="submit"
-                    className="w-full rounded-md bg-amber-500 px-3 py-2 text-xs font-medium text-neutral-950 transition-colors duration-150 hover:bg-amber-400"
-                  >
-                    Mensuel
-                    <span className="block text-[10px] font-normal">3€/mois</span>
-                  </button>
-                </form>
-                <form action={createCheckoutSession} className="flex-1">
-                  <input type="hidden" name="plan" value="semiannual" />
-                  <button
-                    type="submit"
-                    className="w-full rounded-md border border-amber-500/50 px-3 py-2 text-xs font-medium text-amber-400 transition-colors duration-150 hover:bg-amber-500/10"
-                  >
-                    6 mois
-                    <span className="block text-[10px] font-normal">13,99€</span>
-                  </button>
-                </form>
-                <form action={createCheckoutSession} className="flex-1">
-                  <input type="hidden" name="plan" value="annual" />
-                  <button
-                    type="submit"
-                    className="w-full rounded-md border border-amber-500/50 px-3 py-2 text-xs font-medium text-amber-400 transition-colors duration-150 hover:bg-amber-500/10"
-                  >
-                    Annuel
-                    <span className="block text-[10px] font-normal">30€/an</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="rounded-lg border border-neutral-800 bg-gradient-to-r from-sky-500/10 to-neutral-900 p-4 text-center shadow-lg shadow-black/20">

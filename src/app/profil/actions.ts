@@ -1,13 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
-import { stripe, SITE_URL } from "@/lib/stripe";
 
 export async function updateFavoriteTeam(favoriteTeam: string | null) {
   if (favoriteTeam && !NHL_TEAMS.some((t) => t.abbrev === favoriteTeam)) {
@@ -342,85 +340,3 @@ export async function removeFriend(formData: FormData) {
   revalidatePath("/profil");
 }
 
-const STRIPE_PLAN_ENV_VARS = {
-  monthly: "STRIPE_PRICE_MONTHLY",
-  semiannual: "STRIPE_PRICE_SEMIANNUAL",
-  annual: "STRIPE_PRICE_ANNUAL",
-} as const;
-
-// Abonnement Premium via Stripe Checkout (mensuel, semestriel ou annuel
-// selon les Price IDs configurés côté Stripe). Le passage de is_premium à
-// true se fait via le webhook (/api/stripe/webhook) une fois le paiement
-// confirmé, pas ici.
-export async function createCheckoutSession(formData: FormData) {
-  const plan = formData.get("plan") as string;
-  const envVar =
-    STRIPE_PLAN_ENV_VARS[plan as keyof typeof STRIPE_PLAN_ENV_VARS];
-  const priceId = envVar ? process.env[envVar] : null;
-
-  if (!priceId) {
-    throw new Error("Formule d'abonnement invalide.");
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !user.email) {
-    throw new Error("Non connecté.");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .single();
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: priceId, quantity: 1 }],
-    client_reference_id: user.id,
-    ...(profile?.stripe_customer_id
-      ? { customer: profile.stripe_customer_id }
-      : { customer_email: user.email }),
-    success_url: `${SITE_URL}/profil?premium=success`,
-    cancel_url: `${SITE_URL}/profil?premium=annule`,
-  });
-
-  if (!session.url) {
-    throw new Error("Impossible de créer la session de paiement.");
-  }
-
-  redirect(session.url);
-}
-
-// Ouvre le portail Stripe (gérer / annuler l'abonnement, changer de carte,
-// voir les factures) pour un utilisateur déjà client Stripe.
-export async function createPortalSession() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Non connecté.");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.stripe_customer_id) {
-    throw new Error("Aucun abonnement Stripe associé à ce compte.");
-  }
-
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
-    return_url: `${SITE_URL}/profil`,
-  });
-
-  redirect(portalSession.url);
-}
