@@ -23,6 +23,7 @@ import BottomNav from "@/components/BottomNav";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import StanleyCupPicker from "@/components/StanleyCupPicker";
 import TopScorerPicker from "@/components/TopScorerPicker";
+import SubmitButton from "@/components/SubmitButton";
 
 function formatLockCountdown(lockAt: string): string {
   const diffMs = new Date(lockAt).getTime() - Date.now();
@@ -80,31 +81,37 @@ export default async function ProfilPage() {
   const ring = getRingForPoints(combinedPoints);
   const nextRingTier = getNextRingTier(combinedPoints);
 
-  const { data: season } = await supabase
-    .from("stanley_cup_season")
-    .select("lock_at, winner_team")
-    .eq("id", 1)
-    .single();
-
-  const { data: myPick } = await supabase
-    .from("stanley_cup_picks")
-    .select("team_abbrev, points")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Ces 4 requêtes sont indépendantes les unes des autres : on les lance en
+  // parallèle plutôt qu'en série pour réduire le temps de chargement de la page.
+  const [
+    { data: season },
+    { data: myPick },
+    { data: topScorerSeason },
+    { data: myTopScorerPick },
+  ] = await Promise.all([
+    supabase
+      .from("stanley_cup_season")
+      .select("lock_at, winner_team")
+      .eq("id", 1)
+      .single(),
+    supabase
+      .from("stanley_cup_picks")
+      .select("team_abbrev, points")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("top_scorer_season")
+      .select("lock_at, winner_player")
+      .eq("id", 1)
+      .single(),
+    supabase
+      .from("top_scorer_picks")
+      .select("player_name, points")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   const isLocked = !season || new Date(season.lock_at) <= new Date();
-
-  const { data: topScorerSeason } = await supabase
-    .from("top_scorer_season")
-    .select("lock_at, winner_player")
-    .eq("id", 1)
-    .single();
-
-  const { data: myTopScorerPick } = await supabase
-    .from("top_scorer_picks")
-    .select("player_name, points")
-    .eq("user_id", user.id)
-    .maybeSingle();
 
   const isTopScorerLocked =
     !topScorerSeason || new Date(topScorerSeason.lock_at) <= new Date();
@@ -230,12 +237,9 @@ export default async function ProfilPage() {
               required
               className="text-xs text-neutral-400 file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-2 file:py-1 file:text-xs file:text-neutral-200 file:transition-colors file:duration-150 hover:file:bg-neutral-700"
             />
-            <button
-              type="submit"
-              className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500"
-            >
+            <SubmitButton className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500">
               Changer
-            </button>
+            </SubmitButton>
           </form>
 
           <FavoriteTeamPicker
@@ -324,12 +328,9 @@ export default async function ProfilPage() {
               required
               className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
             />
-            <button
-              type="submit"
-              className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500"
-            >
+            <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500">
               Ajouter
-            </button>
+            </SubmitButton>
           </form>
 
           {incomingRequests.length > 0 && (
@@ -346,22 +347,16 @@ export default async function ProfilPage() {
                     <form action={respondToFriendRequest}>
                       <input type="hidden" name="friendshipId" value={r.id} />
                       <input type="hidden" name="action" value="accept" />
-                      <button
-                        type="submit"
-                        className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition-colors duration-150 hover:bg-sky-500"
-                      >
+                      <SubmitButton className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition-colors duration-150 hover:bg-sky-500">
                         Accepter
-                      </button>
+                      </SubmitButton>
                     </form>
                     <form action={respondToFriendRequest}>
                       <input type="hidden" name="friendshipId" value={r.id} />
                       <input type="hidden" name="action" value="decline" />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900"
-                      >
+                      <SubmitButton className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900">
                         Refuser
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </div>
@@ -391,12 +386,9 @@ export default async function ProfilPage() {
                         name="friendshipId"
                         value={f.friendshipId}
                       />
-                      <button
-                        type="submit"
-                        className="text-xs text-neutral-500 transition-colors duration-150 hover:text-red-400"
-                      >
+                      <SubmitButton className="text-xs text-neutral-500 transition-colors duration-150 hover:text-red-400">
                         Retirer
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </li>

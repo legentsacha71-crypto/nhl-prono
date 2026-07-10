@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
 import Logo from "@/components/Logo";
 import RulesCard from "@/components/RulesCard";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -60,9 +61,9 @@ export default async function Home() {
       </div>
 
       <form action={signout}>
-        <button className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900 hover:text-neutral-100">
+        <SubmitButton className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900 hover:text-neutral-100">
           Se déconnecter
-        </button>
+        </SubmitButton>
       </form>
 
       <BottomNav />

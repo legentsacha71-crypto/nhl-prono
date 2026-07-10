@@ -4,6 +4,7 @@ import { submitPrediction, toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import TeamBadge from "@/components/TeamBadge";
+import SubmitButton from "@/components/SubmitButton";
 
 function formatDayLabel(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -166,12 +167,9 @@ export default async function MatchesPage() {
                         className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100"
                       />
                     </div>
-                    <button
-                      type="submit"
-                      className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
-                    >
+                    <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white">
                       {predictionByGameId.has(game.id) ? "Modifier" : "Valider"}
-                    </button>
+                    </SubmitButton>
                   </form>
 
                   {predictionByGameId.has(game.id) &&
@@ -186,8 +184,7 @@ export default async function MatchesPage() {
                           name="startTimeUTC"
                           value={game.startTimeUTC}
                         />
-                        <button
-                          type="submit"
+                        <SubmitButton
                           className={
                             predictionByGameId.get(game.id)?.boosted
                               ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
@@ -197,7 +194,7 @@ export default async function MatchesPage() {
                           {predictionByGameId.get(game.id)?.boosted
                             ? "🔥 Boosté x2 — retirer"
                             : "Booster x2"}
-                        </button>
+                        </SubmitButton>
                       </form>
                     ) : (
                       <p className="mt-2 text-center text-[11px] text-neutral-600">

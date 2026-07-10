@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signup } from "../login/actions";
 import Logo from "@/components/Logo";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function SignupPage({
   searchParams,
@@ -75,12 +76,9 @@ export default async function SignupPage({
               className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 p-2 text-neutral-100"
             />
           </div>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-sky-600 p-2 font-medium text-white"
-          >
+          <SubmitButton className="w-full rounded-md bg-sky-600 p-2 font-medium text-white">
             Créer un compte
-          </button>
+          </SubmitButton>
         </form>
 
         <p className="text-center text-sm text-neutral-400">

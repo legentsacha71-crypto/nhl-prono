@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { sendMessage } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import SubmitButton from "@/components/SubmitButton";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString("fr-FR", {
@@ -109,12 +110,9 @@ export default async function LeagueChatPage({
             maxLength={500}
             className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-neutral-100 placeholder:text-neutral-500"
           />
-          <button
-            type="submit"
-            className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white"
-          >
+          <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white">
             Envoyer
-          </button>
+          </SubmitButton>
         </form>
       </div>
 

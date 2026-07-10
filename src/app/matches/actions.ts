@@ -72,22 +72,22 @@ export async function toggleBoost(formData: FormData) {
     throw new Error("Non connecté.");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_premium")
-    .eq("id", user.id)
-    .single();
+  // Les deux requêtes ne dépendent que de user.id / gameId, pas l'une de
+  // l'autre : on les lance en parallèle plutôt qu'en série pour réduire la
+  // latence perçue au clic.
+  const [{ data: profile }, { data: current }] = await Promise.all([
+    supabase.from("profiles").select("is_premium").eq("id", user.id).single(),
+    supabase
+      .from("predictions")
+      .select("id, boosted")
+      .eq("user_id", user.id)
+      .eq("game_id", gameId)
+      .maybeSingle(),
+  ]);
 
   if (!profile?.is_premium) {
     throw new Error("Le boost x2 est réservé aux membres Premium.");
   }
-
-  const { data: current } = await supabase
-    .from("predictions")
-    .select("id, boosted")
-    .eq("user_id", user.id)
-    .eq("game_id", gameId)
-    .maybeSingle();
 
   if (!current) {
     throw new Error("Fais d'abord ton pronostic avant de le booster.");

@@ -269,20 +269,19 @@ export async function respondToFriendRequest(formData: FormData) {
   }
 
   if (action === "accept") {
-    const { error: acceptError } = await supabase
-      .from("friendships")
-      .update({ status: "accepted" })
-      .eq("id", friendshipId);
+    // Les deux requêtes sont indépendantes (l'update ne dépend pas du
+    // select) : on les lance en parallèle pour réduire la latence.
+    const [{ error: acceptError }, { data: myProfile }] = await Promise.all([
+      supabase
+        .from("friendships")
+        .update({ status: "accepted" })
+        .eq("id", friendshipId),
+      supabase.from("profiles").select("username").eq("id", user.id).single(),
+    ]);
 
     if (acceptError) {
       throw new Error(acceptError.message);
     }
-
-    const { data: myProfile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .single();
 
     const admin = createAdminClient();
     await admin.from("notifications").insert({

@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createLeague, joinLeague } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function LeaguesPage({
   searchParams,
@@ -117,12 +118,9 @@ export default async function LeaguesPage({
                 required
                 className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
-              <button
-                type="submit"
-                className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-all duration-150 hover:bg-sky-500 active:scale-[0.97]"
-              >
+              <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-all duration-150 hover:bg-sky-500 active:scale-[0.97]">
                 Créer
-              </button>
+              </SubmitButton>
             </form>
           </div>
 
@@ -139,12 +137,9 @@ export default async function LeaguesPage({
                 maxLength={6}
                 className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 uppercase placeholder:text-neutral-500 placeholder:normal-case transition-colors focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
               />
-              <button
-                type="submit"
-                className="rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-amber-950/40 transition-all duration-150 hover:bg-amber-500 active:scale-[0.97]"
-              >
+              <SubmitButton className="rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-amber-950/40 transition-all duration-150 hover:bg-amber-500 active:scale-[0.97]">
                 Rejoindre
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>
