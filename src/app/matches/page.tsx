@@ -1,6 +1,6 @@
 import { getUpcomingGames, type NhlGame } from "@/lib/nhl";
 import { createClient } from "@/utils/supabase/server";
-import { submitPrediction } from "./actions";
+import { submitPrediction, toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import TeamBadge from "@/components/TeamBadge";
@@ -47,7 +47,7 @@ export default async function MatchesPage() {
     gameIds.length > 0 && user
       ? await supabase
           .from("predictions")
-          .select("game_id, away_score, home_score")
+          .select("game_id, away_score, home_score, boosted")
           .eq("user_id", user.id)
           .in("game_id", gameIds)
       : { data: [] };
@@ -55,6 +55,16 @@ export default async function MatchesPage() {
   const predictionByGameId = new Map(
     (predictions ?? []).map((p) => [p.game_id, p]),
   );
+
+  let isPremium = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_premium")
+      .eq("id", user.id)
+      .single();
+    isPremium = profile?.is_premium ?? false;
+  }
 
   const dayGroups = groupByDay(games);
 
@@ -163,6 +173,37 @@ export default async function MatchesPage() {
                       {predictionByGameId.has(game.id) ? "Modifier" : "Valider"}
                     </button>
                   </form>
+
+                  {predictionByGameId.has(game.id) &&
+                    (isPremium ? (
+                      <form
+                        action={toggleBoost}
+                        className="mt-2 flex justify-center"
+                      >
+                        <input type="hidden" name="gameId" value={game.id} />
+                        <input
+                          type="hidden"
+                          name="startTimeUTC"
+                          value={game.startTimeUTC}
+                        />
+                        <button
+                          type="submit"
+                          className={
+                            predictionByGameId.get(game.id)?.boosted
+                              ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
+                              : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/10"
+                          }
+                        >
+                          {predictionByGameId.get(game.id)?.boosted
+                            ? "🔥 Boosté x2 — retirer"
+                            : "Booster x2"}
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="mt-2 text-center text-[11px] text-neutral-600">
+                        🔒 Boost x2 réservé aux membres Premium
+                      </p>
+                    ))}
                 </li>
               ))}
             </ul>

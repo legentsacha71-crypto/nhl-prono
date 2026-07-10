@@ -51,20 +51,21 @@ export async function GET(request: NextRequest) {
 
       const { data: predictions, error: predError } = await supabase
         .from("predictions")
-        .select("id, user_id, away_score, home_score")
+        .select("id, user_id, away_score, home_score, boosted")
         .eq("game_id", gameId)
         .is("points", null);
 
       if (predError || !predictions) continue;
 
       for (const prediction of predictions) {
-        const points = calculatePoints({
+        const basePoints = calculatePoints({
           predictedHome: prediction.home_score,
           predictedAway: prediction.away_score,
           actualHome: result.regulationHomeScore,
           actualAway: result.regulationAwayScore,
           grid,
         });
+        const points = prediction.boosted ? basePoints * 2 : basePoints;
         const isExactScore =
           prediction.home_score === result.regulationHomeScore &&
           prediction.away_score === result.regulationAwayScore;
@@ -76,7 +77,9 @@ export async function GET(request: NextRequest) {
 
         await supabase.from("notifications").insert({
           user_id: prediction.user_id,
-          message: `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points.`,
+          message: prediction.boosted
+            ? `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points (boost x2 🔥).`
+            : `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points.`,
         });
 
         gradedPredictions++;
