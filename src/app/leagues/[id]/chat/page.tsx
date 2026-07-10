@@ -61,7 +61,7 @@ export default async function LeagueChatPage({
   const list = (messages ?? []) as unknown as Message[];
 
   return (
-    <div className="min-h-screen p-6 pt-20 pb-24">
+    <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-4">
         <div>

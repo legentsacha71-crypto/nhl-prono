@@ -42,7 +42,7 @@ export default async function ProfilPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen p-6 pt-20 pb-24">
+      <div className="min-h-screen p-6 pt-28 pb-24">
         <TopBar />
         <p className="text-center text-neutral-400">
           Connecte-toi pour voir ton profil.
@@ -183,7 +183,7 @@ export default async function ProfilPage() {
   );
 
   return (
-    <div className="min-h-screen p-6 pt-20 pb-24">
+    <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2">

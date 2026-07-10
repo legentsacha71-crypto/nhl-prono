@@ -19,7 +19,7 @@ export default async function RankingPage() {
   const ranking = await getRanking(supabase);
 
   return (
-    <div className="min-h-screen p-6 pt-20 pb-24">
+    <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <h1 className="text-2xl font-bold text-center text-sky-400">

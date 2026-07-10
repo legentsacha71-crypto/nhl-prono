@@ -25,7 +25,7 @@ export default async function Home() {
   const seasonStartDate = await getRegularSeasonStartDate();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 pt-20 pb-24">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 pt-28 pb-24">
       <TopBar />
       <div className="text-center">
         <Logo size="lg" className="justify-center" />

@@ -30,7 +30,7 @@ export default async function LeagueDetailPage({
   const ranking = await getRanking(supabase, memberIds);
 
   return (
-    <div className="min-h-screen p-6 pt-20 pb-24">
+    <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <div>

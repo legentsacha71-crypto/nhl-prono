@@ -40,7 +40,7 @@ export default async function LeaguesPage({
   const memberCountByLeague = new Map(memberCounts);
 
   return (
-    <div className="min-h-screen p-6 pt-20 pb-24">
+    <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="relative overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 text-center shadow-xl shadow-black/30">
