@@ -342,17 +342,21 @@ export async function removeFriend(formData: FormData) {
   revalidatePath("/profil");
 }
 
-// Abonnement Premium via Stripe Checkout (mensuel ou annuel selon les Price
-// IDs configurés côté Stripe). Le passage de is_premium à true se fait via
-// le webhook (/api/stripe/webhook) une fois le paiement confirmé, pas ici.
+const STRIPE_PLAN_ENV_VARS = {
+  monthly: "STRIPE_PRICE_MONTHLY",
+  semiannual: "STRIPE_PRICE_SEMIANNUAL",
+  annual: "STRIPE_PRICE_ANNUAL",
+} as const;
+
+// Abonnement Premium via Stripe Checkout (mensuel, semestriel ou annuel
+// selon les Price IDs configurés côté Stripe). Le passage de is_premium à
+// true se fait via le webhook (/api/stripe/webhook) une fois le paiement
+// confirmé, pas ici.
 export async function createCheckoutSession(formData: FormData) {
   const plan = formData.get("plan") as string;
-  const priceId =
-    plan === "monthly"
-      ? process.env.STRIPE_PRICE_MONTHLY
-      : plan === "annual"
-        ? process.env.STRIPE_PRICE_ANNUAL
-        : null;
+  const envVar =
+    STRIPE_PLAN_ENV_VARS[plan as keyof typeof STRIPE_PLAN_ENV_VARS];
+  const priceId = envVar ? process.env[envVar] : null;
 
   if (!priceId) {
     throw new Error("Formule d'abonnement invalide.");

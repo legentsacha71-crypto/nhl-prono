@@ -296,6 +296,17 @@ export default async function ProfilPage() {
                     className="w-full rounded-md bg-amber-500 px-3 py-2 text-xs font-medium text-neutral-950 transition-colors duration-150 hover:bg-amber-400"
                   >
                     Mensuel
+                    <span className="block text-[10px] font-normal">3€/mois</span>
+                  </button>
+                </form>
+                <form action={createCheckoutSession} className="flex-1">
+                  <input type="hidden" name="plan" value="semiannual" />
+                  <button
+                    type="submit"
+                    className="w-full rounded-md border border-amber-500/50 px-3 py-2 text-xs font-medium text-amber-400 transition-colors duration-150 hover:bg-amber-500/10"
+                  >
+                    6 mois
+                    <span className="block text-[10px] font-normal">13,99€</span>
                   </button>
                 </form>
                 <form action={createCheckoutSession} className="flex-1">
@@ -304,7 +315,8 @@ export default async function ProfilPage() {
                     type="submit"
                     className="w-full rounded-md border border-amber-500/50 px-3 py-2 text-xs font-medium text-amber-400 transition-colors duration-150 hover:bg-amber-500/10"
                   >
-                    Annuel (-2 mois)
+                    Annuel
+                    <span className="block text-[10px] font-normal">30€/an</span>
                   </button>
                 </form>
               </div>
