@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "La Nuit Hockey",
   description: "Pronostics de scores de hockey entre amis",
+};
+
+// viewport-fit=cover est nécessaire pour que env(safe-area-inset-top/bottom)
+// retourne les vraies valeurs sur iOS (sinon TopBar/BottomNav se collent
+// sous l'encoche / l'île dynamique et par-dessus la barre système).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
