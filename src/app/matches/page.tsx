@@ -1,4 +1,5 @@
-import { getUpcomingGames, type NhlGame } from "@/lib/nhl";
+import Link from "next/link";
+import { getUpcomingGames, getSeasonSchedule, type NhlGame } from "@/lib/nhl";
 import { getTeamStats, getLeagueAverageGoals, type TeamStats } from "@/lib/nhlStats";
 import { estimateWinPoints } from "@/lib/scoring";
 import { TEAM_TIMEZONES } from "@/lib/nhlTeams";
@@ -68,7 +69,169 @@ function groupByDay(games: NhlGame[]) {
   return [...groups.values()];
 }
 
-export default async function MatchesPage() {
+function formatMonthLabel(iso: string) {
+  const label = new Date(iso).toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Paris",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// Regroupe par mois (chacun affiché dans un <details> repliable, vu le
+// volume de matchs sur une saison complète), puis par jour à l'intérieur.
+// `hasUpcoming` sert à ouvrir automatiquement le premier mois contenant un
+// match pas encore joué, pour atterrir directement sur "maintenant".
+function groupByMonth(games: NhlGame[]) {
+  const now = Date.now();
+  const months = new Map<
+    string,
+    { label: string; hasUpcoming: boolean; days: Map<string, { label: string; games: NhlGame[] }> }
+  >();
+
+  for (const game of games) {
+    const date = new Date(game.startTimeUTC);
+    const monthKey = `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+    if (!months.has(monthKey)) {
+      months.set(monthKey, {
+        label: formatMonthLabel(game.startTimeUTC),
+        hasUpcoming: false,
+        days: new Map(),
+      });
+    }
+    const month = months.get(monthKey)!;
+    if (date.getTime() > now) {
+      month.hasUpcoming = true;
+    }
+
+    const dayKey = date.toDateString();
+    if (!month.days.has(dayKey)) {
+      month.days.set(dayKey, { label: formatDayLabel(game.startTimeUTC), games: [] });
+    }
+    month.days.get(dayKey)!.games.push(game);
+  }
+
+  return [...months.values()].map((month) => ({
+    label: month.label,
+    hasUpcoming: month.hasUpcoming,
+    days: [...month.days.values()],
+  }));
+}
+
+function MatchesTabs({ active }: { active: "avenir" | "calendrier" }) {
+  return (
+    <div className="flex gap-1 rounded-full border border-neutral-800 bg-neutral-900 p-1">
+      <Link
+        href="/matches"
+        className={`flex-1 rounded-full py-1.5 text-center text-sm font-medium transition-colors ${
+          active === "avenir"
+            ? "bg-sky-600 text-white"
+            : "text-neutral-400 hover:text-neutral-200"
+        }`}
+      >
+        À venir
+      </Link>
+      <Link
+        href="/matches?tab=calendrier"
+        className={`flex-1 rounded-full py-1.5 text-center text-sm font-medium transition-colors ${
+          active === "calendrier"
+            ? "bg-sky-600 text-white"
+            : "text-neutral-400 hover:text-neutral-200"
+        }`}
+      >
+        📅 Calendrier
+      </Link>
+    </div>
+  );
+}
+
+export default async function MatchesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab: tabParam } = await searchParams;
+  const tab: "avenir" | "calendrier" = tabParam === "calendrier" ? "calendrier" : "avenir";
+
+  if (tab === "calendrier") {
+    const games = await getSeasonSchedule();
+    const monthGroups = groupByMonth(games);
+    const firstUpcomingIndex = monthGroups.findIndex((g) => g.hasUpcoming);
+
+    return (
+      <div className="min-h-screen p-6 pt-28 pb-24">
+        <TopBar />
+        <div className="mx-auto w-full max-w-md space-y-4">
+          <h1 className="text-2xl font-bold text-center text-sky-400">Matchs</h1>
+          <MatchesTabs active="calendrier" />
+
+          {games.length === 0 && (
+            <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+              Le calendrier de la saison n&apos;est pas encore publié.
+            </p>
+          )}
+
+          {monthGroups.map((group, index) => (
+            <details
+              key={group.label}
+              open={index === firstUpcomingIndex}
+              className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
+            >
+              <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-200">
+                {group.label}
+              </summary>
+              <div className="space-y-3 border-t border-neutral-800 px-3 pb-3 pt-3">
+                {group.days.map((day) => (
+                  <div key={day.label} className="space-y-1.5">
+                    <h3 className="px-1 text-xs font-medium text-neutral-500">
+                      {day.label}
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {day.games.map((game) => (
+                        <li
+                          key={game.id}
+                          className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2 text-sm"
+                        >
+                          <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
+                            <span className="truncate text-neutral-300">
+                              {game.awayTeam.abbrev}
+                            </span>
+                            <TeamBadge
+                              abbrev={game.awayTeam.abbrev}
+                              name={game.awayTeam.name}
+                              size={22}
+                            />
+                          </div>
+                          <span className="w-14 shrink-0 text-center text-xs text-neutral-500">
+                            {game.awayTeam.score != null && game.homeTeam.score != null
+                              ? `${game.awayTeam.score} - ${game.homeTeam.score}`
+                              : formatTime(game.startTimeUTC)}
+                          </span>
+                          <div className="flex flex-1 items-center gap-1.5">
+                            <TeamBadge
+                              abbrev={game.homeTeam.abbrev}
+                              name={game.homeTeam.name}
+                              size={22}
+                            />
+                            <span className="truncate text-neutral-300">
+                              {game.homeTeam.abbrev}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+
+        <BottomNav />
+      </div>
+    );
+  }
+
   // getUpcomingGames() et getTeamStats() n'ont pas de dépendance l'une envers
   // l'autre : on les lance en parallèle plutôt qu'en série.
   const [games, teamStats] = await Promise.all([
@@ -110,9 +273,8 @@ export default async function MatchesPage() {
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-4">
-        <h1 className="text-2xl font-bold text-center text-sky-400">
-          Matchs à venir
-        </h1>
+        <h1 className="text-2xl font-bold text-center text-sky-400">Matchs</h1>
+        <MatchesTabs active="avenir" />
 
         {games.length === 0 && (
           <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
