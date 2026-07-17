@@ -3,11 +3,12 @@ import { getTeamStats, getLeagueAverageGoals, type TeamStats } from "@/lib/nhlSt
 import { estimateWinPoints } from "@/lib/scoring";
 import { TEAM_TIMEZONES } from "@/lib/nhlTeams";
 import { createClient } from "@/utils/supabase/server";
-import { submitPrediction, toggleBoost } from "./actions";
+import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
+import PredictionForm from "./PredictionForm";
 
 function formatDayLabel(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -210,55 +211,14 @@ export default async function MatchesPage() {
                     </div>
                   )}
 
-                  <form
-                    action={submitPrediction}
-                    className="mt-3 flex items-end justify-center gap-3"
-                  >
-                    <input type="hidden" name="gameId" value={game.id} />
-                    <input
-                      type="hidden"
-                      name="startTimeUTC"
-                      value={game.startTimeUTC}
-                    />
-                    <div className="flex flex-col items-center">
-                      <label
-                        htmlFor={`away-${game.id}`}
-                        className="text-xs text-neutral-500"
-                      >
-                        {game.awayTeam.abbrev}
-                      </label>
-                      <input
-                        id={`away-${game.id}`}
-                        name="awayScore"
-                        type="number"
-                        min={0}
-                        required
-                        defaultValue={predictionByGameId.get(game.id)?.away_score}
-                        className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100"
-                      />
-                    </div>
-                    <span className="pb-2 text-sm text-neutral-600">-</span>
-                    <div className="flex flex-col items-center">
-                      <label
-                        htmlFor={`home-${game.id}`}
-                        className="text-xs text-neutral-500"
-                      >
-                        {game.homeTeam.abbrev}
-                      </label>
-                      <input
-                        id={`home-${game.id}`}
-                        name="homeScore"
-                        type="number"
-                        min={0}
-                        required
-                        defaultValue={predictionByGameId.get(game.id)?.home_score}
-                        className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100"
-                      />
-                    </div>
-                    <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white">
-                      {predictionByGameId.has(game.id) ? "Modifier" : "Valider"}
-                    </SubmitButton>
-                  </form>
+                  <PredictionForm
+                    gameId={game.id}
+                    startTimeUTC={game.startTimeUTC}
+                    awayAbbrev={game.awayTeam.abbrev}
+                    homeAbbrev={game.homeTeam.abbrev}
+                    initialAwayScore={predictionByGameId.get(game.id)?.away_score}
+                    initialHomeScore={predictionByGameId.get(game.id)?.home_score}
+                  />
 
                   {predictionByGameId.has(game.id) &&
                     (isPremium ? (
