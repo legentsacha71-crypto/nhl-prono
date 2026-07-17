@@ -99,15 +99,29 @@ export default function PredictionForm({
     }, SAVE_DELAY_MS);
   }
 
+  const statusContent = locked ? (
+    <span className="text-neutral-600">🔒 Verrouillé</span>
+  ) : status === "saving" ? (
+    <span className="text-neutral-500">Enregistrement…</span>
+  ) : status === "saved" ? (
+    <span className="text-emerald-400">✓ Enregistré</span>
+  ) : status === "error" ? (
+    <span className="text-red-400">Erreur</span>
+  ) : (
+    <span className="text-neutral-700">&nbsp;</span>
+  );
+
   return (
-    // Grille à 3 colonnes symétriques (espace réservé à gauche = largeur du
-    // statut à droite) pour que les cases de score restent bien centrées,
-    // peu importe la largeur du texte de statut ("Enregistrement…", etc.).
-    // Avec un simple flex+justify-center, ce texte de statut à droite
-    // décalait visuellement les cases vers la gauche.
-    <div className="mt-3 grid grid-cols-[5rem_1fr_5rem] items-end gap-3">
-      <span aria-hidden="true" />
-      <div className="flex items-end justify-center gap-3">
+    // Le texte de statut à droite ("Enregistrement…", etc.) a une largeur
+    // variable qui décale visuellement les cases de score si on centre
+    // juste la rangée entière. Pour garder les cases parfaitement centrées
+    // quel que soit le texte affiché, on duplique ce même contenu, invisible,
+    // à gauche : les deux côtés ont alors toujours une largeur identique.
+    <div className="mt-3 flex items-end justify-center gap-3">
+      <span aria-hidden="true" className="invisible pb-2 text-center text-[11px]">
+        {statusContent}
+      </span>
+      <div className="flex items-end gap-3">
         <div className="flex flex-col items-center">
           <label htmlFor={`away-${gameId}`} className="text-xs text-neutral-500">
             {awayAbbrev}
@@ -144,19 +158,7 @@ export default function PredictionForm({
           />
         </div>
       </div>
-      <span className="pb-2 text-center text-[11px]">
-        {locked ? (
-          <span className="text-neutral-600">🔒 Verrouillé</span>
-        ) : status === "saving" ? (
-          <span className="text-neutral-500">Enregistrement…</span>
-        ) : status === "saved" ? (
-          <span className="text-emerald-400">✓ Enregistré</span>
-        ) : status === "error" ? (
-          <span className="text-red-400">Erreur</span>
-        ) : (
-          <span className="text-neutral-700">&nbsp;</span>
-        )}
-      </span>
+      <span className="pb-2 text-center text-[11px]">{statusContent}</span>
     </div>
   );
 }
