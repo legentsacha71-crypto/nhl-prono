@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import Logo from "@/components/Logo";
-import AdBanner from "@/components/AdBanner";
 
 export default async function TopBar() {
   const supabase = await createClient();
@@ -10,18 +9,13 @@ export default async function TopBar() {
   } = await supabase.auth.getUser();
 
   let unreadCount = 0;
-  let isPremium = false;
   if (user) {
-    const [{ count }, { data: profile }] = await Promise.all([
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .is("read_at", null),
-      supabase.from("profiles").select("is_premium").eq("id", user.id).single(),
-    ]);
+    const { count } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null);
     unreadCount = count ?? 0;
-    isPremium = profile?.is_premium ?? false;
   }
 
   return (
@@ -56,8 +50,6 @@ export default async function TopBar() {
           </Link>
         </div>
       </div>
-
-      {user && !isPremium && <AdBanner />}
     </header>
   );
 }
