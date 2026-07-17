@@ -100,43 +100,51 @@ export default function PredictionForm({
   }
 
   return (
-    <div className="mt-3 flex items-end justify-center gap-3">
-      <div className="flex flex-col items-center">
-        <label htmlFor={`away-${gameId}`} className="text-xs text-neutral-500">
-          {awayAbbrev}
-        </label>
-        <input
-          id={`away-${gameId}`}
-          type="number"
-          min={0}
-          disabled={locked}
-          value={awayScore}
-          onChange={(e) => {
-            setAwayScore(e.target.value);
-            scheduleSave(e.target.value, homeScore);
-          }}
-          className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 disabled:opacity-50"
-        />
+    // Grille à 3 colonnes symétriques (espace réservé à gauche = largeur du
+    // statut à droite) pour que les cases de score restent bien centrées,
+    // peu importe la largeur du texte de statut ("Enregistrement…", etc.).
+    // Avec un simple flex+justify-center, ce texte de statut à droite
+    // décalait visuellement les cases vers la gauche.
+    <div className="mt-3 grid grid-cols-[5rem_1fr_5rem] items-end gap-3">
+      <span aria-hidden="true" />
+      <div className="flex items-end justify-center gap-3">
+        <div className="flex flex-col items-center">
+          <label htmlFor={`away-${gameId}`} className="text-xs text-neutral-500">
+            {awayAbbrev}
+          </label>
+          <input
+            id={`away-${gameId}`}
+            type="number"
+            min={0}
+            disabled={locked}
+            value={awayScore}
+            onChange={(e) => {
+              setAwayScore(e.target.value);
+              scheduleSave(e.target.value, homeScore);
+            }}
+            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 disabled:opacity-50"
+          />
+        </div>
+        <span className="pb-2 text-sm text-neutral-600">-</span>
+        <div className="flex flex-col items-center">
+          <label htmlFor={`home-${gameId}`} className="text-xs text-neutral-500">
+            {homeAbbrev}
+          </label>
+          <input
+            id={`home-${gameId}`}
+            type="number"
+            min={0}
+            disabled={locked}
+            value={homeScore}
+            onChange={(e) => {
+              setHomeScore(e.target.value);
+              scheduleSave(awayScore, e.target.value);
+            }}
+            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 disabled:opacity-50"
+          />
+        </div>
       </div>
-      <span className="pb-2 text-sm text-neutral-600">-</span>
-      <div className="flex flex-col items-center">
-        <label htmlFor={`home-${gameId}`} className="text-xs text-neutral-500">
-          {homeAbbrev}
-        </label>
-        <input
-          id={`home-${gameId}`}
-          type="number"
-          min={0}
-          disabled={locked}
-          value={homeScore}
-          onChange={(e) => {
-            setHomeScore(e.target.value);
-            scheduleSave(awayScore, e.target.value);
-          }}
-          className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 disabled:opacity-50"
-        />
-      </div>
-      <span className="w-20 pb-2 text-center text-[11px]">
+      <span className="pb-2 text-center text-[11px]">
         {locked ? (
           <span className="text-neutral-600">🔒 Verrouillé</span>
         ) : status === "saving" ? (
