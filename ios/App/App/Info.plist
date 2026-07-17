@@ -4,6 +4,12 @@
 <dict>
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
+	<!-- L'app n'utilise que le chiffrement HTTPS/TLS standard (WebView +
+	     Supabase), aucun algorithme de chiffrement personnalisé : exempté
+	     de la réglementation américaine sur l'export, donc pas de question
+	     de conformité à chaque envoi de build vers App Store Connect. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
