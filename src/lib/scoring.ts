@@ -80,6 +80,7 @@ export function estimateWinPoints(
   drawProbability: number;
   homePoints: number;
   awayPoints: number;
+  drawPoints: number;
 } {
   const { lambdaHome, lambdaAway } = expectedGoals(home, away, leagueAvgGoals);
   const grid = scoreProbabilityGrid(lambdaHome, lambdaAway);
@@ -91,6 +92,7 @@ export function estimateWinPoints(
     drawProbability: draw,
     homePoints: Math.round(BASE_POINTS_CONSTANT / homeWin),
     awayPoints: Math.round(BASE_POINTS_CONSTANT / awayWin),
+    drawPoints: Math.round(BASE_POINTS_CONSTANT / draw),
   };
 }
 

@@ -174,10 +174,14 @@ export default async function MatchesPage() {
                       <span className="text-sm text-neutral-600">@</span>
                       {winPoints && (
                         <span
-                          className="whitespace-nowrap text-[10px] text-neutral-500"
+                          className="whitespace-nowrap text-center text-[10px] text-neutral-500"
                           title="Probabilité de match nul à la fin du temps réglementaire, avant prolongation / tirs au but"
                         >
                           nul (avt OT) {Math.round(winPoints.drawProbability * 100)}%
+                          <br />
+                          <span className="text-emerald-400">
+                            🎯 ~{winPoints.drawPoints} pts
+                          </span>
                         </span>
                       )}
                     </div>
