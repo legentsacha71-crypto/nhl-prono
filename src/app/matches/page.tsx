@@ -1,4 +1,7 @@
 import { getUpcomingGames, type NhlGame } from "@/lib/nhl";
+import { getTeamStats, getLeagueAverageGoals, type TeamStats } from "@/lib/nhlStats";
+import { estimateWinPoints } from "@/lib/scoring";
+import { TEAM_TIMEZONES } from "@/lib/nhlTeams";
 import { createClient } from "@/utils/supabase/server";
 import { submitPrediction, toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
@@ -10,6 +13,7 @@ function formatDayLabel(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "short",
     day: "2-digit",
+    timeZone: "Europe/Paris",
   });
 }
 
@@ -17,7 +21,34 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Paris",
   });
+}
+
+function formatLocalTime(iso: string, homeAbbrev: string): string | null {
+  const timeZone = TEAM_TIMEZONES[homeAbbrev];
+  if (!timeZone) return null;
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  });
+}
+
+function getWinPointsPreview(
+  game: NhlGame,
+  teamStats: Map<string, TeamStats>,
+  leagueAvgGoals: number,
+) {
+  const home = teamStats.get(game.homeTeam.abbrev);
+  const away = teamStats.get(game.awayTeam.abbrev);
+  if (!home || !away || !Number.isFinite(leagueAvgGoals)) return null;
+
+  const preview = estimateWinPoints(home, away, leagueAvgGoals);
+  if (!Number.isFinite(preview.homePoints) || !Number.isFinite(preview.awayPoints)) {
+    return null;
+  }
+  return preview;
 }
 
 function groupByDay(games: NhlGame[]) {
@@ -36,7 +67,13 @@ function groupByDay(games: NhlGame[]) {
 }
 
 export default async function MatchesPage() {
-  const games = await getUpcomingGames();
+  // getUpcomingGames() et getTeamStats() n'ont pas de dépendance l'une envers
+  // l'autre : on les lance en parallèle plutôt qu'en série.
+  const [games, teamStats] = await Promise.all([
+    getUpcomingGames(),
+    getTeamStats(),
+  ]);
+  const leagueAvgGoals = getLeagueAverageGoals(teamStats);
 
   const supabase = await createClient();
   const {
@@ -90,13 +127,31 @@ export default async function MatchesPage() {
               {group.label}
             </h2>
             <ul className="space-y-3">
-              {group.games.map((game) => (
+              {group.games.map((game) => {
+                const localTime = formatLocalTime(
+                  game.startTimeUTC,
+                  game.homeTeam.abbrev,
+                );
+                const frenchTime = formatTime(game.startTimeUTC);
+                const winPoints = getWinPointsPreview(
+                  game,
+                  teamStats,
+                  leagueAvgGoals,
+                );
+
+                return (
                 <li
                   key={game.id}
                   className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-sm"
                 >
                   <p className="mb-2 text-center text-xs text-neutral-500">
-                    {formatTime(game.startTimeUTC)}
+                    {frenchTime}
+                    {localTime && localTime !== frenchTime && (
+                      <span className="text-neutral-600">
+                        {" "}
+                        · {localTime} heure locale
+                      </span>
+                    )}
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-1 flex-col items-center gap-1">
@@ -108,6 +163,11 @@ export default async function MatchesPage() {
                       <span className="text-sm text-neutral-200">
                         {game.awayTeam.name}
                       </span>
+                      {winPoints && (
+                        <span className="text-[10px] text-emerald-400">
+                          🎯 ~{winPoints.awayPoints} pts si vainqueur
+                        </span>
+                      )}
                     </div>
                     <span className="px-2 text-sm text-neutral-600">@</span>
                     <div className="flex flex-1 flex-col items-center gap-1">
@@ -119,6 +179,11 @@ export default async function MatchesPage() {
                       <span className="text-sm text-neutral-200">
                         {game.homeTeam.name}
                       </span>
+                      {winPoints && (
+                        <span className="text-[10px] text-emerald-400">
+                          🎯 ~{winPoints.homePoints} pts si vainqueur
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -202,7 +267,8 @@ export default async function MatchesPage() {
                       </p>
                     ))}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
         ))}

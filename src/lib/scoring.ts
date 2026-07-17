@@ -67,6 +67,26 @@ function exactScoreBonus(probability: number): number {
   return 5;
 }
 
+// Aperçu des points gagnables en pariant sur le bon vainqueur, affiché avant
+// le match sur la page des pronostics (même formule que calculatePoints,
+// mais sans connaître le score final : juste base = 30 / probabilité).
+export function estimateWinPoints(
+  home: TeamStats,
+  away: TeamStats,
+  leagueAvgGoals: number,
+): { homeWinProbability: number; awayWinProbability: number; homePoints: number; awayPoints: number } {
+  const { lambdaHome, lambdaAway } = expectedGoals(home, away, leagueAvgGoals);
+  const grid = scoreProbabilityGrid(lambdaHome, lambdaAway);
+  const { homeWin, awayWin } = outcomeProbabilities(grid);
+
+  return {
+    homeWinProbability: homeWin,
+    awayWinProbability: awayWin,
+    homePoints: Math.round(BASE_POINTS_CONSTANT / homeWin),
+    awayPoints: Math.round(BASE_POINTS_CONSTANT / awayWin),
+  };
+}
+
 export function calculatePoints({
   predictedHome,
   predictedAway,

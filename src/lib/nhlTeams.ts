@@ -43,6 +43,43 @@ export const NHL_TEAMS: NhlTeamInfo[] = [
   { abbrev: "WPG", name: "Winnipeg Jets", primaryColor: "#041E42", secondaryColor: "#004C97" },
 ];
 
+// Fuseau horaire de l'aréna de l'équipe à domicile, pour afficher l'heure
+// locale du match à côté de l'heure française sur la page des pronostics.
+export const TEAM_TIMEZONES: Record<string, string> = {
+  ANA: "America/Los_Angeles",
+  BOS: "America/New_York",
+  BUF: "America/New_York",
+  CGY: "America/Edmonton",
+  CAR: "America/New_York",
+  CHI: "America/Chicago",
+  COL: "America/Denver",
+  CBJ: "America/New_York",
+  DAL: "America/Chicago",
+  DET: "America/Detroit",
+  EDM: "America/Edmonton",
+  FLA: "America/New_York",
+  LAK: "America/Los_Angeles",
+  MIN: "America/Chicago",
+  MTL: "America/Toronto",
+  NSH: "America/Chicago",
+  NJD: "America/New_York",
+  NYI: "America/New_York",
+  NYR: "America/New_York",
+  OTT: "America/Toronto",
+  PHI: "America/New_York",
+  PIT: "America/New_York",
+  SJS: "America/Los_Angeles",
+  SEA: "America/Los_Angeles",
+  STL: "America/Chicago",
+  TBL: "America/New_York",
+  TOR: "America/Toronto",
+  UTA: "America/Denver",
+  VAN: "America/Vancouver",
+  VGK: "America/Los_Angeles",
+  WSH: "America/New_York",
+  WPG: "America/Winnipeg",
+};
+
 export function getTeamName(abbrev: string): string {
   return NHL_TEAMS.find((t) => t.abbrev === abbrev)?.name ?? abbrev;
 }
