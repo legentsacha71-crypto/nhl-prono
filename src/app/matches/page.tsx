@@ -164,27 +164,8 @@ export default async function MatchesPage() {
                       <span className="text-sm text-neutral-200">
                         {game.awayTeam.name}
                       </span>
-                      {winPoints && (
-                        <span className="text-[10px] text-emerald-400">
-                          🎯 ~{winPoints.awayPoints} pts si vainqueur
-                        </span>
-                      )}
                     </div>
-                    <div className="flex flex-col items-center gap-0.5 px-2">
-                      <span className="text-sm text-neutral-600">@</span>
-                      {winPoints && (
-                        <span
-                          className="whitespace-nowrap text-center text-[10px] text-neutral-500"
-                          title="Probabilité de match nul à la fin du temps réglementaire, avant prolongation / tirs au but"
-                        >
-                          nul (avt OT) {Math.round(winPoints.drawProbability * 100)}%
-                          <br />
-                          <span className="text-emerald-400">
-                            🎯 ~{winPoints.drawPoints} pts
-                          </span>
-                        </span>
-                      )}
-                    </div>
+                    <span className="px-2 text-sm text-neutral-600">@</span>
                     <div className="flex flex-1 flex-col items-center gap-1">
                       <TeamBadge
                         abbrev={game.homeTeam.abbrev}
@@ -194,13 +175,40 @@ export default async function MatchesPage() {
                       <span className="text-sm text-neutral-200">
                         {game.homeTeam.name}
                       </span>
-                      {winPoints && (
-                        <span className="text-[10px] text-emerald-400">
-                          🎯 ~{winPoints.homePoints} pts si vainqueur
-                        </span>
-                      )}
                     </div>
                   </div>
+
+                  {winPoints && (
+                    <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px]">
+                      <span
+                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                        title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
+                      >
+                        {game.awayTeam.abbrev}{" "}
+                        <span className="font-medium text-emerald-400">
+                          {winPoints.awayPoints} pts
+                        </span>
+                      </span>
+                      <span
+                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-500"
+                        title={`Probabilité de match nul à la fin du temps réglementaire : ${Math.round(winPoints.drawProbability * 100)}%`}
+                      >
+                        Nul{" "}
+                        <span className="font-medium text-emerald-400">
+                          {winPoints.drawPoints} pts
+                        </span>
+                      </span>
+                      <span
+                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                        title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
+                      >
+                        {game.homeTeam.abbrev}{" "}
+                        <span className="font-medium text-emerald-400">
+                          {winPoints.homePoints} pts
+                        </span>
+                      </span>
+                    </div>
+                  )}
 
                   <form
                     action={submitPrediction}
