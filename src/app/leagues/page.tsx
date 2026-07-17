@@ -29,16 +29,24 @@ export default async function LeaguesPage({
     .map((m) => m.leagues as unknown as League)
     .filter((l): l is League => !!l);
 
-  const memberCounts = await Promise.all(
-    leagues.map((league) =>
-      supabase
-        .from("league_members")
-        .select("user_id", { count: "exact", head: true })
-        .eq("league_id", league.id)
-        .then(({ count }) => [league.id, count ?? 0] as const),
-    ),
-  );
-  const memberCountByLeague = new Map(memberCounts);
+  // Une seule requête groupée pour compter les membres de toutes les ligues,
+  // plutôt qu'une requête par ligue (évite le pattern N+1).
+  const leagueIds = leagues.map((l) => l.id);
+  const { data: allMembers } =
+    leagueIds.length > 0
+      ? await supabase
+          .from("league_members")
+          .select("league_id")
+          .in("league_id", leagueIds)
+      : { data: [] };
+
+  const memberCountByLeague = new Map<string, number>();
+  for (const row of allMembers ?? []) {
+    memberCountByLeague.set(
+      row.league_id,
+      (memberCountByLeague.get(row.league_id) ?? 0) + 1,
+    );
+  }
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">

@@ -83,28 +83,26 @@ export default async function MatchesPage() {
   } = await supabase.auth.getUser();
 
   const gameIds = games.map((g) => g.id);
-  const { data: predictions } =
+  // Les pronostics et le statut premium dépendent tous les deux de
+  // l'utilisateur mais pas l'un de l'autre : on les lance en parallèle.
+  const [{ data: predictions }, { data: profile }] = await Promise.all([
     gameIds.length > 0 && user
-      ? await supabase
+      ? supabase
           .from("predictions")
           .select("game_id, away_score, home_score, boosted")
           .eq("user_id", user.id)
           .in("game_id", gameIds)
-      : { data: [] };
+      : Promise.resolve({ data: [] }),
+    user
+      ? supabase.from("profiles").select("is_premium").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const predictionByGameId = new Map(
     (predictions ?? []).map((p) => [p.game_id, p]),
   );
 
-  let isPremium = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_premium")
-      .eq("id", user.id)
-      .single();
-    isPremium = profile?.is_premium ?? false;
-  }
+  const isPremium = profile?.is_premium ?? false;
 
   const dayGroups = groupByDay(games);
 

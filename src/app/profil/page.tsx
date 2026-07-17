@@ -53,63 +53,71 @@ export default async function ProfilPage() {
     );
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, favorite_team, avatar_url")
-    .eq("id", user.id)
-    .single();
+  // Toutes ces requêtes ne dépendent que de l'utilisateur (ou de rien du
+  // tout), pas les unes des autres : on les lance toutes en parallèle
+  // plutôt qu'en série pour réduire le temps de chargement de la page.
+  const [
+    { data: profile },
+    { data: predictions },
+    ranking,
+    [{ data: season }, { data: myPick }, { data: topScorerSeason }, { data: myTopScorerPick }],
+    { data: friendshipRows },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("username, favorite_team, avatar_url")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("predictions")
+      .select("game_id, away_score, home_score, points, is_exact_score, updated_at")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false }),
+    getRanking(supabase),
+    Promise.all([
+      supabase
+        .from("stanley_cup_season")
+        .select("lock_at, winner_team")
+        .eq("id", 1)
+        .single(),
+      supabase
+        .from("stanley_cup_picks")
+        .select("team_abbrev, points")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("top_scorer_season")
+        .select("lock_at, winner_player")
+        .eq("id", 1)
+        .single(),
+      supabase
+        .from("top_scorer_picks")
+        .select("player_name, points")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]),
+    supabase
+      .from("friendships")
+      .select(
+        "id, status, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(username), addressee:profiles!friendships_addressee_id_fkey(username)",
+      )
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+  ]);
 
   const username = profile?.username ?? user.email ?? "Joueur";
   const favoriteTeam = profile?.favorite_team as string | null | undefined;
   const avatarUrl = profile?.avatar_url as string | null | undefined;
-
-  const { data: predictions } = await supabase
-    .from("predictions")
-    .select("game_id, away_score, home_score, points, is_exact_score, updated_at")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
 
   const all = predictions ?? [];
   const graded = all.filter((p) => p.points !== null);
   const totalPoints = graded.reduce((sum, p) => sum + (p.points ?? 0), 0);
   const exactScoreCount = graded.filter((p) => p.is_exact_score).length;
 
-  const ranking = await getRanking(supabase);
   const rank = ranking.findIndex((entry) => entry.userId === user.id) + 1;
   const combinedPoints =
     ranking.find((entry) => entry.userId === user.id)?.totalPoints ?? 0;
   const ring = getRingForPoints(combinedPoints);
   const nextRingTier = getNextRingTier(combinedPoints);
-
-  // Ces 4 requêtes sont indépendantes les unes des autres : on les lance en
-  // parallèle plutôt qu'en série pour réduire le temps de chargement de la page.
-  const [
-    { data: season },
-    { data: myPick },
-    { data: topScorerSeason },
-    { data: myTopScorerPick },
-  ] = await Promise.all([
-    supabase
-      .from("stanley_cup_season")
-      .select("lock_at, winner_team")
-      .eq("id", 1)
-      .single(),
-    supabase
-      .from("stanley_cup_picks")
-      .select("team_abbrev, points")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("top_scorer_season")
-      .select("lock_at, winner_player")
-      .eq("id", 1)
-      .single(),
-    supabase
-      .from("top_scorer_picks")
-      .select("player_name, points")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-  ]);
 
   const isLocked = !season || new Date(season.lock_at) <= new Date();
 
@@ -144,13 +152,6 @@ export default async function ProfilPage() {
       }
     }),
   );
-
-  const { data: friendshipRows } = await supabase
-    .from("friendships")
-    .select(
-      "id, status, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(username), addressee:profiles!friendships_addressee_id_fkey(username)",
-    )
-    .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
 
   type FriendshipRow = {
     id: string;
