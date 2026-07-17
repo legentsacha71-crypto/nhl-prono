@@ -74,14 +74,21 @@ export function estimateWinPoints(
   home: TeamStats,
   away: TeamStats,
   leagueAvgGoals: number,
-): { homeWinProbability: number; awayWinProbability: number; homePoints: number; awayPoints: number } {
+): {
+  homeWinProbability: number;
+  awayWinProbability: number;
+  drawProbability: number;
+  homePoints: number;
+  awayPoints: number;
+} {
   const { lambdaHome, lambdaAway } = expectedGoals(home, away, leagueAvgGoals);
   const grid = scoreProbabilityGrid(lambdaHome, lambdaAway);
-  const { homeWin, awayWin } = outcomeProbabilities(grid);
+  const { homeWin, awayWin, draw } = outcomeProbabilities(grid);
 
   return {
     homeWinProbability: homeWin,
     awayWinProbability: awayWin,
+    drawProbability: draw,
     homePoints: Math.round(BASE_POINTS_CONSTANT / homeWin),
     awayPoints: Math.round(BASE_POINTS_CONSTANT / awayWin),
   };

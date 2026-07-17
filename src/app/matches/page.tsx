@@ -13,6 +13,7 @@ function formatDayLabel(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "short",
     day: "2-digit",
+    month: "short",
     timeZone: "Europe/Paris",
   });
 }
@@ -169,7 +170,17 @@ export default async function MatchesPage() {
                         </span>
                       )}
                     </div>
-                    <span className="px-2 text-sm text-neutral-600">@</span>
+                    <div className="flex flex-col items-center gap-0.5 px-2">
+                      <span className="text-sm text-neutral-600">@</span>
+                      {winPoints && (
+                        <span
+                          className="whitespace-nowrap text-[10px] text-neutral-500"
+                          title="Probabilité de match nul à la fin du temps réglementaire, avant prolongation / tirs au but"
+                        >
+                          nul (avt OT) {Math.round(winPoints.drawProbability * 100)}%
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-1 flex-col items-center gap-1">
                       <TeamBadge
                         abbrev={game.homeTeam.abbrev}
