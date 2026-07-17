@@ -44,9 +44,16 @@ export default function PredictionForm({
 
   useEffect(() => {
     if (locked) return;
-    const msUntilStart = new Date(startTimeUTC).getTime() - Date.now();
-    const timer = setTimeout(() => setLocked(true), Math.max(msUntilStart, 0));
-    return () => clearTimeout(timer);
+    // setTimeout overflow au-delà d'environ 24,8 jours (limite d'un entier
+    // 32 bits signé) : un délai plus long se déclenche immédiatement au lieu
+    // d'attendre. Les matchs pouvant être annoncés des mois à l'avance, on
+    // vérifie plutôt à intervalle régulier plutôt qu'avec un délai unique.
+    const interval = setInterval(() => {
+      if (Date.now() >= new Date(startTimeUTC).getTime()) {
+        setLocked(true);
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
   }, [startTimeUTC, locked]);
 
   useEffect(() => {
