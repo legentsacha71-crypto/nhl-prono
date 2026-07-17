@@ -35,9 +35,12 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
   const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
-  // La politique de confidentialité doit rester accessible sans connexion :
-  // c'est l'URL fournie à Apple/Google lors de la soumission de l'app.
-  const isPublicPage = request.nextUrl.pathname.startsWith("/confidentialite");
+  // La politique de confidentialité et la page d'assistance doivent rester
+  // accessibles sans connexion : ce sont les URLs fournies à Apple/Google
+  // lors de la soumission de l'app (politique de confidentialité + support).
+  const isPublicPage =
+    request.nextUrl.pathname.startsWith("/confidentialite") ||
+    request.nextUrl.pathname.startsWith("/assistance");
 
   if (!user && !isAuthPage && !isApiRoute && !isPublicPage) {
     const url = request.nextUrl.clone();
