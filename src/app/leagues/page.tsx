@@ -113,7 +113,14 @@ export default async function LeaguesPage({
           </ul>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        {/* Toujours empilées en une seule colonne : le conteneur parent est
+            plafonné à max-w-md (design "app mobile"), donc un passage en
+            2 colonnes ne laisse jamais assez de place pour un input + bouton
+            sans déborder — c'est ce qui causait le chevauchement "Créer" /
+            "Rejoindre une ligue" repéré par la vérification Apple sur iPad
+            (le breakpoint sm: se déclenche sur la largeur de l'écran, pas
+            sur celle du conteneur). */}
+        <div className="grid gap-3 grid-cols-1">
           <div className="space-y-2 rounded-xl border border-sky-900/40 bg-gradient-to-br from-sky-500/10 to-neutral-900 p-4 shadow-lg shadow-black/20">
             <h2 className="flex items-center gap-1.5 font-bold text-neutral-100">
               🏗️ Créer ta ligue
@@ -124,9 +131,9 @@ export default async function LeaguesPage({
                 type="text"
                 placeholder="Nom de la ligue"
                 required
-                className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+                className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
-              <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-all duration-150 hover:bg-sky-500 active:scale-[0.97]">
+              <SubmitButton className="shrink-0 rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-all duration-150 hover:bg-sky-500 active:scale-[0.97]">
                 Créer
               </SubmitButton>
             </form>
@@ -143,9 +150,9 @@ export default async function LeaguesPage({
                 placeholder="Code à 6 caractères"
                 required
                 maxLength={6}
-                className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 uppercase placeholder:text-neutral-500 placeholder:normal-case transition-colors focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 uppercase placeholder:text-neutral-500 placeholder:normal-case transition-colors focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
               />
-              <SubmitButton className="rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-amber-950/40 transition-all duration-150 hover:bg-amber-500 active:scale-[0.97]">
+              <SubmitButton className="shrink-0 rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-amber-950/40 transition-all duration-150 hover:bg-amber-500 active:scale-[0.97]">
                 Rejoindre
               </SubmitButton>
             </form>
