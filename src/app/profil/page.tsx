@@ -17,6 +17,7 @@ import {
   respondToFriendRequest,
   removeFriend,
   submitTopScorerPick,
+  deleteAccount,
 } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -24,6 +25,7 @@ import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import StanleyCupPicker from "@/components/StanleyCupPicker";
 import TopScorerPicker from "@/components/TopScorerPicker";
 import SubmitButton from "@/components/SubmitButton";
+import DeleteAccountForm from "@/components/DeleteAccountForm";
 
 function formatLockCountdown(lockAt: string): string {
   const diffMs = new Date(lockAt).getTime() - Date.now();
@@ -523,6 +525,13 @@ export default async function ProfilPage() {
               </p>
             )}
           </div>
+        </div>
+
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4">
+          <h2 className="mb-2 text-sm font-medium text-neutral-400">
+            ⚠️ Zone dangereuse
+          </h2>
+          <DeleteAccountForm deleteAccount={deleteAccount} />
         </div>
       </div>
 

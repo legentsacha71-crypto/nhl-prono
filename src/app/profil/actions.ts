@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -337,5 +338,92 @@ export async function removeFriend(formData: FormData) {
   }
 
   revalidatePath("/profil");
+}
+
+// Suppression de compte (Guideline App Store 5.1.1(v) : l'app doit proposer
+// une vraie suppression, pas juste une déconnexion). On utilise le client
+// admin pour tout nettoyer nous-mêmes plutôt que de compter sur des
+// contraintes ON DELETE CASCADE côté base (dont on n'est pas sûr) : mieux
+// vaut une suppression explicite et vérifiable qu'un compte "supprimé" qui
+// laisse des données orphelines derrière lui.
+export async function deleteAccount() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non connecté.");
+  }
+
+  const userId = user.id;
+  const admin = createAdminClient();
+
+  // Ligues dont l'utilisateur est propriétaire : soit on transfère la
+  // propriété à un autre membre restant, soit (s'il était seul) on
+  // supprime la ligue entièrement plutôt que de laisser un owner_id
+  // pointant vers un compte qui n'existe plus.
+  const { data: ownedLeagues } = await admin
+    .from("leagues")
+    .select("id")
+    .eq("owner_id", userId);
+
+  for (const league of ownedLeagues ?? []) {
+    const { data: otherMember } = await admin
+      .from("league_members")
+      .select("user_id")
+      .eq("league_id", league.id)
+      .neq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (otherMember) {
+      await admin
+        .from("leagues")
+        .update({ owner_id: otherMember.user_id })
+        .eq("id", league.id);
+    } else {
+      await admin.from("league_messages").delete().eq("league_id", league.id);
+      await admin.from("league_members").delete().eq("league_id", league.id);
+      await admin.from("leagues").delete().eq("id", league.id);
+    }
+  }
+
+  // Nettoyage de toutes les autres données personnelles rattachées au
+  // compte, table par table (pas de suppression en cascade garantie).
+  await Promise.all([
+    admin.from("predictions").delete().eq("user_id", userId),
+    admin.from("stanley_cup_picks").delete().eq("user_id", userId),
+    admin.from("top_scorer_picks").delete().eq("user_id", userId),
+    admin.from("league_messages").delete().eq("user_id", userId),
+    admin.from("notifications").delete().eq("user_id", userId),
+    admin
+      .from("friendships")
+      .delete()
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+    admin.from("league_members").delete().eq("user_id", userId),
+  ]);
+
+  // Suppression de la photo de profil dans le stockage (best effort : le
+  // format exact du fichier n'est pas connu, on liste le dossier de
+  // l'utilisateur et on retire tout ce qui s'y trouve).
+  const { data: avatarFiles } = await admin.storage
+    .from("avatars")
+    .list(userId);
+  if (avatarFiles && avatarFiles.length > 0) {
+    await admin.storage
+      .from("avatars")
+      .remove(avatarFiles.map((f) => `${userId}/${f.name}`));
+  }
+
+  await admin.from("profiles").delete().eq("id", userId);
+
+  const { error: deleteUserError } = await admin.auth.admin.deleteUser(userId);
+  if (deleteUserError) {
+    throw new Error(deleteUserError.message);
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?message=Ton compte a été supprimé.");
 }
 
