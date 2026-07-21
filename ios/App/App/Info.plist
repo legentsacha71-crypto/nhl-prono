@@ -10,6 +10,16 @@
 	     de conformité à chaque envoi de build vers App Store Connect. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Requises pour l'upload de photo de profil (input file avec
+	     accept="image/*"), qui déclenche le menu natif iOS "Prendre une
+	     photo" / "Choisir dans la bibliothèque". Sans ces clés, iOS tue
+	     l'app dès qu'elle tente d'accéder à la caméra ou à la photothèque
+	     — c'était la cause du crash signalé par Apple lors de la
+	     vérification (Guideline 2.1(a)). -->
+	<key>NSCameraUsageDescription</key>
+	<string>La Nuit Hockey a besoin d'accéder à ton appareil photo pour te permettre de prendre une photo de profil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>La Nuit Hockey a besoin d'accéder à tes photos pour te permettre de choisir une photo de profil.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
