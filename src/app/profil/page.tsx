@@ -26,6 +26,8 @@ import StanleyCupPicker from "@/components/StanleyCupPicker";
 import TopScorerPicker from "@/components/TopScorerPicker";
 import SubmitButton from "@/components/SubmitButton";
 import DeleteAccountForm from "@/components/DeleteAccountForm";
+import ProfileTabs from "@/components/ProfileTabs";
+import ProfileStatsPanel from "@/components/ProfileStatsPanel";
 
 function formatLockCountdown(lockAt: string): string {
   const diffMs = new Date(lockAt).getTime() - Date.now();
@@ -112,7 +114,6 @@ export default async function ProfilPage() {
 
   const all = predictions ?? [];
   const graded = all.filter((p) => p.points !== null);
-  const totalPoints = graded.reduce((sum, p) => sum + (p.points ?? 0), 0);
   const exactScoreCount = graded.filter((p) => p.is_exact_score).length;
 
   const rank = ranking.findIndex((entry) => entry.userId === user.id) + 1;
@@ -120,6 +121,17 @@ export default async function ProfilPage() {
     ranking.find((entry) => entry.userId === user.id)?.totalPoints ?? 0;
   const ring = getRingForPoints(combinedPoints);
   const nextRingTier = getNextRingTier(combinedPoints);
+
+  const correctCount = graded.filter((p) => (p.points ?? 0) > 0).length;
+  const initialStats = {
+    points: combinedPoints,
+    rank,
+    totalRanked: ranking.length,
+    pronosCount: all.length,
+    gradedCount: graded.length,
+    correctCount,
+    exactCount: exactScoreCount,
+  };
 
   const isLocked = !season || new Date(season.lock_at) <= new Date();
 
@@ -251,30 +263,9 @@ export default async function ProfilPage() {
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20 transition-transform duration-200 hover:-translate-y-0.5">
-            <p className="text-lg font-bold text-sky-400">{all.length}</p>
-            <p className="text-xs text-neutral-500">Pronos</p>
-          </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20 transition-transform duration-200 hover:-translate-y-0.5">
-            <p className="text-lg font-bold text-sky-400">{totalPoints}</p>
-            <p className="text-xs text-neutral-500">Points</p>
-          </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20 transition-transform duration-200 hover:-translate-y-0.5">
-            <p className="text-lg font-bold text-sky-400">{exactScoreCount}</p>
-            <p className="text-xs text-neutral-500">
-              {exactScoreCount > 1 ? "Scores exacts" : "Score exact"}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-neutral-800 bg-gradient-to-r from-sky-500/10 to-neutral-900 p-4 text-center shadow-lg shadow-black/20">
-          <p className="text-sm text-neutral-400">🏆 Classement général</p>
-          <p className="text-lg font-medium text-neutral-100">
-            {rank > 0 ? `#${rank} sur ${ranking.length}` : "Pas encore classé"}
-          </p>
-        </div>
-
+        <ProfileTabs
+          general={
+            <div className="space-y-6">
         <div>
           <h2 className="mb-2 font-medium text-neutral-200">
             🏒 Mes pronos récents
@@ -533,6 +524,10 @@ export default async function ProfilPage() {
           </h2>
           <DeleteAccountForm deleteAccount={deleteAccount} />
         </div>
+            </div>
+          }
+          stats={<ProfileStatsPanel initial={initialStats} />}
+        />
       </div>
 
       <BottomNav />
