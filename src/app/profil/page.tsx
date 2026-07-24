@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
@@ -208,7 +209,22 @@ export default async function ProfilPage() {
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2">
+        <div className="relative overflow-hidden rounded-3xl">
+          {/* Illustration décorative en fond, pour casser le vide visuel du
+              haut de la page profil. Elle s'estompe en dégradé jusqu'à la
+              couleur de fond exacte du site, pile après le sélecteur
+              d'équipe favorite : le reste de la page reste sur le fond uni
+              habituel. */}
+          <Image
+            src="/images/profile-hero.jpg"
+            alt=""
+            fill
+            sizes="(min-width: 448px) 448px, 100vw"
+            className="object-cover opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/35 via-neutral-950/80 to-neutral-950" />
+
+          <div className="relative flex flex-col items-center gap-2 px-6 py-6">
           <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
 
           <div className="relative h-28 w-28">
@@ -261,6 +277,7 @@ export default async function ProfilPage() {
             favoriteTeam={favoriteTeam}
             updateFavoriteTeam={updateFavoriteTeam}
           />
+          </div>
         </div>
 
         <ProfileTabs
