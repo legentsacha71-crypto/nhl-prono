@@ -41,3 +41,13 @@ body {
   outline: 2px solid #38bdf8;
   outline-offset: 2px;
 }
+
+/* Dans la WebView iOS (app native), rester appuyé sur un lien affiche par
+   défaut un aperçu natif avec un bouton "Ouvrir" qui bascule sur Safari —
+   très déroutant pour une app censée se comporter comme une app native.
+   On désactive ce comportement sur les liens/boutons, sans toucher à la
+   sélection de texte ailleurs (scores, messages du chat, etc.). */
+a,
+button {
+  -webkit-touch-callout: none;
+}
