@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/nhlResults";
@@ -194,6 +195,7 @@ export default async function ProfilPage() {
         : f.requester?.username;
       return {
         friendshipId: f.id,
+        friendId,
         username: friendUsername ?? "Joueur",
         points: pointsByUserId.get(friendId) ?? 0,
       };
@@ -376,7 +378,12 @@ export default async function ProfilPage() {
                   key={f.friendshipId}
                   className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
                 >
-                  <span className="text-neutral-200">{f.username}</span>
+                  <Link
+                    href={`/profil/${f.friendId}`}
+                    className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
+                  >
+                    {f.username}
+                  </Link>
                   <div className="flex items-center gap-3">
                     <span className="font-medium text-sky-400">
                       {f.points} pts

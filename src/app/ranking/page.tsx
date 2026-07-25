@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
@@ -42,7 +43,10 @@ export default async function RankingPage() {
                     "border-neutral-800 bg-neutral-900 shadow-sm shadow-black/20"
                   } ${isMe ? "ring-1 ring-sky-500/50" : ""}`}
                 >
-                  <span className="flex items-center text-neutral-200">
+                  <Link
+                    href={`/profil/${entry.userId}`}
+                    className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
+                  >
                     <span className="mr-2 w-5 text-center text-sm text-neutral-500">
                       {MEDALS[index] ?? index + 1}
                     </span>
@@ -52,7 +56,7 @@ export default async function RankingPage() {
                         Toi
                       </span>
                     )}
-                  </span>
+                  </Link>
                   <span className="font-medium text-sky-400">
                     {entry.totalPoints} pts
                   </span>

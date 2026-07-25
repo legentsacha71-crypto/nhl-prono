@@ -49,12 +49,15 @@ export default async function LeagueDetailPage({
               key={entry.userId}
               className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3"
             >
-              <span className="text-neutral-200">
+              <Link
+                href={`/profil/${entry.userId}`}
+                className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
+              >
                 <span className="mr-2 text-sm text-neutral-500">
                   {index + 1}
                 </span>
                 {entry.username}
-              </span>
+              </Link>
               <span className="font-medium text-sky-400">
                 {entry.totalPoints} pts
               </span>
