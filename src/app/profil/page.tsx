@@ -27,6 +27,7 @@ import StanleyCupPicker from "@/components/StanleyCupPicker";
 import TopScorerPicker from "@/components/TopScorerPicker";
 import SubmitButton from "@/components/SubmitButton";
 import DeleteAccountForm from "@/components/DeleteAccountForm";
+import AvatarUploadForm from "@/components/AvatarUploadForm";
 import ProfileTabs from "@/components/ProfileTabs";
 import ProfileStatsPanel from "@/components/ProfileStatsPanel";
 
@@ -260,18 +261,7 @@ export default async function ProfilPage() {
             )}
           </p>
 
-          <form action={uploadAvatar} className="flex items-center gap-2">
-            <input
-              type="file"
-              name="avatar"
-              accept="image/png,image/jpeg,image/webp"
-              required
-              className="text-xs text-neutral-400 file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-2 file:py-1 file:text-xs file:text-neutral-200 file:transition-colors file:duration-150 hover:file:bg-neutral-700"
-            />
-            <SubmitButton className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500">
-              Changer
-            </SubmitButton>
-          </form>
+          <AvatarUploadForm uploadAvatar={uploadAvatar} />
 
           <FavoriteTeamPicker
             favoriteTeam={favoriteTeam}
