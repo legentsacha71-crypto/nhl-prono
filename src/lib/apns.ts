@@ -15,6 +15,14 @@ import http2 from "node:http2";
 // in-app existantes dans profil/actions.ts.
 
 const APNS_HOST = "https://api.push.apple.com";
+// Hôte "sandbox" historique. Apple a unifié les deux environnements sur
+// api.push.apple.com depuis 2021, mais en pratique un token généré par un
+// build signé en développement (aps-environment: development, ce qui peut
+// arriver même via TestFlight selon le profil de provisionnement utilisé
+// pour signer l'archive) est rejeté par l'hôte de prod avec l'erreur non
+// documentée "BadEnvironmentKeyInToken". On retente alors sur cet hôte
+// sandbox plutôt que de faire échouer l'envoi.
+const APNS_HOST_SANDBOX = "https://api.sandbox.push.apple.com";
 
 export type ApnsAlert = {
   title: string;
@@ -83,14 +91,19 @@ function buildApnsJwt(): string {
 // continuer à réessayer un token mort à chaque notification future.
 export class ApnsInvalidTokenError extends Error {}
 
+// Signale un mismatch d'environnement (cf. commentaire sur APNS_HOST_SANDBOX)
+// pour que sendApnsPush puisse retenter sur l'autre hôte.
+class ApnsWrongEnvironmentError extends Error {}
+
 function sendApnsRequest(
+  host: string,
   deviceToken: string,
   jwt: string,
   payload: unknown,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const bundleId = process.env.APNS_BUNDLE_ID as string;
-    const client = http2.connect(APNS_HOST);
+    const client = http2.connect(host);
 
     client.on("error", (err) => {
       reject(err);
@@ -134,6 +147,8 @@ function sendApnsRequest(
         reason === "Unregistered"
       ) {
         reject(new ApnsInvalidTokenError(`APNs: ${reason}`));
+      } else if (reason === "BadEnvironmentKeyInToken") {
+        reject(new ApnsWrongEnvironmentError(`APNs: ${reason}`));
       } else {
         reject(new Error(`APNs error ${status}: ${reason}`));
       }
@@ -153,9 +168,15 @@ export async function sendApnsPush(
   alert: ApnsAlert,
 ): Promise<void> {
   const jwt = buildApnsJwt();
-  await sendApnsRequest(deviceToken, jwt, {
-    aps: { alert, sound: "default" },
-  });
+  const payload = { aps: { alert, sound: "default" } };
+  try {
+    await sendApnsRequest(APNS_HOST, deviceToken, jwt, payload);
+  } catch (err) {
+    if (!(err instanceof ApnsWrongEnvironmentError)) {
+      throw err;
+    }
+    await sendApnsRequest(APNS_HOST_SANDBOX, deviceToken, jwt, payload);
+  }
 }
 
 // Point d'entrée à utiliser depuis les server actions / routes API : envoie
