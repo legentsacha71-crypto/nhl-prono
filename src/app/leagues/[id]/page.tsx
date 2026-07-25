@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import RankAvatar from "@/components/RankAvatar";
 
 export default async function LeagueDetailPage({
   params,
@@ -51,12 +52,16 @@ export default async function LeagueDetailPage({
             >
               <Link
                 href={`/profil/${entry.userId}`}
-                className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
+                className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
               >
                 <span className="mr-2 text-sm text-neutral-500">
                   {index + 1}
                 </span>
-                {entry.username}
+                <RankAvatar
+                  avatarUrl={entry.avatarUrl}
+                  username={entry.username}
+                />
+                <span className="ml-2">{entry.username}</span>
               </Link>
               <span className="font-medium text-sky-400">
                 {entry.totalPoints} pts

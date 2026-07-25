@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import RankAvatar from "@/components/RankAvatar";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -50,7 +51,11 @@ export default async function RankingPage() {
                     <span className="mr-2 w-5 text-center text-sm text-neutral-500">
                       {MEDALS[index] ?? index + 1}
                     </span>
-                    {entry.username}
+                    <RankAvatar
+                      avatarUrl={entry.avatarUrl}
+                      username={entry.username}
+                    />
+                    <span className="ml-2">{entry.username}</span>
                     {isMe && (
                       <span className="ml-2 rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-medium text-sky-400">
                         Toi

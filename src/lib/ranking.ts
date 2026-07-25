@@ -3,6 +3,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export type RankingEntry = {
   userId: string;
   username: string;
+  avatarUrl: string | null;
   totalPoints: number;
 };
 
@@ -10,7 +11,9 @@ export async function getRanking(
   supabase: SupabaseClient,
   userIds?: string[],
 ): Promise<RankingEntry[]> {
-  let profilesQuery = supabase.from("profiles").select("id, username");
+  let profilesQuery = supabase
+    .from("profiles")
+    .select("id, username, avatar_url");
   if (userIds) {
     profilesQuery = profilesQuery.in("id", userIds);
   }
@@ -69,6 +72,7 @@ export async function getRanking(
     .map((profile) => ({
       userId: profile.id as string,
       username: profile.username as string,
+      avatarUrl: (profile.avatar_url as string | null) ?? null,
       totalPoints: pointsByUser.get(profile.id) ?? 0,
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
