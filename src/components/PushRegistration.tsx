@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
-import { registerPushToken } from "@/app/notifications/actions";
+import { registerPushToken, logPushDebug } from "@/app/notifications/actions";
 
 // Enregistre l'appareil pour les notifications push APNs dès l'ouverture de
 // l'appli. `Capacitor.isNativePlatform()` est false sur le web (le site
@@ -23,6 +23,7 @@ export default function PushRegistration() {
     async function setup() {
       const permStatus = await PushNotifications.checkPermissions();
       let receive = permStatus.receive;
+      logPushDebug("checkPermissions", receive).catch(() => {});
 
       // On ne redemande la permission que si elle n'a jamais été tranchée :
       // si l'utilisateur a refusé, on ne le re-sollicite pas à chaque
@@ -30,15 +31,30 @@ export default function PushRegistration() {
       if (receive === "prompt" || receive === "prompt-with-rationale") {
         const requested = await PushNotifications.requestPermissions();
         receive = requested.receive;
+        logPushDebug("requestPermissions", receive).catch(() => {});
       }
 
-      if (cancelled || receive !== "granted") return;
+      if (cancelled || receive !== "granted") {
+        logPushDebug(
+          "abandon avant register()",
+          `cancelled=${cancelled} receive=${receive}`,
+        ).catch(() => {});
+        return;
+      }
 
       registrationListener = await PushNotifications.addListener(
         "registration",
         (token) => {
+          logPushDebug(
+            "listener registration déclenché",
+            `token length=${token.value.length}`,
+          ).catch(() => {});
           registerPushToken(token.value).catch((err) => {
             console.error("Échec de l'enregistrement du token push :", err);
+            logPushDebug(
+              "registerPushToken a rejeté",
+              err instanceof Error ? err.message : String(err),
+            ).catch(() => {});
           });
         },
       );
@@ -46,10 +62,24 @@ export default function PushRegistration() {
         "registrationError",
         (err) => {
           console.error("Erreur d'enregistrement push APNs :", err);
+          logPushDebug(
+            "listener registrationError déclenché",
+            JSON.stringify(err),
+          ).catch(() => {});
         },
       );
 
-      await PushNotifications.register();
+      try {
+        await PushNotifications.register();
+        logPushDebug("register() a résolu sans erreur synchrone").catch(
+          () => {},
+        );
+      } catch (err) {
+        logPushDebug(
+          "register() a levé une exception",
+          err instanceof Error ? err.message : String(err),
+        ).catch(() => {});
+      }
     }
 
     setup();
