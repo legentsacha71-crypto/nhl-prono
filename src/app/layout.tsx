@@ -28,9 +28,18 @@ export const metadata: Metadata = {
 // viewport-fit=cover est nécessaire pour que env(safe-area-inset-top/bottom)
 // retourne les vraies valeurs sur iOS (sinon TopBar/BottomNav se collent
 // sous l'encoche / l'île dynamique et par-dessus la barre système).
+//
+// maximumScale=1 + userScalable=false : sans ça, Safari/WKWebView zoome
+// automatiquement l'écran quand on tape dans un champ texte (comportement
+// natif du navigateur pour les champs avec une police < 16px), et ce zoom
+// ne se réinitialise pas toujours après avoir quitté le champ. On désactive
+// le zoom pour se comporter comme une vraie appli native (cohérent avec le
+// wrapper Capacitor), plutôt que de devoir passer tous les champs en 16px.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
