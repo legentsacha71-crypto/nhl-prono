@@ -168,6 +168,18 @@ export async function sendPushToUser(
   alert: ApnsAlert,
 ): Promise<void> {
   if (!isApnsConfigured()) {
+    // Silencieux par design pour ne jamais casser l'appelant, mais on log
+    // quand même quelles variables manquent : sans ça, une config Vercel
+    // incomplète ne produit aucune trace nulle part et est indébuggable.
+    const missing = [
+      !process.env.APNS_KEY_ID && "APNS_KEY_ID",
+      !process.env.APNS_TEAM_ID && "APNS_TEAM_ID",
+      !process.env.APNS_PRIVATE_KEY && "APNS_PRIVATE_KEY",
+      !process.env.APNS_BUNDLE_ID && "APNS_BUNDLE_ID",
+    ].filter(Boolean);
+    console.error(
+      `Push APNs non configuré, variables manquantes : ${missing.join(", ")}`,
+    );
     return;
   }
 
