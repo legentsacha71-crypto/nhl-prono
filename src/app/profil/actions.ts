@@ -7,6 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
+import { sendPushToUser } from "@/lib/apns";
 
 export async function updateFavoriteTeam(favoriteTeam: string | null) {
   if (favoriteTeam && !NHL_TEAMS.some((t) => t.abbrev === favoriteTeam)) {
@@ -243,22 +244,31 @@ export async function sendFriendRequest(formData: FormData) {
       .eq("id", user.id)
       .single();
 
-    // La notification est un "bonus" : si la clé admin est mal configurée
-    // ou que l'insertion échoue pour une raison quelconque, ça ne doit
-    // surtout pas faire planter la demande d'ami elle-même (déjà
-    // enregistrée à ce stade). On isole donc cet appel dans son propre
-    // try/catch.
+    // La notification (in-app + push) est un "bonus" : si la clé admin est
+    // mal configurée ou que l'insertion/l'envoi échoue pour une raison
+    // quelconque, ça ne doit surtout pas faire planter la demande d'ami
+    // elle-même (déjà enregistrée à ce stade). On isole donc ces appels
+    // dans leur propre try/catch.
+    const requesterName = myProfile?.username ?? "Un joueur";
     try {
       const admin = createAdminClient();
       await admin.from("notifications").insert({
         user_id: target.id,
-        message: `${myProfile?.username ?? "Un joueur"} t'a envoyé une demande d'ami.`,
+        message: `${requesterName} t'a envoyé une demande d'ami.`,
       });
     } catch (notifError) {
       console.error(
         "Échec de l'envoi de la notification d'ami :",
         notifError,
       );
+    }
+    try {
+      await sendPushToUser(target.id, {
+        title: "Nouvelle demande d'ami",
+        body: `${requesterName} t'a envoyé une demande d'ami.`,
+      });
+    } catch (pushError) {
+      console.error("Échec de l'envoi du push de demande d'ami :", pushError);
     }
   } catch (err) {
     if (err instanceof Error) {
@@ -309,16 +319,25 @@ export async function respondToFriendRequest(formData: FormData) {
       throw new Error(acceptError.message);
     }
 
-    // Même logique : la notification ne doit jamais faire planter
-    // l'acceptation de la demande, déjà actée en base à ce stade.
+    // Même logique : la notification (in-app + push) ne doit jamais faire
+    // planter l'acceptation de la demande, déjà actée en base à ce stade.
+    const accepterName = myProfile?.username ?? "Un joueur";
     try {
       const admin = createAdminClient();
       await admin.from("notifications").insert({
         user_id: friendship.requester_id,
-        message: `${myProfile?.username ?? "Un joueur"} a accepté ta demande d'ami.`,
+        message: `${accepterName} a accepté ta demande d'ami.`,
       });
     } catch (notifError) {
       console.error("Échec de l'envoi de la notification d'ami :", notifError);
+    }
+    try {
+      await sendPushToUser(friendship.requester_id, {
+        title: "Demande d'ami acceptée",
+        body: `${accepterName} a accepté ta demande d'ami.`,
+      });
+    } catch (pushError) {
+      console.error("Échec de l'envoi du push d'ami accepté :", pushError);
     }
   } else {
     const { error: declineError } = await supabase
