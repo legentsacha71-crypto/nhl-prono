@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 
 // Petite animation d'intro façon "motion design" affichée à l'ouverture de
-// l'appli : "La Nuit" et "Hockey" apparaissent superposés au centre de
-// l'écran, puis se séparent en sortant chacun par un bord opposé ("La
-// Nuit" vers le haut, "Hockey" vers le bas) pour révéler le contenu.
+// l'appli : le logo "La Nuit" / "Hockey" (deux lignes empilées, comme sur
+// l'icône/le branding) apparaît en fondu, puis se scinde rapidement — "La
+// Nuit" file vers le haut, "Hockey" vers le bas — en s'estompant sur la
+// toute fin de la sortie, pour révéler le contenu.
 //
 // Ce composant vit dans RootLayout, qui ne se remonte pas lors de la
 // navigation côté client (App Router) : il ne se déclenche donc que sur un
@@ -22,9 +23,10 @@ export default function AppSplash() {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    const enterMs = reduceMotion ? 0 : 450;
-    const holdMs = reduceMotion ? 150 : 550;
-    const exitMs = reduceMotion ? 150 : 500;
+    // Volontairement très court : l'écran ne reste affiché qu'un instant.
+    const enterMs = reduceMotion ? 0 : 200;
+    const holdMs = reduceMotion ? 100 : 250;
+    const exitMs = reduceMotion ? 100 : 380;
 
     // Un léger décalage (rAF) est nécessaire pour que le passage de "enter"
     // à "visible" déclenche bien la transition CSS plutôt que de partir
@@ -49,39 +51,46 @@ export default function AppSplash() {
   const isVisible = phase === "visible" || phase === "exit";
   const isExiting = phase === "exit";
 
+  // Transitions distinctes pour le transform et l'opacité en sortie : le
+  // transform part dès le début (courbe quasi linéaire) alors que
+  // l'opacité utilise une courbe "ease-in" qui reste haute puis chute en
+  // fin de course, pour un fondu concentré sur la toute fin du mouvement.
+  const exitTransition =
+    "transform 380ms cubic-bezier(0.4, 0, 0.7, 1), opacity 380ms cubic-bezier(0.8, 0, 1, 1)";
+  const enterTransition = "transform 200ms ease-out, opacity 200ms ease-out";
+
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-neutral-950"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden bg-neutral-950"
     >
-      <div className="relative h-14 w-full">
-        <span
-          className={`absolute inset-0 flex items-center justify-center font-display text-4xl uppercase tracking-wide text-sky-400 transition-all duration-500 ease-in ${
-            isExiting ? "-translate-y-[130%]" : "translate-y-0"
-          } ${isVisible ? "opacity-100" : "opacity-0"}`}
-          style={{
-            transitionDuration: isExiting ? "500ms" : "450ms",
-            transitionTimingFunction: isExiting
-              ? "cubic-bezier(0.55, 0, 1, 0.45)"
-              : "ease-out",
-          }}
-        >
-          La Nuit
-        </span>
-        <span
-          className={`absolute inset-0 flex items-center justify-center font-display text-4xl uppercase tracking-wide text-neutral-50 transition-all duration-500 ease-in ${
-            isExiting ? "translate-y-[130%]" : "translate-y-0"
-          } ${isVisible ? "opacity-100" : "opacity-0"}`}
-          style={{
-            transitionDuration: isExiting ? "500ms" : "450ms",
-            transitionTimingFunction: isExiting
-              ? "cubic-bezier(0.55, 0, 1, 0.45)"
-              : "ease-out",
-          }}
-        >
-          Hockey
-        </span>
-      </div>
+      <span
+        className={`font-sans text-6xl leading-[0.85] font-black tracking-tight text-neutral-50 italic uppercase ${
+          isExiting
+            ? "-translate-y-[120%] scale-95 opacity-0"
+            : isVisible
+              ? "translate-y-0 scale-100 opacity-100"
+              : "translate-y-0 scale-95 opacity-0"
+        }`}
+        style={{ transition: isExiting ? exitTransition : enterTransition }}
+      >
+        La Nuit
+      </span>
+      <span
+        className={`font-sans text-6xl leading-[0.85] font-black tracking-tight text-sky-400 italic uppercase ${
+          isExiting
+            ? "translate-y-[120%] scale-95 opacity-0"
+            : isVisible
+              ? "translate-y-0 scale-100 opacity-100"
+              : "translate-y-0 scale-95 opacity-0"
+        }`}
+        style={{
+          transition: isExiting ? exitTransition : enterTransition,
+          textShadow: "0 0 22px rgba(56, 189, 248, 0.55)",
+        }}
+      >
+        Hockey
+      </span>
     </div>
   );
 }
