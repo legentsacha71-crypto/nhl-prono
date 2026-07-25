@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { respondToFriendRequest } from "@/app/profil/actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import FriendRequestActions from "@/components/FriendRequestActions";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString("fr-FR", {
@@ -20,12 +22,24 @@ export default async function NotificationsPage() {
 
   if (!user) redirect("/login");
 
-  const { data: notifications } = await supabase
-    .from("notifications")
-    .select("id, message, created_at, read_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data: notifications }, { data: friendRequestRows }] =
+    await Promise.all([
+      supabase
+        .from("notifications")
+        .select("id, message, created_at, read_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      // Demandes d'ami en attente : affichées ici sous forme de carte
+      // Accepter/Refuser, en plus de la page profil (voir FriendRequestActions).
+      supabase
+        .from("friendships")
+        .select(
+          "id, requester:profiles!friendships_requester_id_fkey(username)",
+        )
+        .eq("addressee_id", user.id)
+        .eq("status", "pending"),
+    ]);
 
   await supabase
     .from("notifications")
@@ -35,6 +49,13 @@ export default async function NotificationsPage() {
 
   const list = notifications ?? [];
 
+  type FriendRequestRow = {
+    id: string;
+    requester: { username: string } | null;
+  };
+  const friendRequests = (friendRequestRows ??
+    []) as unknown as FriendRequestRow[];
+
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
@@ -43,10 +64,34 @@ export default async function NotificationsPage() {
           Notifications
         </h1>
 
+        {friendRequests.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-sm font-medium text-neutral-400">
+              👥 Demandes d&apos;ami
+            </h2>
+            {friendRequests.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between rounded-lg border border-sky-800 bg-sky-950 p-3 text-sm shadow-md shadow-sky-950/30"
+              >
+                <span className="text-sky-100">
+                  {r.requester?.username ?? "?"} veut être ton ami
+                </span>
+                <FriendRequestActions
+                  friendshipId={r.id}
+                  respondToFriendRequest={respondToFriendRequest}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         {list.length === 0 ? (
-          <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-            Aucune notification pour le moment.
-          </p>
+          friendRequests.length === 0 && (
+            <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+              Aucune notification pour le moment.
+            </p>
+          )
         ) : (
           <ul className="space-y-2">
             {list.map((n) => (

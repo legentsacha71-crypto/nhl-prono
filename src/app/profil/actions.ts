@@ -300,7 +300,10 @@ export async function respondToFriendRequest(formData: FormData) {
     }
   }
 
+  // Accessible depuis /profil et /notifications (voir FriendRequestActions) :
+  // on revalide les deux pour que la carte de demande disparaisse partout.
   revalidatePath("/profil");
+  revalidatePath("/notifications");
 }
 
 export async function removeFriend(formData: FormData) {

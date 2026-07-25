@@ -30,6 +30,8 @@ import SubmitButton from "@/components/SubmitButton";
 import DeleteAccountForm from "@/components/DeleteAccountForm";
 import AvatarUploadForm from "@/components/AvatarUploadForm";
 import ProfileTabs from "@/components/ProfileTabs";
+import AddFriendForm from "@/components/AddFriendForm";
+import FriendRequestActions from "@/components/FriendRequestActions";
 import ProfileStatsPanel from "@/components/ProfileStatsPanel";
 
 function formatLockCountdown(lockAt: string): string {
@@ -320,21 +322,7 @@ export default async function ProfilPage() {
         <div>
           <h2 className="mb-2 font-medium text-neutral-200">👥 Mes amis</h2>
 
-          <form
-            action={sendFriendRequest}
-            className="mb-3 flex items-center gap-2"
-          >
-            <input
-              name="username"
-              type="text"
-              placeholder="Pseudo de ton ami"
-              required
-              className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
-            />
-            <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500">
-              Ajouter
-            </SubmitButton>
-          </form>
+          <AddFriendForm sendFriendRequest={sendFriendRequest} />
 
           {incomingRequests.length > 0 && (
             <div className="mb-3 space-y-2">
@@ -346,22 +334,10 @@ export default async function ProfilPage() {
                   <span className="text-sky-100">
                     {r.requester?.username ?? "?"} veut être ton ami
                   </span>
-                  <div className="flex gap-2">
-                    <form action={respondToFriendRequest}>
-                      <input type="hidden" name="friendshipId" value={r.id} />
-                      <input type="hidden" name="action" value="accept" />
-                      <SubmitButton className="rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition-colors duration-150 hover:bg-sky-500">
-                        Accepter
-                      </SubmitButton>
-                    </form>
-                    <form action={respondToFriendRequest}>
-                      <input type="hidden" name="friendshipId" value={r.id} />
-                      <input type="hidden" name="action" value="decline" />
-                      <SubmitButton className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900">
-                        Refuser
-                      </SubmitButton>
-                    </form>
-                  </div>
+                  <FriendRequestActions
+                    friendshipId={r.id}
+                    respondToFriendRequest={respondToFriendRequest}
+                  />
                 </div>
               ))}
             </div>
