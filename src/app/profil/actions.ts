@@ -193,55 +193,80 @@ export async function sendFriendRequest(formData: FormData) {
     throw new Error("Non connecté.");
   }
 
-  const { data: target } = await supabase
-    .from("profiles")
-    .select("id, username")
-    .ilike("username", username)
-    .maybeSingle();
+  // Tout le corps de la fonction est enveloppé dans un try/catch : n'importe
+  // quelle erreur inattendue (pas seulement celles qu'on anticipe) doit
+  // toujours ressortir comme une vraie Error avec un message exploitable
+  // côté client, plutôt que de risquer un rejet non standard qui échapperait
+  // au try/catch de AddFriendForm et ferait planter toute la page.
+  try {
+    const { data: target } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .ilike("username", username)
+      .maybeSingle();
 
-  if (!target) {
-    throw new Error("Aucun joueur avec ce pseudo.");
+    if (!target) {
+      throw new Error("Aucun joueur avec ce pseudo.");
+    }
+    if (target.id === user.id) {
+      throw new Error("Tu ne peux pas t'ajouter toi-même.");
+    }
+
+    const { data: existing } = await supabase
+      .from("friendships")
+      .select("id, status")
+      .or(
+        `and(requester_id.eq.${user.id},addressee_id.eq.${target.id}),and(requester_id.eq.${target.id},addressee_id.eq.${user.id})`,
+      )
+      .maybeSingle();
+
+    if (existing) {
+      throw new Error(
+        existing.status === "accepted"
+          ? "Vous êtes déjà amis."
+          : "Une demande est déjà en attente.",
+      );
+    }
+
+    const { error } = await supabase.from("friendships").insert({
+      requester_id: user.id,
+      addressee_id: target.id,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+
+    // La notification est un "bonus" : si la clé admin est mal configurée
+    // ou que l'insertion échoue pour une raison quelconque, ça ne doit
+    // surtout pas faire planter la demande d'ami elle-même (déjà
+    // enregistrée à ce stade). On isole donc cet appel dans son propre
+    // try/catch.
+    try {
+      const admin = createAdminClient();
+      await admin.from("notifications").insert({
+        user_id: target.id,
+        message: `${myProfile?.username ?? "Un joueur"} t'a envoyé une demande d'ami.`,
+      });
+    } catch (notifError) {
+      console.error(
+        "Échec de l'envoi de la notification d'ami :",
+        notifError,
+      );
+    }
+  } catch (err) {
+    if (err instanceof Error) {
+      throw err;
+    }
+    console.error("Erreur inattendue dans sendFriendRequest :", err);
+    throw new Error("Une erreur est survenue, réessaie plus tard.");
   }
-  if (target.id === user.id) {
-    throw new Error("Tu ne peux pas t'ajouter toi-même.");
-  }
-
-  const { data: existing } = await supabase
-    .from("friendships")
-    .select("id, status")
-    .or(
-      `and(requester_id.eq.${user.id},addressee_id.eq.${target.id}),and(requester_id.eq.${target.id},addressee_id.eq.${user.id})`,
-    )
-    .maybeSingle();
-
-  if (existing) {
-    throw new Error(
-      existing.status === "accepted"
-        ? "Vous êtes déjà amis."
-        : "Une demande est déjà en attente.",
-    );
-  }
-
-  const { error } = await supabase.from("friendships").insert({
-    requester_id: user.id,
-    addressee_id: target.id,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const { data: myProfile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
-  const admin = createAdminClient();
-  await admin.from("notifications").insert({
-    user_id: target.id,
-    message: `${myProfile?.username ?? "Un joueur"} t'a envoyé une demande d'ami.`,
-  });
 
   revalidatePath("/profil");
 }
@@ -284,11 +309,17 @@ export async function respondToFriendRequest(formData: FormData) {
       throw new Error(acceptError.message);
     }
 
-    const admin = createAdminClient();
-    await admin.from("notifications").insert({
-      user_id: friendship.requester_id,
-      message: `${myProfile?.username ?? "Un joueur"} a accepté ta demande d'ami.`,
-    });
+    // Même logique : la notification ne doit jamais faire planter
+    // l'acceptation de la demande, déjà actée en base à ce stade.
+    try {
+      const admin = createAdminClient();
+      await admin.from("notifications").insert({
+        user_id: friendship.requester_id,
+        message: `${myProfile?.username ?? "Un joueur"} a accepté ta demande d'ami.`,
+      });
+    } catch (notifError) {
+      console.error("Échec de l'envoi de la notification d'ami :", notifError);
+    }
   } else {
     const { error: declineError } = await supabase
       .from("friendships")
