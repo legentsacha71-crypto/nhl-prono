@@ -46,4 +46,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    // Relais requis par @capacitor/push-notifications : ces deux méthodes
+    // système transmettent le résultat de l'enregistrement APNs (token ou
+    // erreur) au plugin via NotificationCenter, qui le fait ensuite
+    // remonter jusqu'aux listeners JS ("registration"/"registrationError")
+    // utilisés dans PushRegistration.tsx.
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
 }
