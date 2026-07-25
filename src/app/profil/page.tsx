@@ -214,20 +214,27 @@ export default async function ProfilPage() {
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
-        <div className="relative overflow-hidden rounded-3xl">
+        <div className="relative rounded-3xl">
           {/* Illustration décorative en fond, pour casser le vide visuel du
               haut de la page profil. Elle s'estompe en dégradé jusqu'à la
               couleur de fond exacte du site, pile après le sélecteur
               d'équipe favorite : le reste de la page reste sur le fond uni
-              habituel. */}
-          <Image
-            src="/images/profile-hero.jpg"
-            alt=""
-            fill
-            sizes="(min-width: 448px) 448px, 100vw"
-            className="object-cover opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/35 via-neutral-950/80 to-neutral-950" />
+              habituel.
+              L'overflow-hidden (nécessaire pour arrondir les coins de
+              l'image) est isolé sur ce calque de fond plutôt que posé sur
+              le conteneur entier : sinon il rognait aussi le menu déroulant
+              du sélecteur d'équipe favorite, qui doit pouvoir déborder
+              au-delà de cette carte quand il s'ouvre. */}
+          <div className="absolute inset-0 overflow-hidden rounded-3xl">
+            <Image
+              src="/images/profile-hero.jpg"
+              alt=""
+              fill
+              sizes="(min-width: 448px) 448px, 100vw"
+              className="object-cover opacity-30"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/35 via-neutral-950/80 to-neutral-950" />
+          </div>
 
           <div className="relative flex flex-col items-center gap-2 px-6 py-6">
           <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
