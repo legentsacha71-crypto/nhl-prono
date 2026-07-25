@@ -25,7 +25,7 @@ export default function RulesCard() {
   return (
     <div className="w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20 transition-shadow hover:shadow-black/30">
       <h2 className="mb-3 text-center text-sm font-semibold tracking-wide text-sky-400">
-        Comment ça marche
+        Comment ça marche ?
       </h2>
       <ul className="space-y-3">
         {RULES.map((rule) => (
