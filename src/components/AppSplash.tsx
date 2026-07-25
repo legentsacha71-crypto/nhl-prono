@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Animation d'intro affichée à l'ouverture de l'appli : la vidéo de motion
 // design du logo (~1,5s, exportée depuis After Effects) joue en plein
@@ -20,6 +20,7 @@ export default function AppSplash() {
   const [phase, setPhase] = useState<"playing" | "fading" | "done">(
     "playing",
   );
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -37,6 +38,21 @@ export default function AppSplash() {
       () => setPhase("fading"),
       reduceMotion ? 0 : 3000,
     );
+
+    // Safari/WKWebView n'honore pas toujours l'attribut JSX `muted` assez
+    // tôt : il faut positionner la propriété DOM `muted` explicitement et
+    // lancer `play()` nous-mêmes. Si l'autoplay est malgré tout refusé
+    // (politique de la WebView, etc.), on ne laisse pas la vidéo affichée
+    // en pause avec un bouton play natif : on passe directement au fondu.
+    const el = videoRef.current;
+    if (el && !reduceMotion) {
+      el.muted = true;
+      const playResult = el.play();
+      if (playResult && typeof playResult.catch === "function") {
+        playResult.catch(() => setPhase("fading"));
+      }
+    }
+
     return () => clearTimeout(safety);
   }, [phase]);
 
@@ -56,6 +72,7 @@ export default function AppSplash() {
       }`}
     >
       <video
+        ref={videoRef}
         className="h-full w-full object-cover"
         src="/videos/splash-intro.mp4"
         autoPlay
