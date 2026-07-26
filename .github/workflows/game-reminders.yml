@@ -1,0 +1,15 @@
+name: Game reminders
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reminder endpoint
+        run: |
+          curl -sf -X GET "https://nhl-prono-drjd.vercel.app/api/notify-game-reminders" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
