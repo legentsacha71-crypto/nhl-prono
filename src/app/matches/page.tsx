@@ -1,5 +1,9 @@
 import { getUpcomingGames, getSeasonSchedule, type NhlGame } from "@/lib/nhl";
-import { getTeamStats, getLeagueAverageGoals, type TeamStats } from "@/lib/nhlStats";
+import {
+  getTeamStats,
+  getLeagueAverageGoals,
+  type TeamStats,
+} from "@/lib/nhlStats";
 import { estimateWinPoints } from "@/lib/scoring";
 import { TEAM_TIMEZONES } from "@/lib/nhlTeams";
 import { createClient } from "@/utils/supabase/server";
@@ -9,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
 import SlidingTabs from "@/components/SlidingTabs";
+import LeagueSwitch from "@/components/LeagueSwitch";
 import PredictionForm from "./PredictionForm";
 
 function formatDayLabel(iso: string) {
@@ -48,7 +53,10 @@ function getWinPointsPreview(
   if (!home || !away || !Number.isFinite(leagueAvgGoals)) return null;
 
   const preview = estimateWinPoints(home, away, leagueAvgGoals);
-  if (!Number.isFinite(preview.homePoints) || !Number.isFinite(preview.awayPoints)) {
+  if (
+    !Number.isFinite(preview.homePoints) ||
+    !Number.isFinite(preview.awayPoints)
+  ) {
     return null;
   }
   return preview;
@@ -86,7 +94,11 @@ function groupByMonth(games: NhlGame[]) {
   const now = Date.now();
   const months = new Map<
     string,
-    { label: string; hasUpcoming: boolean; days: Map<string, { label: string; games: NhlGame[] }> }
+    {
+      label: string;
+      hasUpcoming: boolean;
+      days: Map<string, { label: string; games: NhlGame[] }>;
+    }
   >();
 
   for (const game of games) {
@@ -106,7 +118,10 @@ function groupByMonth(games: NhlGame[]) {
 
     const dayKey = date.toDateString();
     if (!month.days.has(dayKey)) {
-      month.days.set(dayKey, { label: formatDayLabel(game.startTimeUTC), games: [] });
+      month.days.set(dayKey, {
+        label: formatDayLabel(game.startTimeUTC),
+        games: [],
+      });
     }
     month.days.get(dayKey)!.games.push(game);
   }
@@ -116,6 +131,24 @@ function groupByMonth(games: NhlGame[]) {
     hasUpcoming: month.hasUpcoming,
     days: [...month.days.values()],
   }));
+}
+
+// Placeholder affiché tant que le pipeline de données Ligue Magnus (scrape
+// + modèle de probabilités) n'est pas branché. Pas de fetch ici : purement
+// statique, à remplacer une fois les données Magnus disponibles.
+function MagnusComingSoon() {
+  return (
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-center">
+      <p className="text-3xl">🇫🇷 🏒</p>
+      <p className="mt-3 text-sm font-medium text-neutral-200">
+        Ligue Magnus — bientôt disponible
+      </p>
+      <p className="mx-auto mt-1 max-w-xs text-xs text-neutral-500">
+        Les pronostics sur la Ligue Magnus arrivent prochainement. Reviens un
+        peu plus tard !
+      </p>
+    </div>
+  );
 }
 
 export default async function MatchesPage() {
@@ -148,7 +181,11 @@ export default async function MatchesPage() {
           .in("game_id", gameIds)
       : Promise.resolve({ data: [] }),
     user
-      ? supabase.from("profiles").select("is_premium").eq("id", user.id).single()
+      ? supabase
+          .from("profiles")
+          .select("is_premium")
+          .eq("id", user.id)
+          .single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -168,237 +205,245 @@ export default async function MatchesPage() {
       <div className="mx-auto w-full max-w-md space-y-4">
         <h1 className="text-2xl font-bold text-center text-sky-400">Matchs</h1>
 
-        <SlidingTabs
-          tabs={[
-            {
-              key: "avenir",
-              label: "À venir",
-              content: (
-                <div className="space-y-4">
-                  {games.length === 0 && (
-                    <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-                      Pas de matchs à venir pour le moment. La saison NHL
-                      reprend en octobre.
-                    </p>
-                  )}
+        <LeagueSwitch
+          magnusContent={<MagnusComingSoon />}
+          nhlContent={
+            <SlidingTabs
+              tabs={[
+                {
+                  key: "avenir",
+                  label: "À venir",
+                  content: (
+                    <div className="space-y-4">
+                      {games.length === 0 && (
+                        <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                          Pas de matchs à venir pour le moment. La saison NHL
+                          reprend en octobre.
+                        </p>
+                      )}
 
-                  {dayGroups.map((group) => (
-                    <div key={group.label} className="space-y-3">
-                      <h2 className="text-sm font-medium text-neutral-400">
-                        {group.label}
-                      </h2>
-                      <ul className="space-y-3">
-                        {group.games.map((game) => {
-                          const localTime = formatLocalTime(
-                            game.startTimeUTC,
-                            game.homeTeam.abbrev,
-                          );
-                          const frenchTime = formatTime(game.startTimeUTC);
-                          const winPoints = getWinPointsPreview(
-                            game,
-                            teamStats,
-                            leagueAvgGoals,
-                          );
+                      {dayGroups.map((group) => (
+                        <div key={group.label} className="space-y-3">
+                          <h2 className="text-sm font-medium text-neutral-400">
+                            {group.label}
+                          </h2>
+                          <ul className="space-y-3">
+                            {group.games.map((game) => {
+                              const localTime = formatLocalTime(
+                                game.startTimeUTC,
+                                game.homeTeam.abbrev,
+                              );
+                              const frenchTime = formatTime(game.startTimeUTC);
+                              const winPoints = getWinPointsPreview(
+                                game,
+                                teamStats,
+                                leagueAvgGoals,
+                              );
 
-                          return (
-                            <li
-                              key={game.id}
-                              className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-sm"
-                            >
-                              <p className="mb-2 text-center text-xs text-neutral-500">
-                                {frenchTime}
-                                {localTime && localTime !== frenchTime && (
-                                  <span className="text-neutral-600">
-                                    {" "}
-                                    · {localTime} heure locale
-                                  </span>
-                                )}
-                              </p>
-                              <div className="flex items-center justify-between">
-                                <div className="flex flex-1 flex-col items-center gap-1">
-                                  <TeamBadge
-                                    abbrev={game.awayTeam.abbrev}
-                                    name={game.awayTeam.name}
-                                    size={40}
-                                  />
-                                  <span className="text-sm text-neutral-200">
-                                    {game.awayTeam.name}
-                                  </span>
-                                </div>
-                                <span className="px-2 text-sm text-neutral-600">
-                                  @
-                                </span>
-                                <div className="flex flex-1 flex-col items-center gap-1">
-                                  <TeamBadge
-                                    abbrev={game.homeTeam.abbrev}
-                                    name={game.homeTeam.name}
-                                    size={40}
-                                  />
-                                  <span className="text-sm text-neutral-200">
-                                    {game.homeTeam.name}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {winPoints && (
-                                <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px]">
-                                  <span
-                                    className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                    title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
-                                  >
-                                    {game.awayTeam.abbrev}{" "}
-                                    <span className="font-medium text-emerald-400">
-                                      {winPoints.awayPoints} pts
-                                    </span>
-                                  </span>
-                                  <span
-                                    className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-500"
-                                    title={`Probabilité de match nul à la fin du temps réglementaire : ${Math.round(winPoints.drawProbability * 100)}%`}
-                                  >
-                                    Nul{" "}
-                                    <span className="font-medium text-emerald-400">
-                                      {winPoints.drawPoints} pts
-                                    </span>
-                                  </span>
-                                  <span
-                                    className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                    title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
-                                  >
-                                    {game.homeTeam.abbrev}{" "}
-                                    <span className="font-medium text-emerald-400">
-                                      {winPoints.homePoints} pts
-                                    </span>
-                                  </span>
-                                </div>
-                              )}
-
-                              <PredictionForm
-                                gameId={game.id}
-                                startTimeUTC={game.startTimeUTC}
-                                awayAbbrev={game.awayTeam.abbrev}
-                                homeAbbrev={game.homeTeam.abbrev}
-                                initialAwayScore={
-                                  predictionByGameId.get(game.id)?.away_score
-                                }
-                                initialHomeScore={
-                                  predictionByGameId.get(game.id)?.home_score
-                                }
-                              />
-
-                              {predictionByGameId.has(game.id) &&
-                                (isPremium ? (
-                                  <form
-                                    action={toggleBoost}
-                                    className="mt-2 flex justify-center"
-                                  >
-                                    <input
-                                      type="hidden"
-                                      name="gameId"
-                                      value={game.id}
-                                    />
-                                    <input
-                                      type="hidden"
-                                      name="startTimeUTC"
-                                      value={game.startTimeUTC}
-                                    />
-                                    <SubmitButton
-                                      className={
-                                        predictionByGameId.get(game.id)
-                                          ?.boosted
-                                          ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
-                                          : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/10"
-                                      }
-                                    >
-                                      {predictionByGameId.get(game.id)
-                                        ?.boosted
-                                        ? "🔥 Boosté x2 — retirer"
-                                        : "Booster x2"}
-                                    </SubmitButton>
-                                  </form>
-                                ) : (
-                                  <p className="mt-2 text-center text-[11px] text-neutral-600">
-                                    🔒 Boost x2 réservé aux membres Premium
-                                  </p>
-                                ))}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              ),
-            },
-            {
-              key: "calendrier",
-              label: "📅 Calendrier",
-              content: (
-                <div className="space-y-4">
-                  {seasonGames.length === 0 && (
-                    <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-                      Le calendrier de la saison n&apos;est pas encore publié.
-                    </p>
-                  )}
-
-                  {monthGroups.map((group, index) => (
-                    <details
-                      key={group.label}
-                      open={index === firstUpcomingIndex}
-                      className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
-                    >
-                      <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-200">
-                        {group.label}
-                      </summary>
-                      <div className="space-y-3 border-t border-neutral-800 px-3 pb-3 pt-3">
-                        {group.days.map((day) => (
-                          <div key={day.label} className="space-y-1.5">
-                            <h3 className="px-1 text-xs font-medium text-neutral-500">
-                              {day.label}
-                            </h3>
-                            <ul className="space-y-1.5">
-                              {day.games.map((game) => (
+                              return (
                                 <li
                                   key={game.id}
-                                  className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2 text-sm"
+                                  className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-sm"
                                 >
-                                  <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
-                                    <span className="truncate text-neutral-300">
-                                      {game.awayTeam.abbrev}
+                                  <p className="mb-2 text-center text-xs text-neutral-500">
+                                    {frenchTime}
+                                    {localTime && localTime !== frenchTime && (
+                                      <span className="text-neutral-600">
+                                        {" "}
+                                        · {localTime} heure locale
+                                      </span>
+                                    )}
+                                  </p>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex flex-1 flex-col items-center gap-1">
+                                      <TeamBadge
+                                        abbrev={game.awayTeam.abbrev}
+                                        name={game.awayTeam.name}
+                                        size={40}
+                                      />
+                                      <span className="text-sm text-neutral-200">
+                                        {game.awayTeam.name}
+                                      </span>
+                                    </div>
+                                    <span className="px-2 text-sm text-neutral-600">
+                                      @
                                     </span>
-                                    <TeamBadge
-                                      abbrev={game.awayTeam.abbrev}
-                                      name={game.awayTeam.name}
-                                      size={22}
-                                    />
+                                    <div className="flex flex-1 flex-col items-center gap-1">
+                                      <TeamBadge
+                                        abbrev={game.homeTeam.abbrev}
+                                        name={game.homeTeam.name}
+                                        size={40}
+                                      />
+                                      <span className="text-sm text-neutral-200">
+                                        {game.homeTeam.name}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="w-14 shrink-0 text-center text-xs text-neutral-500">
-                                    {game.awayTeam.score != null &&
-                                    game.homeTeam.score != null
-                                      ? `${game.awayTeam.score} - ${game.homeTeam.score}`
-                                      : formatTime(game.startTimeUTC)}
-                                  </span>
-                                  <div className="flex flex-1 items-center gap-1.5">
-                                    <TeamBadge
-                                      abbrev={game.homeTeam.abbrev}
-                                      name={game.homeTeam.name}
-                                      size={22}
-                                    />
-                                    <span className="truncate text-neutral-300">
-                                      {game.homeTeam.abbrev}
-                                    </span>
-                                  </div>
+
+                                  {winPoints && (
+                                    <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px]">
+                                      <span
+                                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                                        title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
+                                      >
+                                        {game.awayTeam.abbrev}{" "}
+                                        <span className="font-medium text-emerald-400">
+                                          {winPoints.awayPoints} pts
+                                        </span>
+                                      </span>
+                                      <span
+                                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-500"
+                                        title={`Probabilité de match nul à la fin du temps réglementaire : ${Math.round(winPoints.drawProbability * 100)}%`}
+                                      >
+                                        Nul{" "}
+                                        <span className="font-medium text-emerald-400">
+                                          {winPoints.drawPoints} pts
+                                        </span>
+                                      </span>
+                                      <span
+                                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                                        title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
+                                      >
+                                        {game.homeTeam.abbrev}{" "}
+                                        <span className="font-medium text-emerald-400">
+                                          {winPoints.homePoints} pts
+                                        </span>
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <PredictionForm
+                                    gameId={game.id}
+                                    startTimeUTC={game.startTimeUTC}
+                                    awayAbbrev={game.awayTeam.abbrev}
+                                    homeAbbrev={game.homeTeam.abbrev}
+                                    initialAwayScore={
+                                      predictionByGameId.get(game.id)
+                                        ?.away_score
+                                    }
+                                    initialHomeScore={
+                                      predictionByGameId.get(game.id)
+                                        ?.home_score
+                                    }
+                                  />
+
+                                  {predictionByGameId.has(game.id) &&
+                                    (isPremium ? (
+                                      <form
+                                        action={toggleBoost}
+                                        className="mt-2 flex justify-center"
+                                      >
+                                        <input
+                                          type="hidden"
+                                          name="gameId"
+                                          value={game.id}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="startTimeUTC"
+                                          value={game.startTimeUTC}
+                                        />
+                                        <SubmitButton
+                                          className={
+                                            predictionByGameId.get(game.id)
+                                              ?.boosted
+                                              ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
+                                              : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/10"
+                                          }
+                                        >
+                                          {predictionByGameId.get(game.id)
+                                            ?.boosted
+                                            ? "🔥 Boosté x2 — retirer"
+                                            : "Booster x2"}
+                                        </SubmitButton>
+                                      </form>
+                                    ) : (
+                                      <p className="mt-2 text-center text-[11px] text-neutral-600">
+                                        🔒 Boost x2 réservé aux membres Premium
+                                      </p>
+                                    ))}
                                 </li>
-                              ))}
-                            </ul>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: "calendrier",
+                  label: "📅 Calendrier",
+                  content: (
+                    <div className="space-y-4">
+                      {seasonGames.length === 0 && (
+                        <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                          Le calendrier de la saison n&apos;est pas encore
+                          publié.
+                        </p>
+                      )}
+
+                      {monthGroups.map((group, index) => (
+                        <details
+                          key={group.label}
+                          open={index === firstUpcomingIndex}
+                          className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
+                        >
+                          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-200">
+                            {group.label}
+                          </summary>
+                          <div className="space-y-3 border-t border-neutral-800 px-3 pb-3 pt-3">
+                            {group.days.map((day) => (
+                              <div key={day.label} className="space-y-1.5">
+                                <h3 className="px-1 text-xs font-medium text-neutral-500">
+                                  {day.label}
+                                </h3>
+                                <ul className="space-y-1.5">
+                                  {day.games.map((game) => (
+                                    <li
+                                      key={game.id}
+                                      className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2 text-sm"
+                                    >
+                                      <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
+                                        <span className="truncate text-neutral-300">
+                                          {game.awayTeam.abbrev}
+                                        </span>
+                                        <TeamBadge
+                                          abbrev={game.awayTeam.abbrev}
+                                          name={game.awayTeam.name}
+                                          size={22}
+                                        />
+                                      </div>
+                                      <span className="w-14 shrink-0 text-center text-xs text-neutral-500">
+                                        {game.awayTeam.score != null &&
+                                        game.homeTeam.score != null
+                                          ? `${game.awayTeam.score} - ${game.homeTeam.score}`
+                                          : formatTime(game.startTimeUTC)}
+                                      </span>
+                                      <div className="flex flex-1 items-center gap-1.5">
+                                        <TeamBadge
+                                          abbrev={game.homeTeam.abbrev}
+                                          name={game.homeTeam.name}
+                                          size={22}
+                                        />
+                                        <span className="truncate text-neutral-300">
+                                          {game.homeTeam.abbrev}
+                                        </span>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              ),
-            },
-          ]}
+                        </details>
+                      ))}
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          }
         />
       </div>
 
