@@ -69,7 +69,12 @@ export default async function ProfilPage() {
     { data: profile },
     { data: predictions },
     ranking,
-    [{ data: season }, { data: myPick }, { data: topScorerSeason }, { data: myTopScorerPick }],
+    [
+      { data: season },
+      { data: myPick },
+      { data: topScorerSeason },
+      { data: myTopScorerPick },
+    ],
     { data: friendshipRows },
   ] = await Promise.all([
     supabase
@@ -79,7 +84,9 @@ export default async function ProfilPage() {
       .single(),
     supabase
       .from("predictions")
-      .select("game_id, away_score, home_score, points, is_exact_score, updated_at")
+      .select(
+        "game_id, away_score, home_score, points, is_exact_score, updated_at",
+      )
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false }),
     getRanking(supabase),
@@ -237,290 +244,297 @@ export default async function ProfilPage() {
           </div>
 
           <div className="relative flex flex-col items-center gap-2 px-6 py-6">
-          <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
+            <h1 className="text-2xl font-bold text-sky-400">{username}</h1>
 
-          <div className="relative h-28 w-28">
-            <div className="absolute inset-0 flex items-center justify-center">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={username}
-                  className="h-24 w-24 rounded-full border border-neutral-700 object-cover shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 text-3xl font-bold text-neutral-400 shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-105">
-                  {username.slice(0, 1).toUpperCase()}
-                </div>
-              )}
+            <div className="relative h-28 w-28">
+              <div className="absolute inset-0 flex items-center justify-center">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={username}
+                    className="h-24 w-24 rounded-full border border-neutral-700 object-cover shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 text-3xl font-bold text-neutral-400 shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-105">
+                    {username.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={ring.image}
+                alt={`Palier ${ring.label}`}
+                className="pointer-events-none absolute inset-0 z-10 h-28 w-28 object-contain"
+              />
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={ring.image}
-              alt={`Palier ${ring.label}`}
-              className="pointer-events-none absolute inset-0 z-10 h-28 w-28 object-contain"
+
+            <p className="flex items-center gap-1 text-xs font-medium text-neutral-400">
+              {ring.label}
+              <RingInfoBadge />
+              {nextRingTier && (
+                <span className="text-neutral-600">
+                  · encore {nextRingTier.threshold - combinedPoints} pts pour{" "}
+                  {nextRingTier.label}
+                </span>
+              )}
+            </p>
+
+            <AvatarUploadForm uploadAvatar={uploadAvatar} />
+
+            <FavoriteTeamPicker
+              favoriteTeam={favoriteTeam}
+              updateFavoriteTeam={updateFavoriteTeam}
             />
-          </div>
-
-          <p className="flex items-center gap-1 text-xs font-medium text-neutral-400">
-            {ring.label}
-            <RingInfoBadge />
-            {nextRingTier && (
-              <span className="text-neutral-600">
-                · encore {nextRingTier.threshold - combinedPoints} pts pour{" "}
-                {nextRingTier.label}
-              </span>
-            )}
-          </p>
-
-          <AvatarUploadForm uploadAvatar={uploadAvatar} />
-
-          <FavoriteTeamPicker
-            favoriteTeam={favoriteTeam}
-            updateFavoriteTeam={updateFavoriteTeam}
-          />
           </div>
         </div>
 
         <ProfileTabs
           general={
             <div className="space-y-6">
-        <div>
-          <h2 className="mb-2 font-medium text-neutral-200">
-            🏒 Mes pronos récents
-          </h2>
-          {recent.length === 0 ? (
-            <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-              Aucun prono pour le moment.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {results.map(({ prediction, result }) => (
-                <li
-                  key={prediction.game_id}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
-                >
-                  <span className="text-neutral-300">
-                    {result
-                      ? `${result.awayAbbrev} @ ${result.homeAbbrev}`
-                      : `Match #${prediction.game_id}`}
-                    <span className="ml-2 text-neutral-500">
-                      (prono {prediction.away_score}-{prediction.home_score})
-                    </span>
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      prediction.points === null
-                        ? "text-neutral-500"
-                        : prediction.points > 0
-                          ? "text-emerald-400"
-                          : "text-neutral-600"
-                    }`}
-                  >
-                    {prediction.points !== null
-                      ? `${prediction.points} pts`
-                      : "en attente"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div>
-          <h2 className="mb-2 font-medium text-neutral-200">👥 Mes amis</h2>
-
-          <AddFriendForm sendFriendRequest={sendFriendRequest} />
-
-          {incomingRequests.length > 0 && (
-            <div className="mb-3 space-y-2">
-              {incomingRequests.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between rounded-lg border border-sky-800 bg-sky-950 p-3 text-sm shadow-md shadow-sky-950/30"
-                >
-                  <span className="text-sky-100">
-                    {r.requester?.username ?? "?"} veut être ton ami
-                  </span>
-                  <FriendRequestActions
-                    friendshipId={r.id}
-                    respondToFriendRequest={respondToFriendRequest}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {friends.length === 0 ? (
-            <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-              Aucun ami pour le moment.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {friends.map((f) => (
-                <li
-                  key={f.friendshipId}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
-                >
-                  <Link
-                    href={`/profil/${f.friendId}`}
-                    className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
-                  >
-                    {f.username}
-                  </Link>
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-sky-400">
-                      {f.points} pts
-                    </span>
-                    <form action={removeFriend}>
-                      <input
-                        type="hidden"
-                        name="friendshipId"
-                        value={f.friendshipId}
-                      />
-                      <SubmitButton className="text-xs text-neutral-500 transition-colors duration-150 hover:text-red-400">
-                        Retirer
-                      </SubmitButton>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {outgoingRequests.length > 0 && (
-            <p className="mt-2 text-xs text-neutral-500">
-              En attente :{" "}
-              {outgoingRequests
-                .map((r) => r.addressee?.username)
-                .filter(Boolean)
-                .join(", ")}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h2 className="font-medium text-neutral-200">⭐ Mes favoris</h2>
-            {lockGroups.size > 0 && (
-              <div className="text-right text-xs text-neutral-500">
-                {[...lockGroups.entries()].map(([lockAt, labels]) => (
-                  <p key={lockAt}>
-                    🔒 {labels.join(" & ")} : {formatLockCountdown(lockAt)}
+              <div>
+                <h2 className="mb-2 font-medium text-neutral-200">
+                  🏒 Mes pronos récents
+                </h2>
+                {recent.length === 0 ? (
+                  <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                    Aucun prono pour le moment.
                   </p>
-                ))}
+                ) : (
+                  <ul className="space-y-2">
+                    {results.map(({ prediction, result }) => (
+                      <li
+                        key={prediction.game_id}
+                        className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
+                      >
+                        <span className="text-neutral-300">
+                          {result
+                            ? `${result.awayAbbrev} @ ${result.homeAbbrev}`
+                            : `Match #${prediction.game_id}`}
+                          <span className="ml-2 text-neutral-500">
+                            (prono {prediction.away_score}-
+                            {prediction.home_score})
+                          </span>
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            prediction.points === null
+                              ? "text-neutral-500"
+                              : prediction.points > 0
+                                ? "text-emerald-400"
+                                : "text-neutral-600"
+                          }`}
+                        >
+                          {prediction.points !== null
+                            ? `${prediction.points} pts`
+                            : "en attente"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
-            <p className="mb-2 text-sm font-medium text-neutral-300">
-              Vainqueur de la coupe Stanley
-            </p>
+              <div>
+                <h2 className="mb-2 font-medium text-neutral-200">
+                  👥 Mes amis
+                </h2>
 
-            {!season ? (
-              <p className="text-sm text-neutral-500">
-                Pas encore configuré pour cette saison.
-              </p>
-            ) : season.winner_team ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-300">
-                  {myPick
-                    ? `Ton pick : ${getTeamName(myPick.team_abbrev)}`
-                    : "Tu n'avais pas fait de pick."}
-                </span>
-                <span className="font-medium text-sky-400">
-                  {myPick?.points ?? 0} pts
-                </span>
+                <AddFriendForm sendFriendRequest={sendFriendRequest} />
+
+                {incomingRequests.length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    {incomingRequests.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between rounded-lg border border-sky-800 bg-sky-950 p-3 text-sm shadow-md shadow-sky-950/30"
+                      >
+                        <span className="text-sky-100">
+                          {r.requester?.username ?? "?"} veut être ton ami
+                        </span>
+                        <FriendRequestActions
+                          friendshipId={r.id}
+                          respondToFriendRequest={respondToFriendRequest}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {friends.length === 0 ? (
+                  <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                    Aucun ami pour le moment.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {friends.map((f) => (
+                      <li
+                        key={f.friendshipId}
+                        className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20 transition-colors duration-150 hover:bg-neutral-800/50"
+                      >
+                        <Link
+                          href={`/profil/${f.friendId}`}
+                          className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
+                        >
+                          {f.username}
+                        </Link>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-sky-400">
+                            {f.points} pts
+                          </span>
+                          <form action={removeFriend}>
+                            <input
+                              type="hidden"
+                              name="friendshipId"
+                              value={f.friendshipId}
+                            />
+                            <SubmitButton className="text-xs text-neutral-500 transition-all duration-150 hover:text-red-400 active:scale-[0.97]">
+                              Retirer
+                            </SubmitButton>
+                          </form>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {outgoingRequests.length > 0 && (
+                  <p className="mt-2 text-xs text-neutral-500">
+                    En attente :{" "}
+                    {outgoingRequests
+                      .map((r) => r.addressee?.username)
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                )}
               </div>
-            ) : isLocked ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-300">
-                  {myPick
-                    ? `Ton pick (verrouillé) : ${getTeamName(myPick.team_abbrev)}`
-                    : "Verrouillé, tu n'as pas fait de pick."}
-                </span>
-                <span className="text-neutral-500">
-                  {myPick
-                    ? `${getStanleyCupPoints(myPick.team_abbrev) ?? 0} pts si bon`
-                    : "En attente du résultat"}
-                </span>
-              </div>
-            ) : (
-              <StanleyCupPicker
-                options={STANLEY_CUP_CANDIDATES.map((c) => ({
-                  abbrev: c.abbrev,
-                  label: getTeamName(c.abbrev),
-                  points: c.points,
-                  probability: c.probability,
-                }))}
-                initialTeam={myPick?.team_abbrev ?? null}
-                submitPick={submitStanleyCupPick}
-              />
-            )}
-            {season && !season.winner_team && (
-              <p className="mt-2 text-xs text-neutral-500">
-                Les points varient selon l&apos;équipe choisie : plus elle est
-                outsider, plus tu gagnes de points si elle gagne la coupe.
-              </p>
-            )}
-          </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
-            <p className="mb-2 text-sm font-medium text-neutral-300">
-              Meilleur buteur de la saison
-            </p>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h2 className="font-medium text-neutral-200">
+                    ⭐ Mes favoris
+                  </h2>
+                  {lockGroups.size > 0 && (
+                    <div className="text-right text-xs text-neutral-500">
+                      {[...lockGroups.entries()].map(([lockAt, labels]) => (
+                        <p key={lockAt}>
+                          🔒 {labels.join(" & ")} :{" "}
+                          {formatLockCountdown(lockAt)}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-            {!topScorerSeason ? (
-              <p className="text-sm text-neutral-500">
-                Pas encore configuré pour cette saison.
-              </p>
-            ) : topScorerSeason.winner_player ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-300">
-                  {myTopScorerPick
-                    ? `Ton pick : ${myTopScorerPick.player_name}`
-                    : "Tu n'avais pas fait de pick."}
-                </span>
-                <span className="font-medium text-sky-400">
-                  {myTopScorerPick?.points ?? 0} pts
-                </span>
-              </div>
-            ) : isTopScorerLocked ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-300">
-                  {myTopScorerPick
-                    ? `Ton pick (verrouillé) : ${myTopScorerPick.player_name}`
-                    : "Verrouillé, tu n'as pas fait de pick."}
-                </span>
-                <span className="text-neutral-500">
-                  {myTopScorerPick
-                    ? `${getTopScorerPoints(myTopScorerPick.player_name) ?? 0} pts si bon`
-                    : "En attente du résultat"}
-                </span>
-              </div>
-            ) : (
-              <TopScorerPicker
-                players={TOP_SCORER_CANDIDATES}
-                initialPlayer={myTopScorerPick?.player_name ?? null}
-                submitPick={submitTopScorerPick}
-              />
-            )}
-            {topScorerSeason && !topScorerSeason.winner_player && (
-              <p className="mt-2 text-xs text-neutral-500">
-                Les points varient selon le joueur choisi : plus il est
-                outsider, plus tu gagnes de points s&apos;il devient meilleur
-                buteur.
-              </p>
-            )}
-          </div>
-        </div>
+                <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
+                  <p className="mb-2 text-sm font-medium text-neutral-300">
+                    Vainqueur de la coupe Stanley
+                  </p>
 
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4">
-          <h2 className="mb-2 text-sm font-medium text-neutral-400">
-            ⚠️ Zone dangereuse
-          </h2>
-          <DeleteAccountForm deleteAccount={deleteAccount} />
-        </div>
+                  {!season ? (
+                    <p className="text-sm text-neutral-500">
+                      Pas encore configuré pour cette saison.
+                    </p>
+                  ) : season.winner_team ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-300">
+                        {myPick
+                          ? `Ton pick : ${getTeamName(myPick.team_abbrev)}`
+                          : "Tu n'avais pas fait de pick."}
+                      </span>
+                      <span className="font-medium text-sky-400">
+                        {myPick?.points ?? 0} pts
+                      </span>
+                    </div>
+                  ) : isLocked ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-300">
+                        {myPick
+                          ? `Ton pick (verrouillé) : ${getTeamName(myPick.team_abbrev)}`
+                          : "Verrouillé, tu n'as pas fait de pick."}
+                      </span>
+                      <span className="text-neutral-500">
+                        {myPick
+                          ? `${getStanleyCupPoints(myPick.team_abbrev) ?? 0} pts si bon`
+                          : "En attente du résultat"}
+                      </span>
+                    </div>
+                  ) : (
+                    <StanleyCupPicker
+                      options={STANLEY_CUP_CANDIDATES.map((c) => ({
+                        abbrev: c.abbrev,
+                        label: getTeamName(c.abbrev),
+                        points: c.points,
+                        probability: c.probability,
+                      }))}
+                      initialTeam={myPick?.team_abbrev ?? null}
+                      submitPick={submitStanleyCupPick}
+                    />
+                  )}
+                  {season && !season.winner_team && (
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Les points varient selon l&apos;équipe choisie : plus elle
+                      est outsider, plus tu gagnes de points si elle gagne la
+                      coupe.
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
+                  <p className="mb-2 text-sm font-medium text-neutral-300">
+                    Meilleur buteur de la saison
+                  </p>
+
+                  {!topScorerSeason ? (
+                    <p className="text-sm text-neutral-500">
+                      Pas encore configuré pour cette saison.
+                    </p>
+                  ) : topScorerSeason.winner_player ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-300">
+                        {myTopScorerPick
+                          ? `Ton pick : ${myTopScorerPick.player_name}`
+                          : "Tu n'avais pas fait de pick."}
+                      </span>
+                      <span className="font-medium text-sky-400">
+                        {myTopScorerPick?.points ?? 0} pts
+                      </span>
+                    </div>
+                  ) : isTopScorerLocked ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-300">
+                        {myTopScorerPick
+                          ? `Ton pick (verrouillé) : ${myTopScorerPick.player_name}`
+                          : "Verrouillé, tu n'as pas fait de pick."}
+                      </span>
+                      <span className="text-neutral-500">
+                        {myTopScorerPick
+                          ? `${getTopScorerPoints(myTopScorerPick.player_name) ?? 0} pts si bon`
+                          : "En attente du résultat"}
+                      </span>
+                    </div>
+                  ) : (
+                    <TopScorerPicker
+                      players={TOP_SCORER_CANDIDATES}
+                      initialPlayer={myTopScorerPick?.player_name ?? null}
+                      submitPick={submitTopScorerPick}
+                    />
+                  )}
+                  {topScorerSeason && !topScorerSeason.winner_player && (
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Les points varient selon le joueur choisi : plus il est
+                      outsider, plus tu gagnes de points s&apos;il devient
+                      meilleur buteur.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4">
+                <h2 className="mb-2 text-sm font-medium text-neutral-400">
+                  ⚠️ Zone dangereuse
+                </h2>
+                <DeleteAccountForm deleteAccount={deleteAccount} />
+              </div>
             </div>
           }
           stats={<ProfileStatsPanel initial={initialStats} />}

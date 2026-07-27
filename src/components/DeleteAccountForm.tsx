@@ -23,7 +23,7 @@ export default function DeleteAccountForm({
       <button
         type="button"
         onClick={() => setExpanded(true)}
-        className="text-xs text-neutral-500 underline-offset-2 transition-colors duration-150 hover:text-red-400 hover:underline"
+        className="text-xs text-neutral-500 underline-offset-2 transition-all duration-150 hover:text-red-400 hover:underline active:scale-[0.97]"
       >
         Supprimer mon compte
       </button>
@@ -33,9 +33,10 @@ export default function DeleteAccountForm({
   return (
     <form action={deleteAccount} className="space-y-2">
       <p className="text-xs text-neutral-400">
-        Cette action est <span className="font-semibold text-red-400">définitive</span> :
-        ton profil, tes pronostics, tes amitiés et tes messages seront
-        supprimés. Tape{" "}
+        Cette action est{" "}
+        <span className="font-semibold text-red-400">définitive</span> : ton
+        profil, tes pronostics, tes amitiés et tes messages seront supprimés.
+        Tape{" "}
         <span className="font-mono font-semibold text-neutral-200">
           {CONFIRM_WORD}
         </span>{" "}
@@ -62,7 +63,7 @@ export default function DeleteAccountForm({
           setExpanded(false);
           setConfirmText("");
         }}
-        className="text-xs text-neutral-500 hover:text-neutral-300"
+        className="text-xs text-neutral-500 transition-all duration-150 hover:text-neutral-300 active:scale-[0.97]"
       >
         Annuler
       </button>

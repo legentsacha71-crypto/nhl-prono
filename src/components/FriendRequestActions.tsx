@@ -47,7 +47,7 @@ export default function FriendRequestActions({
           type="button"
           disabled={isPending}
           onClick={() => respond("accept")}
-          className={`rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition-colors duration-150 hover:bg-sky-500 ${
+          className={`rounded-md bg-sky-600 px-2 py-1 text-xs font-medium text-white transition-all duration-150 hover:bg-sky-500 active:scale-[0.97] ${
             isPending ? "cursor-not-allowed opacity-60" : ""
           }`}
         >
@@ -57,7 +57,7 @@ export default function FriendRequestActions({
           type="button"
           disabled={isPending}
           onClick={() => respond("decline")}
-          className={`rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors duration-150 hover:border-neutral-600 hover:bg-neutral-900 ${
+          className={`rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-all duration-150 hover:border-neutral-600 hover:bg-neutral-900 active:scale-[0.97] ${
             isPending ? "cursor-not-allowed opacity-60" : ""
           }`}
         >

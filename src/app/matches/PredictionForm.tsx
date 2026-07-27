@@ -118,12 +118,18 @@ export default function PredictionForm({
     // quel que soit le texte affiché, on duplique ce même contenu, invisible,
     // à gauche : les deux côtés ont alors toujours une largeur identique.
     <div className="mt-3 flex items-end justify-center gap-3">
-      <span aria-hidden="true" className="invisible pb-2 text-center text-[11px]">
+      <span
+        aria-hidden="true"
+        className="invisible pb-2 text-center text-[11px]"
+      >
         {statusContent}
       </span>
       <div className="flex items-end gap-3">
         <div className="flex flex-col items-center">
-          <label htmlFor={`away-${gameId}`} className="text-xs text-neutral-500">
+          <label
+            htmlFor={`away-${gameId}`}
+            className="text-xs text-neutral-500"
+          >
             {awayAbbrev}
           </label>
           <input
@@ -136,12 +142,15 @@ export default function PredictionForm({
               setAwayScore(e.target.value);
               scheduleSave(e.target.value, homeScore);
             }}
-            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 disabled:opacity-50"
+            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
           />
         </div>
         <span className="pb-2 text-sm text-neutral-600">-</span>
         <div className="flex flex-col items-center">
-          <label htmlFor={`home-${gameId}`} className="text-xs text-neutral-500">
+          <label
+            htmlFor={`home-${gameId}`}
+            className="text-xs text-neutral-500"
+          >
             {homeAbbrev}
           </label>
           <input
@@ -154,7 +163,7 @@ export default function PredictionForm({
               setHomeScore(e.target.value);
               scheduleSave(awayScore, e.target.value);
             }}
-            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 disabled:opacity-50"
+            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
           />
         </div>
       </div>

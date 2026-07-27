@@ -112,7 +112,7 @@ export default function SlidingTabs({
             role="tab"
             aria-selected={active === index}
             onClick={() => setActive(index)}
-            className={`flex-1 rounded-full py-1.5 text-center text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-full py-1.5 text-center text-sm font-medium transition-all active:scale-[0.97] ${
               active === index
                 ? "bg-sky-600 text-white"
                 : "text-neutral-400 hover:text-neutral-200"

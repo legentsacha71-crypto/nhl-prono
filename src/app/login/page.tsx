@@ -59,7 +59,7 @@ export default async function LoginPage({
               className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 p-2 text-neutral-100"
             />
           </div>
-          <SubmitButton className="w-full rounded-md bg-sky-600 p-2 font-medium text-white">
+          <SubmitButton className="w-full rounded-md bg-sky-600 p-2 font-medium text-white transition-all duration-150 hover:bg-sky-500 active:scale-[0.98]">
             Se connecter
           </SubmitButton>
         </form>

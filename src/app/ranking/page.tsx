@@ -52,9 +52,17 @@ export default async function RankingPage() {
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
-        <h1 className="text-center font-display text-4xl tracking-wide text-sky-400">
-          🏆 Classement général
-        </h1>
+        <div className="relative overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 text-center shadow-xl shadow-black/30">
+          <div className="pointer-events-none absolute -right-6 -top-6 text-8xl opacity-10">
+            🏆
+          </div>
+          <h1 className="text-3xl font-black italic tracking-tight text-neutral-50">
+            Classement <span className="text-sky-400">général</span>
+          </h1>
+          <p className="mt-1 text-sm text-neutral-400">
+            Qui dominera la saison ? 🔥
+          </p>
+        </div>
 
         {ranking.length === 0 ? (
           <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">

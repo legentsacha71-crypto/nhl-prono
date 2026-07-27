@@ -10,6 +10,7 @@ import {
 } from "@/lib/nhlStats";
 import { estimateWinPoints } from "@/lib/scoring";
 import { TEAM_TIMEZONES, getTeamColors } from "@/lib/nhlTeams";
+import { getMagnusTeamColors } from "@/lib/magnusTeams";
 import { createClient } from "@/utils/supabase/server";
 import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
@@ -73,12 +74,15 @@ function isStartingSoon(iso: string): boolean {
 function MatchAccentBar({
   awayAbbrev,
   homeAbbrev,
+  league = "nhl",
 }: {
   awayAbbrev: string;
   homeAbbrev: string;
+  league?: "nhl" | "magnus";
 }) {
-  const away = getTeamColors(awayAbbrev);
-  const home = getTeamColors(homeAbbrev);
+  const getColors = league === "magnus" ? getMagnusTeamColors : getTeamColors;
+  const away = getColors(awayAbbrev);
+  const home = getColors(homeAbbrev);
   return (
     <div
       className="h-1.5 w-full"
@@ -268,6 +272,7 @@ function MagnusSchedule({
                         <MatchAccentBar
                           awayAbbrev={game.awayTeam.abbrev}
                           homeAbbrev={game.homeTeam.abbrev}
+                          league="magnus"
                         />
                         <div className="p-4">
                           <div className="mb-3 flex items-center justify-center gap-1.5">
@@ -282,6 +287,7 @@ function MagnusSchedule({
                                 abbrev={game.awayTeam.abbrev}
                                 name={game.awayTeam.name}
                                 size={40}
+                                league="magnus"
                               />
                               <span className="text-sm font-medium text-neutral-200">
                                 {game.awayTeam.name}
@@ -293,6 +299,7 @@ function MagnusSchedule({
                                 abbrev={game.homeTeam.abbrev}
                                 name={game.homeTeam.name}
                                 size={40}
+                                league="magnus"
                               />
                               <span className="text-sm font-medium text-neutral-200">
                                 {game.homeTeam.name}
@@ -351,6 +358,7 @@ function MagnusSchedule({
                                   abbrev={game.awayTeam.abbrev}
                                   name={game.awayTeam.name}
                                   size={22}
+                                  league="magnus"
                                 />
                               </div>
                               <CalendarScoreCell game={game} />
@@ -359,6 +367,7 @@ function MagnusSchedule({
                                   abbrev={game.homeTeam.abbrev}
                                   name={game.homeTeam.name}
                                   size={22}
+                                  league="magnus"
                                 />
                                 <span className="truncate text-neutral-300">
                                   {game.homeTeam.abbrev}
@@ -436,9 +445,17 @@ export default async function MatchesPage() {
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-4">
-        <h1 className="text-center font-display text-4xl tracking-wide text-sky-400">
-          🏒 Matchs
-        </h1>
+        <div className="relative overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 text-center shadow-xl shadow-black/30">
+          <div className="pointer-events-none absolute -right-6 -top-6 text-8xl opacity-10">
+            🏒
+          </div>
+          <h1 className="text-3xl font-black italic tracking-tight text-neutral-50">
+            Les <span className="text-sky-400">matchs</span>
+          </h1>
+          <p className="mt-1 text-sm text-neutral-400">
+            Pronostique et grimpe au classement 🥅
+          </p>
+        </div>
 
         <LeagueSwitch
           magnusContent={
@@ -596,8 +613,8 @@ export default async function MatchesPage() {
                                             className={
                                               predictionByGameId.get(game.id)
                                                 ?.boosted
-                                                ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
-                                                : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/10"
+                                                ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950 transition-all duration-150 active:scale-[0.97]"
+                                                : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 transition-all duration-150 hover:bg-amber-500/10 active:scale-[0.97]"
                                             }
                                           >
                                             {predictionByGameId.get(game.id)

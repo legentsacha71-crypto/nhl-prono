@@ -61,7 +61,7 @@ export default function AddFriendForm({
         <button
           type="submit"
           disabled={isPending}
-          className={`rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-colors duration-150 hover:bg-sky-500 ${
+          className={`rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-sky-950/40 transition-all duration-150 hover:bg-sky-500 active:scale-[0.97] ${
             isPending ? "cursor-not-allowed opacity-60" : ""
           }`}
         >

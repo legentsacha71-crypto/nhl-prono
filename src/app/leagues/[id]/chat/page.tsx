@@ -110,7 +110,7 @@ export default async function LeagueChatPage({
             maxLength={500}
             className="flex-1 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-neutral-100 placeholder:text-neutral-500"
           />
-          <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white">
+          <SubmitButton className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-sky-500 active:scale-[0.97]">
             Envoyer
           </SubmitButton>
         </form>

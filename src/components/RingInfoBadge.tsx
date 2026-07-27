@@ -14,7 +14,7 @@ export default function RingInfoBadge() {
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-label="Explication des paliers"
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-neutral-600 text-[10px] font-bold leading-none text-neutral-400 transition-colors duration-150 hover:border-sky-500 hover:text-sky-400"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-neutral-600 text-[10px] font-bold leading-none text-neutral-400 transition-all duration-150 hover:border-sky-500 hover:text-sky-400 active:scale-90"
       >
         !
       </button>
@@ -22,8 +22,8 @@ export default function RingInfoBadge() {
       {isOpen && (
         <div className="absolute left-1/2 z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-left shadow-xl">
           <p className="mb-2 text-xs font-medium text-neutral-200">
-            Paliers selon ton total de points (pronos + coupe Stanley +
-            meilleur buteur) :
+            Paliers selon ton total de points (pronos + coupe Stanley + meilleur
+            buteur) :
           </p>
           <ul className="space-y-1 text-xs">
             {PROFILE_RING_TIERS.map((tier) => (

@@ -36,7 +36,7 @@ export default function LeagueSwitch({
           aria-checked={league === "magnus"}
           aria-label="Choisir la compétition"
           onClick={() => setLeague((l) => (l === "nhl" ? "magnus" : "nhl"))}
-          className="relative flex h-12 w-24 items-center justify-between rounded-full border border-neutral-800 bg-neutral-900 p-1"
+          className="relative flex h-12 w-24 items-center justify-between rounded-full border border-neutral-800 bg-neutral-900 p-1 transition-transform duration-150 active:scale-95"
         >
           <span
             className={`absolute left-1 top-1 h-10 w-10 rounded-full bg-sky-600 transition-transform duration-300 ease-out ${
