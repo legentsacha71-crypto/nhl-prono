@@ -1,4 +1,8 @@
-import { getUpcomingGames, getSeasonSchedule, type NhlGame } from "@/lib/nhl";
+import { getUpcomingGames, getSeasonSchedule } from "@/lib/nhl";
+import {
+  getUpcomingGames as getMagnusUpcomingGames,
+  getSeasonSchedule as getMagnusSeasonSchedule,
+} from "@/lib/magnus";
 import {
   getTeamStats,
   getLeagueAverageGoals,
@@ -15,6 +19,18 @@ import SubmitButton from "@/components/SubmitButton";
 import SlidingTabs from "@/components/SlidingTabs";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import PredictionForm from "./PredictionForm";
+
+// Forme commune à NhlGame (src/lib/nhl.ts) et MagnusGame (src/lib/magnus.ts)
+// — les deux types sont structurellement identiques par conception, donc les
+// fonctions de regroupement ci-dessous s'appliquent aux deux compétitions
+// sans dupliquer cette logique par ligue.
+type Game = {
+  id: number;
+  startTimeUTC: string;
+  gameState: string;
+  awayTeam: { abbrev: string; name: string; score?: number };
+  homeTeam: { abbrev: string; name: string; score?: number };
+};
 
 function formatDayLabel(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -44,7 +60,7 @@ function formatLocalTime(iso: string, homeAbbrev: string): string | null {
 }
 
 function getWinPointsPreview(
-  game: NhlGame,
+  game: Game,
   teamStats: Map<string, TeamStats>,
   leagueAvgGoals: number,
 ) {
@@ -62,8 +78,8 @@ function getWinPointsPreview(
   return preview;
 }
 
-function groupByDay(games: NhlGame[]) {
-  const groups = new Map<string, { label: string; games: NhlGame[] }>();
+function groupByDay(games: Game[]) {
+  const groups = new Map<string, { label: string; games: Game[] }>();
   for (const game of games) {
     const dayKey = new Date(game.startTimeUTC).toDateString();
     if (!groups.has(dayKey)) {
@@ -90,14 +106,14 @@ function formatMonthLabel(iso: string) {
 // volume de matchs sur une saison complète), puis par jour à l'intérieur.
 // `hasUpcoming` sert à ouvrir automatiquement le premier mois contenant un
 // match pas encore joué, pour atterrir directement sur "maintenant".
-function groupByMonth(games: NhlGame[]) {
+function groupByMonth(games: Game[]) {
   const now = Date.now();
   const months = new Map<
     string,
     {
       label: string;
       hasUpcoming: boolean;
-      days: Map<string, { label: string; games: NhlGame[] }>;
+      days: Map<string, { label: string; games: Game[] }>;
     }
   >();
 
@@ -133,21 +149,161 @@ function groupByMonth(games: NhlGame[]) {
   }));
 }
 
-// Placeholder affiché tant que le pipeline de données Ligue Magnus (scrape
-// + modèle de probabilités) n'est pas branché. Pas de fetch ici : purement
-// statique, à remplacer une fois les données Magnus disponibles.
-function MagnusComingSoon() {
+// Vrais matchs Ligue Magnus (calendrier complet + matchs à venir), pour de
+// premier temps en lecture seule : le formulaire de pronostic (PredictionForm
+// + submitPrediction) n'est pas encore branché côté Magnus. Comme la Ligue
+// Magnus est hors saison au moment où ceci est écrit (0 match à venir), il
+// n'y a de toute façon rien à pronostiquer pour l'instant — cette étape sert
+// surtout à vérifier que les vraies données s'affichent correctement ; le
+// pronostic Magnus viendra dans une étape suivante, à la reprise de la
+// saison.
+function MagnusSchedule({
+  upcomingGames,
+  seasonGames,
+}: {
+  upcomingGames: Game[];
+  seasonGames: Game[];
+}) {
+  const dayGroups = groupByDay(upcomingGames);
+  const monthGroups = groupByMonth(seasonGames);
+  const firstUpcomingIndex = monthGroups.findIndex((g) => g.hasUpcoming);
+
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-center">
-      <p className="text-3xl">🇫🇷 🏒</p>
-      <p className="mt-3 text-sm font-medium text-neutral-200">
-        Ligue Magnus — bientôt disponible
-      </p>
-      <p className="mx-auto mt-1 max-w-xs text-xs text-neutral-500">
-        Les pronostics sur la Ligue Magnus arrivent prochainement. Reviens un
-        peu plus tard !
-      </p>
-    </div>
+    <SlidingTabs
+      tabs={[
+        {
+          key: "avenir",
+          label: "À venir",
+          content: (
+            <div className="space-y-4">
+              {upcomingGames.length === 0 && (
+                <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                  Pas de matchs à venir pour le moment. La saison Ligue Magnus
+                  reprend en septembre.
+                </p>
+              )}
+
+              {dayGroups.map((group) => (
+                <div key={group.label} className="space-y-3">
+                  <h2 className="text-sm font-medium text-neutral-400">
+                    {group.label}
+                  </h2>
+                  <ul className="space-y-3">
+                    {group.games.map((game) => (
+                      <li
+                        key={game.id}
+                        className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-sm"
+                      >
+                        <p className="mb-2 text-center text-xs text-neutral-500">
+                          {formatTime(game.startTimeUTC)}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-1 flex-col items-center gap-1">
+                            <TeamBadge
+                              abbrev={game.awayTeam.abbrev}
+                              name={game.awayTeam.name}
+                              size={40}
+                            />
+                            <span className="text-sm text-neutral-200">
+                              {game.awayTeam.name}
+                            </span>
+                          </div>
+                          <span className="px-2 text-sm text-neutral-600">
+                            @
+                          </span>
+                          <div className="flex flex-1 flex-col items-center gap-1">
+                            <TeamBadge
+                              abbrev={game.homeTeam.abbrev}
+                              name={game.homeTeam.name}
+                              size={40}
+                            />
+                            <span className="text-sm text-neutral-200">
+                              {game.homeTeam.name}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-center text-[11px] text-neutral-600">
+                          Pronostics Ligue Magnus bientôt disponibles
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ),
+        },
+        {
+          key: "calendrier",
+          label: "📅 Calendrier",
+          content: (
+            <div className="space-y-4">
+              {seasonGames.length === 0 && (
+                <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                  Le calendrier de la saison n&apos;est pas encore publié.
+                </p>
+              )}
+
+              {monthGroups.map((group, index) => (
+                <details
+                  key={group.label}
+                  open={index === firstUpcomingIndex}
+                  className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
+                >
+                  <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-200">
+                    {group.label}
+                  </summary>
+                  <div className="space-y-3 border-t border-neutral-800 px-3 pb-3 pt-3">
+                    {group.days.map((day) => (
+                      <div key={day.label} className="space-y-1.5">
+                        <h3 className="px-1 text-xs font-medium text-neutral-500">
+                          {day.label}
+                        </h3>
+                        <ul className="space-y-1.5">
+                          {day.games.map((game) => (
+                            <li
+                              key={game.id}
+                              className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2 text-sm"
+                            >
+                              <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
+                                <span className="truncate text-neutral-300">
+                                  {game.awayTeam.abbrev}
+                                </span>
+                                <TeamBadge
+                                  abbrev={game.awayTeam.abbrev}
+                                  name={game.awayTeam.name}
+                                  size={22}
+                                />
+                              </div>
+                              <span className="w-14 shrink-0 text-center text-xs text-neutral-500">
+                                {game.awayTeam.score != null &&
+                                game.homeTeam.score != null
+                                  ? `${game.awayTeam.score} - ${game.homeTeam.score}`
+                                  : formatTime(game.startTimeUTC)}
+                              </span>
+                              <div className="flex flex-1 items-center gap-1.5">
+                                <TeamBadge
+                                  abbrev={game.homeTeam.abbrev}
+                                  name={game.homeTeam.name}
+                                  size={22}
+                                />
+                                <span className="truncate text-neutral-300">
+                                  {game.homeTeam.abbrev}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -155,13 +311,17 @@ export default async function MatchesPage() {
   // Les deux onglets ("À venir" et "Calendrier") sont désormais rendus tous
   // les deux côté serveur pour permettre un changement d'onglet coulissant
   // (via SlidingTabs) sans rechargement ni état de chargement intermédiaire
-  // — même approche que ProfileTabs sur la page profil. Les trois sources de
-  // données n'ont aucune dépendance entre elles : on les lance en parallèle.
-  const [games, teamStats, seasonGames] = await Promise.all([
-    getUpcomingGames(),
-    getTeamStats(),
-    getSeasonSchedule(),
-  ]);
+  // — même approche que ProfileTabs sur la page profil. Aucune de ces
+  // sources de données (NHL + Ligue Magnus) ne dépend d'une autre : on les
+  // lance toutes en parallèle.
+  const [games, teamStats, seasonGames, magnusGames, magnusSeasonGames] =
+    await Promise.all([
+      getUpcomingGames(),
+      getTeamStats(),
+      getSeasonSchedule(),
+      getMagnusUpcomingGames(),
+      getMagnusSeasonSchedule(),
+    ]);
   const leagueAvgGoals = getLeagueAverageGoals(teamStats);
 
   const supabase = await createClient();
@@ -206,7 +366,12 @@ export default async function MatchesPage() {
         <h1 className="text-2xl font-bold text-center text-sky-400">Matchs</h1>
 
         <LeagueSwitch
-          magnusContent={<MagnusComingSoon />}
+          magnusContent={
+            <MagnusSchedule
+              upcomingGames={magnusGames}
+              seasonGames={magnusSeasonGames}
+            />
+          }
           nhlContent={
             <SlidingTabs
               tabs={[

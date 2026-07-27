@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, type ReactNode } from "react";
 
 type League = "nhl" | "magnus";
@@ -11,11 +12,11 @@ type LeagueSwitchProps = {
 
 /**
  * Bouton on/off pour choisir la compétition affichée (NHL / Ligue Magnus).
- * Utilise des drapeaux emoji plutôt que les logos officiels des ligues :
- * TeamBadge.tsx a déjà fait ce choix pour les équipes (éviter de reproduire
- * la propriété intellectuelle de la LNH), on reste cohérent avec la même
- * logique ici plutôt que de réintroduire le risque avec deux logos de ligue
- * affichés en permanence.
+ * Affiche les logos officiels des deux ligues (public/logos/nhl.png,
+ * public/logos/magnus.png) — choix assumé malgré le risque de marque lié à
+ * la reproduction de logos déposés dans une app commerciale déjà publiée
+ * (contrairement à TeamBadge.tsx, qui évite volontairement les logos
+ * officiels des équipes NHL).
  *
  * Les deux contenus sont déjà rendus côté serveur et passés en props ; on ne
  * fait qu'afficher l'un ou l'autre côté client, sans rechargement.
@@ -43,18 +44,30 @@ export default function LeagueSwitch({
             }`}
           />
           <span
-            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-xl transition-opacity duration-300 ${
+            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full p-1.5 transition-opacity duration-300 ${
               league === "nhl" ? "opacity-100" : "opacity-40"
             }`}
           >
-            🇺🇸
+            <Image
+              src="/logos/nhl.png"
+              alt="NHL"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </span>
           <span
-            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-xl transition-opacity duration-300 ${
+            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full p-1.5 transition-opacity duration-300 ${
               league === "magnus" ? "opacity-100" : "opacity-40"
             }`}
           >
-            🇫🇷
+            <Image
+              src="/logos/magnus.png"
+              alt="Ligue Magnus"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </span>
         </button>
       </div>
