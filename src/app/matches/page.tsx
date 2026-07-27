@@ -9,7 +9,7 @@ import {
   type TeamStats,
 } from "@/lib/nhlStats";
 import { estimateWinPoints } from "@/lib/scoring";
-import { TEAM_TIMEZONES } from "@/lib/nhlTeams";
+import { TEAM_TIMEZONES, getTeamColors } from "@/lib/nhlTeams";
 import { createClient } from "@/utils/supabase/server";
 import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
@@ -57,6 +57,77 @@ function formatLocalTime(iso: string, homeAbbrev: string): string | null {
     minute: "2-digit",
     timeZone,
   });
+}
+
+// Un match est considéré "bientôt" dans les 2h qui précèdent son coup
+// d'envoi — sert à afficher un point pulsant façon tableau de bord sportif
+// en direct sur la carte du match dans l'onglet "À venir".
+function isStartingSoon(iso: string): boolean {
+  const diffMs = new Date(iso).getTime() - Date.now();
+  return diffMs > 0 && diffMs < 2 * 60 * 60 * 1000;
+}
+
+// Barre d'accent en dégradé aux couleurs des deux équipes, affichée en haut
+// de chaque carte de match "À venir" — donne un repère visuel immédiat façon
+// scoreboard sportif, sans reproduire de logo (mêmes couleurs que TeamBadge).
+function MatchAccentBar({
+  awayAbbrev,
+  homeAbbrev,
+}: {
+  awayAbbrev: string;
+  homeAbbrev: string;
+}) {
+  const away = getTeamColors(awayAbbrev);
+  const home = getTeamColors(homeAbbrev);
+  return (
+    <div
+      className="h-1.5 w-full"
+      style={{
+        background: `linear-gradient(90deg, ${away.primary}, ${home.primary})`,
+      }}
+    />
+  );
+}
+
+// Pastille "VS" façon affichage de match, remplace le simple "@" entre les
+// deux badges d'équipe sur les cartes "À venir".
+function VsBadge() {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-700 bg-neutral-950 font-display text-xs tracking-wider text-neutral-500">
+      VS
+    </span>
+  );
+}
+
+// Point pulsant "bientôt" — même motif que l'indicateur "EN DIRECT" de
+// PlayerStatsSummary, réutilisé ici pour les matchs qui démarrent sous 2h.
+function SoonPulse() {
+  return (
+    <span className="relative flex h-2 w-2" aria-hidden="true">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+    </span>
+  );
+}
+
+// Cellule score/heure des lignes de calendrier compact : une fois le match
+// terminé, le score prend le relief du font-display façon tableau
+// d'affichage sportif plutôt que rester en texte neutre discret.
+function CalendarScoreCell({ game }: { game: Game }) {
+  const isFinal = game.awayTeam.score != null && game.homeTeam.score != null;
+  return (
+    <span
+      className={`w-14 shrink-0 rounded-full text-center ${
+        isFinal
+          ? "bg-neutral-800 py-0.5 font-display text-sm tracking-wide text-sky-400"
+          : "text-xs text-neutral-500"
+      }`}
+    >
+      {isFinal
+        ? `${game.awayTeam.score} - ${game.homeTeam.score}`
+        : formatTime(game.startTimeUTC)}
+    </span>
+  );
 }
 
 function getWinPointsPreview(
@@ -192,39 +263,46 @@ function MagnusSchedule({
                     {group.games.map((game) => (
                       <li
                         key={game.id}
-                        className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-sm"
+                        className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 shadow-md shadow-black/20"
                       >
-                        <p className="mb-2 text-center text-xs text-neutral-500">
-                          {formatTime(game.startTimeUTC)}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-1 flex-col items-center gap-1">
-                            <TeamBadge
-                              abbrev={game.awayTeam.abbrev}
-                              name={game.awayTeam.name}
-                              size={40}
-                            />
-                            <span className="text-sm text-neutral-200">
-                              {game.awayTeam.name}
+                        <MatchAccentBar
+                          awayAbbrev={game.awayTeam.abbrev}
+                          homeAbbrev={game.homeTeam.abbrev}
+                        />
+                        <div className="p-4">
+                          <div className="mb-3 flex items-center justify-center gap-1.5">
+                            {isStartingSoon(game.startTimeUTC) && <SoonPulse />}
+                            <span className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-400">
+                              {formatTime(game.startTimeUTC)}
                             </span>
                           </div>
-                          <span className="px-2 text-sm text-neutral-600">
-                            @
-                          </span>
-                          <div className="flex flex-1 flex-col items-center gap-1">
-                            <TeamBadge
-                              abbrev={game.homeTeam.abbrev}
-                              name={game.homeTeam.name}
-                              size={40}
-                            />
-                            <span className="text-sm text-neutral-200">
-                              {game.homeTeam.name}
-                            </span>
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex flex-1 flex-col items-center gap-1.5">
+                              <TeamBadge
+                                abbrev={game.awayTeam.abbrev}
+                                name={game.awayTeam.name}
+                                size={40}
+                              />
+                              <span className="text-sm font-medium text-neutral-200">
+                                {game.awayTeam.name}
+                              </span>
+                            </div>
+                            <VsBadge />
+                            <div className="flex flex-1 flex-col items-center gap-1.5">
+                              <TeamBadge
+                                abbrev={game.homeTeam.abbrev}
+                                name={game.homeTeam.name}
+                                size={40}
+                              />
+                              <span className="text-sm font-medium text-neutral-200">
+                                {game.homeTeam.name}
+                              </span>
+                            </div>
                           </div>
+                          <p className="mt-3 text-center text-[11px] text-neutral-600">
+                            Pronostics Ligue Magnus bientôt disponibles
+                          </p>
                         </div>
-                        <p className="mt-2 text-center text-[11px] text-neutral-600">
-                          Pronostics Ligue Magnus bientôt disponibles
-                        </p>
                       </li>
                     ))}
                   </ul>
@@ -275,12 +353,7 @@ function MagnusSchedule({
                                   size={22}
                                 />
                               </div>
-                              <span className="w-14 shrink-0 text-center text-xs text-neutral-500">
-                                {game.awayTeam.score != null &&
-                                game.homeTeam.score != null
-                                  ? `${game.awayTeam.score} - ${game.homeTeam.score}`
-                                  : formatTime(game.startTimeUTC)}
-                              </span>
+                              <CalendarScoreCell game={game} />
                               <div className="flex flex-1 items-center gap-1.5">
                                 <TeamBadge
                                   abbrev={game.homeTeam.abbrev}
@@ -363,7 +436,9 @@ export default async function MatchesPage() {
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-4">
-        <h1 className="text-2xl font-bold text-center text-sky-400">Matchs</h1>
+        <h1 className="text-center font-display text-4xl tracking-wide text-sky-400">
+          🏒 Matchs
+        </h1>
 
         <LeagueSwitch
           magnusContent={
@@ -408,125 +483,136 @@ export default async function MatchesPage() {
                               return (
                                 <li
                                   key={game.id}
-                                  className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-sm"
+                                  className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 shadow-md shadow-black/20"
                                 >
-                                  <p className="mb-2 text-center text-xs text-neutral-500">
-                                    {frenchTime}
-                                    {localTime && localTime !== frenchTime && (
-                                      <span className="text-neutral-600">
-                                        {" "}
-                                        · {localTime} heure locale
-                                      </span>
-                                    )}
-                                  </p>
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex flex-1 flex-col items-center gap-1">
-                                      <TeamBadge
-                                        abbrev={game.awayTeam.abbrev}
-                                        name={game.awayTeam.name}
-                                        size={40}
-                                      />
-                                      <span className="text-sm text-neutral-200">
-                                        {game.awayTeam.name}
-                                      </span>
-                                    </div>
-                                    <span className="px-2 text-sm text-neutral-600">
-                                      @
-                                    </span>
-                                    <div className="flex flex-1 flex-col items-center gap-1">
-                                      <TeamBadge
-                                        abbrev={game.homeTeam.abbrev}
-                                        name={game.homeTeam.name}
-                                        size={40}
-                                      />
-                                      <span className="text-sm text-neutral-200">
-                                        {game.homeTeam.name}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {winPoints && (
-                                    <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px]">
-                                      <span
-                                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                        title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
-                                      >
-                                        {game.awayTeam.abbrev}{" "}
-                                        <span className="font-medium text-emerald-400">
-                                          {winPoints.awayPoints} pts
-                                        </span>
-                                      </span>
-                                      <span
-                                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-500"
-                                        title={`Probabilité de match nul à la fin du temps réglementaire : ${Math.round(winPoints.drawProbability * 100)}%`}
-                                      >
-                                        Nul{" "}
-                                        <span className="font-medium text-emerald-400">
-                                          {winPoints.drawPoints} pts
-                                        </span>
-                                      </span>
-                                      <span
-                                        className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                        title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
-                                      >
-                                        {game.homeTeam.abbrev}{" "}
-                                        <span className="font-medium text-emerald-400">
-                                          {winPoints.homePoints} pts
-                                        </span>
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  <PredictionForm
-                                    gameId={game.id}
-                                    startTimeUTC={game.startTimeUTC}
+                                  <MatchAccentBar
                                     awayAbbrev={game.awayTeam.abbrev}
                                     homeAbbrev={game.homeTeam.abbrev}
-                                    initialAwayScore={
-                                      predictionByGameId.get(game.id)
-                                        ?.away_score
-                                    }
-                                    initialHomeScore={
-                                      predictionByGameId.get(game.id)
-                                        ?.home_score
-                                    }
                                   />
+                                  <div className="p-4">
+                                    <div className="mb-3 flex items-center justify-center gap-1.5">
+                                      {isStartingSoon(game.startTimeUTC) && (
+                                        <SoonPulse />
+                                      )}
+                                      <span className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-400">
+                                        {frenchTime}
+                                        {localTime &&
+                                          localTime !== frenchTime && (
+                                            <span className="text-neutral-500">
+                                              {" "}
+                                              · {localTime} heure locale
+                                            </span>
+                                          )}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-1">
+                                      <div className="flex flex-1 flex-col items-center gap-1.5">
+                                        <TeamBadge
+                                          abbrev={game.awayTeam.abbrev}
+                                          name={game.awayTeam.name}
+                                          size={40}
+                                        />
+                                        <span className="text-sm font-medium text-neutral-200">
+                                          {game.awayTeam.name}
+                                        </span>
+                                      </div>
+                                      <VsBadge />
+                                      <div className="flex flex-1 flex-col items-center gap-1.5">
+                                        <TeamBadge
+                                          abbrev={game.homeTeam.abbrev}
+                                          name={game.homeTeam.name}
+                                          size={40}
+                                        />
+                                        <span className="text-sm font-medium text-neutral-200">
+                                          {game.homeTeam.name}
+                                        </span>
+                                      </div>
+                                    </div>
 
-                                  {predictionByGameId.has(game.id) &&
-                                    (isPremium ? (
-                                      <form
-                                        action={toggleBoost}
-                                        className="mt-2 flex justify-center"
-                                      >
-                                        <input
-                                          type="hidden"
-                                          name="gameId"
-                                          value={game.id}
-                                        />
-                                        <input
-                                          type="hidden"
-                                          name="startTimeUTC"
-                                          value={game.startTimeUTC}
-                                        />
-                                        <SubmitButton
-                                          className={
-                                            predictionByGameId.get(game.id)
-                                              ?.boosted
-                                              ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
-                                              : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/10"
-                                          }
+                                    {winPoints && (
+                                      <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
+                                        <span
+                                          className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                                          title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
                                         >
-                                          {predictionByGameId.get(game.id)
-                                            ?.boosted
-                                            ? "🔥 Boosté x2 — retirer"
-                                            : "Booster x2"}
-                                        </SubmitButton>
-                                      </form>
-                                    ) : (
-                                      <p className="mt-2 text-center text-[11px] text-neutral-600">
-                                        🔒 Boost x2 réservé aux membres Premium
-                                      </p>
-                                    ))}
+                                          {game.awayTeam.abbrev}{" "}
+                                          <span className="font-medium text-emerald-400">
+                                            {winPoints.awayPoints} pts
+                                          </span>
+                                        </span>
+                                        <span
+                                          className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-500"
+                                          title={`Probabilité de match nul à la fin du temps réglementaire : ${Math.round(winPoints.drawProbability * 100)}%`}
+                                        >
+                                          Nul{" "}
+                                          <span className="font-medium text-emerald-400">
+                                            {winPoints.drawPoints} pts
+                                          </span>
+                                        </span>
+                                        <span
+                                          className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                                          title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
+                                        >
+                                          {game.homeTeam.abbrev}{" "}
+                                          <span className="font-medium text-emerald-400">
+                                            {winPoints.homePoints} pts
+                                          </span>
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    <PredictionForm
+                                      gameId={game.id}
+                                      startTimeUTC={game.startTimeUTC}
+                                      awayAbbrev={game.awayTeam.abbrev}
+                                      homeAbbrev={game.homeTeam.abbrev}
+                                      initialAwayScore={
+                                        predictionByGameId.get(game.id)
+                                          ?.away_score
+                                      }
+                                      initialHomeScore={
+                                        predictionByGameId.get(game.id)
+                                          ?.home_score
+                                      }
+                                    />
+
+                                    {predictionByGameId.has(game.id) &&
+                                      (isPremium ? (
+                                        <form
+                                          action={toggleBoost}
+                                          className="mt-2 flex justify-center"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="gameId"
+                                            value={game.id}
+                                          />
+                                          <input
+                                            type="hidden"
+                                            name="startTimeUTC"
+                                            value={game.startTimeUTC}
+                                          />
+                                          <SubmitButton
+                                            className={
+                                              predictionByGameId.get(game.id)
+                                                ?.boosted
+                                                ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950"
+                                                : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/10"
+                                            }
+                                          >
+                                            {predictionByGameId.get(game.id)
+                                              ?.boosted
+                                              ? "🔥 Boosté x2 — retirer"
+                                              : "Booster x2"}
+                                          </SubmitButton>
+                                        </form>
+                                      ) : (
+                                        <p className="mt-2 text-center text-[11px] text-neutral-600">
+                                          🔒 Boost x2 réservé aux membres
+                                          Premium
+                                        </p>
+                                      ))}
+                                  </div>
                                 </li>
                               );
                             })}
@@ -579,12 +665,7 @@ export default async function MatchesPage() {
                                           size={22}
                                         />
                                       </div>
-                                      <span className="w-14 shrink-0 text-center text-xs text-neutral-500">
-                                        {game.awayTeam.score != null &&
-                                        game.homeTeam.score != null
-                                          ? `${game.awayTeam.score} - ${game.homeTeam.score}`
-                                          : formatTime(game.startTimeUTC)}
-                                      </span>
+                                      <CalendarScoreCell game={game} />
                                       <div className="flex flex-1 items-center gap-1.5">
                                         <TeamBadge
                                           abbrev={game.homeTeam.abbrev}

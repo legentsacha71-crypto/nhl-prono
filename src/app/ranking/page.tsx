@@ -5,12 +5,35 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
-
-const RANK_STYLES = [
-  "border-amber-500/40 bg-gradient-to-r from-amber-500/10 to-neutral-900 shadow-lg shadow-amber-950/20",
-  "border-neutral-400/30 bg-gradient-to-r from-neutral-400/10 to-neutral-900 shadow-lg shadow-black/20",
-  "border-orange-700/40 bg-gradient-to-r from-orange-700/10 to-neutral-900 shadow-lg shadow-black/20",
+// Style du podium des 3 premiers : ordre CSS (order-*) plutôt que l'ordre du
+// tableau, pour placer visuellement le 1er au centre et en hauteur — motif
+// classique "podium" des apps sportives — sans changer l'ordre logique des
+// données (toujours 1er/2e/3e dans `ranking`).
+const PODIUM_STYLES = [
+  {
+    order: "order-2",
+    height: "h-44",
+    avatarSize: 72,
+    medal: "🥇",
+    card: "border-amber-500/50 bg-gradient-to-b from-amber-500/20 to-neutral-900 shadow-lg shadow-amber-950/30",
+    label: "text-amber-400",
+  },
+  {
+    order: "order-1",
+    height: "h-36",
+    avatarSize: 60,
+    medal: "🥈",
+    card: "border-neutral-400/40 bg-gradient-to-b from-neutral-400/15 to-neutral-900 shadow-lg shadow-black/20",
+    label: "text-neutral-300",
+  },
+  {
+    order: "order-3",
+    height: "h-32",
+    avatarSize: 56,
+    medal: "🥉",
+    card: "border-orange-700/50 bg-gradient-to-b from-orange-700/15 to-neutral-900 shadow-lg shadow-black/20",
+    label: "text-orange-400",
+  },
 ];
 
 export default async function RankingPage() {
@@ -20,12 +43,17 @@ export default async function RankingPage() {
   } = await supabase.auth.getUser();
   const ranking = await getRanking(supabase);
 
+  // Les 3 premiers passent en podium visuel ; le reste garde une liste
+  // compacte façon scoreboard, avec le rang en font-display.
+  const podium = ranking.slice(0, 3);
+  const rest = ranking.slice(3);
+
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
       <div className="mx-auto w-full max-w-md space-y-6">
-        <h1 className="text-2xl font-bold text-center text-sky-400">
-          Classement général
+        <h1 className="text-center font-display text-4xl tracking-wide text-sky-400">
+          🏆 Classement général
         </h1>
 
         {ranking.length === 0 ? (
@@ -33,45 +61,84 @@ export default async function RankingPage() {
             Aucun point attribué pour le moment.
           </p>
         ) : (
-          <ol className="space-y-2">
-            {ranking.map((entry, index) => {
-              const isMe = entry.userId === user?.id;
-              return (
-                <li
-                  key={entry.userId}
-                  className={`flex items-center justify-between rounded-lg border p-3 transition-colors duration-150 ${
-                    RANK_STYLES[index] ??
-                    "border-neutral-800 bg-neutral-900 shadow-sm shadow-black/20"
-                  } ${isMe ? "ring-1 ring-sky-500/50" : ""}`}
-                >
-                  <Link
-                    href={`/profil/${entry.userId}`}
-                    className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
-                  >
-                    <span className="mr-2 w-5 text-center text-sm text-neutral-500">
-                      {MEDALS[index] ?? index + 1}
-                    </span>
-                    <RankAvatar
-                      avatarUrl={entry.avatarUrl}
-                      username={entry.username}
-                    />
-                    <span className="ml-2">{entry.username}</span>
-                    {isMe && (
-                      <span className="ml-2 rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-medium text-sky-400">
-                        Toi
+          <>
+            {podium.length > 0 && (
+              <div className="flex items-end justify-center gap-3">
+                {podium.map((entry, index) => {
+                  const style = PODIUM_STYLES[index];
+                  const isMe = entry.userId === user?.id;
+                  return (
+                    <Link
+                      key={entry.userId}
+                      href={`/profil/${entry.userId}`}
+                      className={`flex ${style.order} ${style.height} flex-1 flex-col items-center justify-end gap-1.5 rounded-2xl border px-2 pb-3 pt-6 transition-transform duration-200 hover:scale-[1.02] ${style.card} ${
+                        isMe ? "ring-1 ring-sky-500/50" : ""
+                      }`}
+                    >
+                      <span className="text-2xl leading-none">
+                        {style.medal}
                       </span>
-                    )}
-                  </Link>
-                  <span className="font-medium text-sky-400">
-                    {entry.totalPoints} pts
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+                      <RankAvatar
+                        avatarUrl={entry.avatarUrl}
+                        username={entry.username}
+                        points={entry.totalPoints}
+                        size={style.avatarSize}
+                      />
+                      <span className="max-w-full truncate text-xs font-medium text-neutral-200">
+                        {entry.username}
+                      </span>
+                      <span
+                        className={`font-display text-xl leading-none tracking-wide ${style.label}`}
+                      >
+                        {entry.totalPoints}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+
+            {rest.length > 0 && (
+              <ol className="space-y-2">
+                {rest.map((entry, index) => {
+                  const rank = index + 4;
+                  const isMe = entry.userId === user?.id;
+                  return (
+                    <li
+                      key={entry.userId}
+                      className={`flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-sm shadow-black/20 transition-colors duration-150 ${
+                        isMe ? "ring-1 ring-sky-500/50" : ""
+                      }`}
+                    >
+                      <Link
+                        href={`/profil/${entry.userId}`}
+                        className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
+                      >
+                        <span className="mr-2 w-6 text-center font-display text-base text-neutral-500">
+                          {rank}
+                        </span>
+                        <RankAvatar
+                          avatarUrl={entry.avatarUrl}
+                          username={entry.username}
+                        />
+                        <span className="ml-2">{entry.username}</span>
+                        {isMe && (
+                          <span className="ml-2 rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-medium text-sky-400">
+                            Toi
+                          </span>
+                        )}
+                      </Link>
+                      <span className="font-display text-lg tracking-wide text-sky-400">
+                        {entry.totalPoints} pts
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </>
         )}
       </div>
-
       <BottomNav />
     </div>
   );
