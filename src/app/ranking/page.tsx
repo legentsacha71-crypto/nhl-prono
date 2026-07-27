@@ -12,7 +12,7 @@ import RankAvatar from "@/components/RankAvatar";
 const PODIUM_STYLES = [
   {
     order: "order-2",
-    height: "h-44",
+    height: "min-h-44",
     avatarSize: 72,
     medal: "🥇",
     card: "border-amber-500/50 bg-gradient-to-b from-amber-500/20 to-neutral-900 shadow-lg shadow-amber-950/30",
@@ -20,7 +20,7 @@ const PODIUM_STYLES = [
   },
   {
     order: "order-1",
-    height: "h-36",
+    height: "min-h-36",
     avatarSize: 60,
     medal: "🥈",
     card: "border-neutral-400/40 bg-gradient-to-b from-neutral-400/15 to-neutral-900 shadow-lg shadow-black/20",
@@ -28,7 +28,7 @@ const PODIUM_STYLES = [
   },
   {
     order: "order-3",
-    height: "h-32",
+    height: "min-h-32",
     avatarSize: 56,
     medal: "🥉",
     card: "border-orange-700/50 bg-gradient-to-b from-orange-700/15 to-neutral-900 shadow-lg shadow-black/20",
@@ -84,7 +84,7 @@ export default async function RankingPage() {
                         points={entry.totalPoints}
                         size={style.avatarSize}
                       />
-                      <span className="max-w-full truncate text-xs font-medium text-neutral-200">
+                      <span className="max-w-full truncate text-sm font-semibold text-white">
                         {entry.username}
                       </span>
                       <span
