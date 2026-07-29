@@ -5,10 +5,13 @@
 // en récupérant leurs logos officiels (champ `logo` de cette même réponse,
 // hébergés sur hockeynet.fr) et en échantillonnant leurs couleurs
 // dominantes — pas des couleurs choisies au hasard.
-// Exception : le logo renvoyé par l'API pour Amiens (abréviation "AMI") ne
-// correspond pas au club (visuel générique sans rapport avec les
-// "Gothiques"), ses couleurs viennent donc de l'identité connue du club
-// (violet/noir) plutôt que d'un échantillonnage du blason.
+// Pour Grenoble et Amiens, le rendu du blason seul ne reflète pas les
+// couleurs réelles du club (le blason de Grenoble mêle bleu glace/orange
+// flamme, mais le maillot officiel est rouge/bleu marine ; le logo actuel
+// d'Amiens est un simple "G" rouge). Ces deux entrées ont donc été
+// recoupées avec les couleurs officielles publiques du club (maillot photo
+// pour Grenoble, historique rouge/noir/blanc des "Gothiques" pour Amiens)
+// plutôt que le seul échantillonnage du blason.
 export type MagnusTeamInfo = {
   abbrev: string;
   name: string;
@@ -20,8 +23,8 @@ export const MAGNUS_TEAMS: MagnusTeamInfo[] = [
   {
     abbrev: "GRE",
     name: "Grenoble",
-    primaryColor: "#F2701C",
-    secondaryColor: "#3E6E96",
+    primaryColor: "#D6202C",
+    secondaryColor: "#1E3F82",
   },
   {
     abbrev: "ANG",
@@ -44,7 +47,7 @@ export const MAGNUS_TEAMS: MagnusTeamInfo[] = [
   {
     abbrev: "AMI",
     name: "Amiens",
-    primaryColor: "#5B2A86",
+    primaryColor: "#E00010",
     secondaryColor: "#1A1A1A",
   },
   {
