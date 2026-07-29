@@ -1,9 +1,14 @@
 // Contrairement à nhlTeams.ts, l'API Ligue Magnus (magnusApi.ts) ne fournit
-// aucune couleur d'équipe — seulement id/nom/abréviation. Cette liste est
-// donc une estimation manuelle des couleurs de maillot des 12 clubs actuels
-// (saison 2025-2026, abréviations confirmées via l'action `get_classementsphase`
-// de l'API), au même usage que NHL_TEAMS : un badge/dégradé coloré plutôt
-// qu'un gris neutre, sans reproduire de logo officiel.
+// aucune couleur d'équipe — seulement id/nom/abréviation. Ces couleurs ont
+// donc été extraites manuellement des vrais blasons des 12 clubs actuels
+// (saison 2025-2026, abréviations confirmées via `get_classementsphase`),
+// en récupérant leurs logos officiels (champ `logo` de cette même réponse,
+// hébergés sur hockeynet.fr) et en échantillonnant leurs couleurs
+// dominantes — pas des couleurs choisies au hasard.
+// Exception : le logo renvoyé par l'API pour Amiens (abréviation "AMI") ne
+// correspond pas au club (visuel générique sans rapport avec les
+// "Gothiques"), ses couleurs viennent donc de l'identité connue du club
+// (violet/noir) plutôt que d'un échantillonnage du blason.
 export type MagnusTeamInfo = {
   abbrev: string;
   name: string;
@@ -15,74 +20,74 @@ export const MAGNUS_TEAMS: MagnusTeamInfo[] = [
   {
     abbrev: "GRE",
     name: "Grenoble",
-    primaryColor: "#E4032E",
-    secondaryColor: "#1A1A1A",
+    primaryColor: "#F2701C",
+    secondaryColor: "#3E6E96",
   },
   {
     abbrev: "ANG",
     name: "Angers",
-    primaryColor: "#F4C430",
-    secondaryColor: "#111111",
+    primaryColor: "#14234E",
+    secondaryColor: "#CC2030",
   },
   {
     abbrev: "BOR",
     name: "Bordeaux",
-    primaryColor: "#002F6C",
-    secondaryColor: "#C8102E",
+    primaryColor: "#C8202A",
+    secondaryColor: "#141414",
   },
   {
     abbrev: "ROU",
     name: "Rouen",
-    primaryColor: "#8B1E3F",
-    secondaryColor: "#F5A623",
+    primaryColor: "#F2A900",
+    secondaryColor: "#1A1A1A",
   },
   {
     abbrev: "AMI",
     name: "Amiens",
-    primaryColor: "#6A1B9A",
+    primaryColor: "#5B2A86",
     secondaryColor: "#1A1A1A",
   },
   {
     abbrev: "MAR",
     name: "Marseille",
-    primaryColor: "#0072CE",
-    secondaryColor: "#FFFFFF",
+    primaryColor: "#29ABE2",
+    secondaryColor: "#16305A",
   },
   {
     abbrev: "CHA",
     name: "Chamonix",
-    primaryColor: "#D62839",
-    secondaryColor: "#1B3A6B",
+    primaryColor: "#A31E22",
+    secondaryColor: "#1A1A1A",
   },
   {
     abbrev: "NIC",
     name: "Nice",
-    primaryColor: "#CE1126",
-    secondaryColor: "#111111",
+    primaryColor: "#D4AF37",
+    secondaryColor: "#141B34",
   },
   {
     abbrev: "BRI",
     name: "Briançon",
-    primaryColor: "#B71234",
-    secondaryColor: "#002654",
+    primaryColor: "#B3232F",
+    secondaryColor: "#141414",
   },
   {
     abbrev: "CER",
     name: "Cergy-Pontoise",
-    primaryColor: "#6C3483",
-    secondaryColor: "#F39C12",
+    primaryColor: "#0E7A5C",
+    secondaryColor: "#C8102E",
   },
   {
     abbrev: "HOR",
     name: "Anglet",
-    primaryColor: "#009A44",
-    secondaryColor: "#FFFFFF",
+    primaryColor: "#3FA79A",
+    secondaryColor: "#E3002B",
   },
   {
     abbrev: "GAP",
     name: "Gap",
-    primaryColor: "#1E5AA8",
-    secondaryColor: "#FDB813",
+    primaryColor: "#1CADE4",
+    secondaryColor: "#141414",
   },
 ];
 
