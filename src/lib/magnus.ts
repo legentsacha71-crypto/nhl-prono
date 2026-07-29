@@ -1,7 +1,8 @@
 import {
   getAllSeasonMatches,
   getCurrentCompetitionId,
-  type MagnusApiMatch,
+  isMatchAssigned,
+  type AssignedMagnusApiMatch,
   parisLocalToUTC,
 } from "./magnusApi";
 
@@ -16,7 +17,7 @@ export type MagnusGame = {
   homeTeam: { abbrev: string; name: string; score?: number };
 };
 
-function toGame(m: MagnusApiMatch): MagnusGame {
+function toGame(m: AssignedMagnusApiMatch): MagnusGame {
   const homeScoreEntry = m.score.find((s) => s.equipe_id === m.receveur.id);
   const awayScoreEntry = m.score.find((s) => s.equipe_id === m.visiteur.id);
 
@@ -45,6 +46,7 @@ export async function getUpcomingGames(): Promise<MagnusGame[]> {
   const now = Date.now();
 
   return matches
+    .filter(isMatchAssigned)
     .map(toGame)
     .filter((g) => new Date(g.startTimeUTC).getTime() > now)
     .sort(
@@ -63,7 +65,12 @@ export async function getSeasonSchedule(): Promise<MagnusGame[]> {
 
   const matches = await getAllSeasonMatches(competitionId, 3600);
 
+  // Exclut les rencontres dont la ligue n'a pas encore désigné les deux
+  // équipes ("Non assigné / Non assigné", fréquent pour les derniers mois
+  // d'une saison à venir) : les afficher produirait des cartes de match
+  // avec des équipes vides plutôt que de simplement les masquer.
   return matches
+    .filter(isMatchAssigned)
     .map(toGame)
     .sort(
       (a, b) =>

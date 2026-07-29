@@ -73,12 +73,29 @@ export type MagnusApiScore = {
 export type MagnusApiMatch = {
   id: number;
   date_rencontre: string; // Heure de Paris, sans fuseau : "2025-09-12 20:00"
-  receveur: MagnusApiTeam;
-  visiteur: MagnusApiTeam;
+  // La ligue publie parfois des dates de rencontre avant d'avoir désigné les
+  // deux équipes (ex. saison à venir programmée par blocs de dates) : dans ce
+  // cas receveur/visiteur valent la chaîne "NA" au lieu d'un objet équipe, et
+  // rencontre_libelle vaut "Non assigné / Non assigné".
+  receveur: MagnusApiTeam | "NA";
+  visiteur: MagnusApiTeam | "NA";
   score: MagnusApiScore[];
   etat: string; // "T" = terminé
   victoire_par: string | null; // "S" (temps réglementaire) | "PRL" (prolongation) | "TAB" (tirs au but)
 };
+
+export type AssignedMagnusApiMatch = MagnusApiMatch & {
+  receveur: MagnusApiTeam;
+  visiteur: MagnusApiTeam;
+};
+
+// Vrai si les deux équipes de la rencontre sont désignées (voir le
+// commentaire sur MagnusApiMatch pour le cas "NA").
+export function isMatchAssigned(
+  m: MagnusApiMatch,
+): m is AssignedMagnusApiMatch {
+  return typeof m.receveur === "object" && typeof m.visiteur === "object";
+}
 
 // Repère la saison la plus récente qui a déjà un calendrier publié : au
 // moment du rollover annuel (~août), la nouvelle saison existe côté
@@ -189,7 +206,7 @@ function getParisOffsetMinutes(date: Date): number {
 // temps réglementaire : en prolongation ou tirs au but, la victoire se
 // joue toujours sur exactement 1 but d'écart (mort subite), donc le score
 // réglementaire est simplement le score à égalité juste avant.
-export function regulationScore(match: MagnusApiMatch): {
+export function regulationScore(match: AssignedMagnusApiMatch): {
   homeScore: number;
   awayScore: number;
 } {
