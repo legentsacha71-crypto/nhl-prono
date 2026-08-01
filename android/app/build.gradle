@@ -1,5 +1,23 @@
 apply plugin: 'com.android.application'
 
+// Clé de signature de release (upload key pour Google Play App Signing).
+// Le fichier .keystore et ses mots de passe vivent volontairement HORS du
+// repo (~/android-keystores/nhl-prono/), pour ne jamais risquer de les
+// committer par erreur — voir android/.gitignore pour le garde-fou
+// supplémentaire côté repo. Sur une autre machine (ou en CI), il faut
+// recréer keystore.properties au même chemin, ou adapter keystorePropsFile
+// ci-dessous. Tant que ce fichier n'existe pas, le build release retombe
+// simplement sans signature (comme avant), les builds debug ne sont pas
+// affectés.
+def keystorePropsFile = new File(System.getProperty('user.home'), 'android-keystores/nhl-prono/keystore.properties')
+def keystoreProps = new Properties()
+def hasReleaseSigning = keystorePropsFile.exists()
+if (hasReleaseSigning) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+} else {
+    logger.warn("keystore.properties introuvable (${keystorePropsFile}) — build release non signé.")
+}
+
 android {
     namespace = "com.lanuithockey.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +34,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
