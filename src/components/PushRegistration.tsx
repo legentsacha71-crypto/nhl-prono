@@ -15,6 +15,17 @@ import { registerPushToken, logPushDebug } from "@/app/notifications/actions";
 export default function PushRegistration() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+    // TODO(android push) : le plugin @capacitor/push-notifications bascule
+    // automatiquement sur Firebase Cloud Messaging sur Android, mais aucun
+    // projet Firebase n'est encore configuré côté natif (pas de
+    // google-services.json) — voir android/app/build.gradle. Appeler
+    // register() dans cet état échoue de façon non garantie côté natif
+    // (FirebaseApp non initialisé) plutôt que de simplement rejeter la
+    // promesse JS. On limite donc l'enregistrement à iOS pour l'instant, le
+    // temps de brancher FCM (nouveau module équivalent à apns.ts) dans un
+    // commit dédié ; sendPushToUser() côté serveur ne cible de toute façon
+    // que des tokens APNs aujourd'hui.
+    if (Capacitor.getPlatform() !== "ios") return;
 
     let registrationListener: { remove: () => void } | undefined;
     let errorListener: { remove: () => void } | undefined;
@@ -37,7 +48,7 @@ export default function PushRegistration() {
       if (cancelled || receive !== "granted") {
         logPushDebug(
           "abandon avant register()",
-          `cancelled=${cancelled} receive=${receive}`,
+          `cancelled=${cancelled} receive=${receive}`
         ).catch(() => {});
         return;
       }
@@ -47,16 +58,16 @@ export default function PushRegistration() {
         (token) => {
           logPushDebug(
             "listener registration déclenché",
-            `token length=${token.value.length}`,
+            `token length=${token.value.length}`
           ).catch(() => {});
           registerPushToken(token.value).catch((err) => {
             console.error("Échec de l'enregistrement du token push :", err);
             logPushDebug(
               "registerPushToken a rejeté",
-              err instanceof Error ? err.message : String(err),
+              err instanceof Error ? err.message : String(err)
             ).catch(() => {});
           });
-        },
+        }
       );
       errorListener = await PushNotifications.addListener(
         "registrationError",
@@ -64,20 +75,20 @@ export default function PushRegistration() {
           console.error("Erreur d'enregistrement push APNs :", err);
           logPushDebug(
             "listener registrationError déclenché",
-            JSON.stringify(err),
+            JSON.stringify(err)
           ).catch(() => {});
-        },
+        }
       );
 
       try {
         await PushNotifications.register();
         logPushDebug("register() a résolu sans erreur synchrone").catch(
-          () => {},
+          () => {}
         );
       } catch (err) {
         logPushDebug(
           "register() a levé une exception",
-          err instanceof Error ? err.message : String(err),
+          err instanceof Error ? err.message : String(err)
         ).catch(() => {});
       }
     }
