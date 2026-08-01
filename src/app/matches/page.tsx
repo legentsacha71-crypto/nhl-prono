@@ -31,6 +31,11 @@ type Game = {
   gameState: string;
   awayTeam: { abbrev: string; name: string; score?: number };
   homeTeam: { abbrev: string; name: string; score?: number };
+  // Présent uniquement côté Magnus : vrai quand la rencontre vient du
+  // calendrier statique de secours plutôt que d'être confirmée par l'API de
+  // la ligue (voir src/lib/magnus.ts). La date/heure est alors une
+  // estimation.
+  isProvisional?: boolean;
 };
 
 function formatDayLabel(iso: string) {
@@ -121,15 +126,22 @@ function CalendarScoreCell({ game }: { game: Game }) {
   const isFinal = game.awayTeam.score != null && game.homeTeam.score != null;
   return (
     <span
+      title={
+        game.isProvisional
+          ? "Date provisoire : rencontre pas encore officiellement confirmée par la ligue"
+          : undefined
+      }
       className={`w-14 shrink-0 rounded-full text-center ${
         isFinal
           ? "bg-neutral-800 py-0.5 font-display text-sm tracking-wide text-sky-400"
-          : "text-xs text-neutral-500"
+          : game.isProvisional
+            ? "text-xs text-amber-500/80"
+            : "text-xs text-neutral-500"
       }`}
     >
       {isFinal
         ? `${game.awayTeam.score} - ${game.homeTeam.score}`
-        : formatTime(game.startTimeUTC)}
+        : `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`}
     </span>
   );
 }
@@ -277,8 +289,15 @@ function MagnusSchedule({
                         <div className="p-4">
                           <div className="mb-3 flex items-center justify-center gap-1.5">
                             {isStartingSoon(game.startTimeUTC) && <SoonPulse />}
-                            <span className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-400">
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                game.isProvisional
+                                  ? "bg-amber-950/40 text-amber-500/80"
+                                  : "bg-neutral-800 text-neutral-400"
+                              }`}
+                            >
                               {formatTime(game.startTimeUTC)}
+                              {game.isProvisional ? " ?" : ""}
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-1">
@@ -307,7 +326,9 @@ function MagnusSchedule({
                             </div>
                           </div>
                           <p className="mt-3 text-center text-[11px] text-neutral-600">
-                            Pronostics Ligue Magnus bientôt disponibles
+                            {game.isProvisional
+                              ? "Date provisoire, sous réserve de confirmation par la ligue"
+                              : "Pronostics Ligue Magnus bientôt disponibles"}
                           </p>
                         </div>
                       </li>
