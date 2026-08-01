@@ -14,6 +14,14 @@ const items = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // Dans cette version de Next.js, <Link> conserve la position de scroll par
+  // défaut (au lieu de remonter en haut) tant que la page cible reste dans
+  // le viewport — voir node_modules/next/dist/docs/.../components/link.md,
+  // section "Disable scrolling to the top of the page". Comme le contenu
+  // défile souvent peu (SPA à onglets en bas d'écran), ce cas se déclenche
+  // sans arrêt. On force donc explicitement le retour en haut au clic, pour
+  // le comportement attendu d'une appli mobile (chaque onglet repart du
+  // début).
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-neutral-800 bg-neutral-900/95 shadow-[0_-4px_20px_rgba(0,0,0,0.35)] backdrop-blur pb-[env(safe-area-inset-bottom)]">
       <ul className="mx-auto flex max-w-md items-stretch justify-between">
@@ -26,6 +34,7 @@ export default function BottomNav() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                 className={`group flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors duration-200 ${
                   isActive
                     ? "text-sky-400"
