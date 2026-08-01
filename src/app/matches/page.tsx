@@ -128,7 +128,7 @@ function CalendarScoreCell({ game }: { game: Game }) {
     <span
       title={
         game.isProvisional
-          ? "Date provisoire : rencontre pas encore officiellement confirmée par la ligue"
+          ? "Heure estimée, en attente de confirmation par la ligue"
           : undefined
       }
       className={`w-14 shrink-0 rounded-full text-center ${
@@ -327,7 +327,7 @@ function MagnusSchedule({
                           </div>
                           <p className="mt-3 text-center text-[11px] text-neutral-600">
                             {game.isProvisional
-                              ? "Date provisoire, sous réserve de confirmation par la ligue"
+                              ? "Heure estimée, en attente de confirmation par la ligue"
                               : "Pronostics Ligue Magnus bientôt disponibles"}
                           </p>
                         </div>
