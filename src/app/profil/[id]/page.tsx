@@ -2,7 +2,8 @@ import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
-import { getGameResult } from "@/lib/nhlResults";
+import { getGameResult } from "@/lib/gameResults";
+import { isMagnusGameId } from "@/lib/competition";
 import { getTeamName } from "@/lib/nhlTeams";
 import { getRingForPoints, getNextRingTier } from "@/lib/profileRings";
 import RingInfoBadge from "@/components/RingInfoBadge";
@@ -109,6 +110,12 @@ export default async function PlayerProfilePage({
   const ring = getRingForPoints(combinedPoints);
   const nextRingTier = getNextRingTier(combinedPoints);
 
+  // Ventilation par compétition pour la bascule NHL / Ligue Magnus de
+  // l'onglet Stats — dérivée du seul game_id, voir isMagnusGameId. `graded`
+  // ne contient déjà que des pronostics notés (voir la requête plus haut).
+  const nhlGraded = graded.filter((p) => !isMagnusGameId(p.game_id));
+  const magnusGraded = graded.filter((p) => isMagnusGameId(p.game_id));
+
   const stats = {
     points: combinedPoints,
     rank,
@@ -117,6 +124,20 @@ export default async function PlayerProfilePage({
     gradedCount: graded.length,
     correctCount,
     exactCount,
+    nhl: {
+      points: nhlGraded.reduce((sum, p) => sum + (p.points ?? 0), 0),
+      pronosCount: nhlGraded.length,
+      gradedCount: nhlGraded.length,
+      correctCount: nhlGraded.filter((p) => (p.points ?? 0) > 0).length,
+      exactCount: nhlGraded.filter((p) => p.is_exact_score).length,
+    },
+    magnus: {
+      points: magnusGraded.reduce((sum, p) => sum + (p.points ?? 0), 0),
+      pronosCount: magnusGraded.length,
+      gradedCount: magnusGraded.length,
+      correctCount: magnusGraded.filter((p) => (p.points ?? 0) > 0).length,
+      exactCount: magnusGraded.filter((p) => p.is_exact_score).length,
+    },
   };
 
   const recent = graded.slice(0, 8);

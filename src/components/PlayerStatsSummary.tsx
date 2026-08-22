@@ -1,3 +1,17 @@
+import LeagueSwitch from "@/components/LeagueSwitch";
+
+// Sous-ensemble de PlayerStats limité à une seule compétition (NHL ou
+// Ligue Magnus), pour la bascule "Par compétition" plus bas — le point
+// (combiné, toutes compétitions + picks Coupe Stanley/meilleur buteur
+// confondus) et le classement général restent inchangés en haut de carte.
+export type CompetitionStats = {
+  points: number;
+  pronosCount: number;
+  gradedCount: number;
+  correctCount: number;
+  exactCount: number;
+};
+
 export type PlayerStats = {
   points: number;
   rank: number;
@@ -6,7 +20,48 @@ export type PlayerStats = {
   gradedCount: number;
   correctCount: number;
   exactCount: number;
+  nhl: CompetitionStats;
+  magnus: CompetitionStats;
 };
+
+function CompetitionBlock({
+  stats,
+  label,
+}: {
+  stats: CompetitionStats;
+  label: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-center shadow-md shadow-black/20">
+        <p className="font-display text-2xl text-sky-400">{stats.points}</p>
+        <p className="text-xs text-neutral-500">points {label}</p>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+          <p className="text-lg font-bold text-sky-400">
+            {stats.pronosCount}
+          </p>
+          <p className="text-xs text-neutral-500">Pronos</p>
+        </div>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+          <p className="text-lg font-bold text-emerald-400">
+            {stats.correctCount}
+          </p>
+          <p className="text-xs text-neutral-500">Bons pronos</p>
+        </div>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+          <p className="text-lg font-bold text-sky-400">
+            {stats.exactCount}
+          </p>
+          <p className="text-xs text-neutral-500">
+            {stats.exactCount > 1 ? "Scores exacts" : "Score exact"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type PlayerStatsSummaryProps = {
   stats: PlayerStats;
@@ -89,6 +144,18 @@ export default function PlayerStatsSummary({
             <p className="text-xs text-neutral-500">Taux de score exact</p>
           </div>
         </div>
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-xs font-medium tracking-wide text-neutral-500 uppercase">
+          Par compétition
+        </h3>
+        <LeagueSwitch
+          nhlContent={<CompetitionBlock stats={stats.nhl} label="NHL" />}
+          magnusContent={
+            <CompetitionBlock stats={stats.magnus} label="Ligue Magnus" />
+          }
+        />
       </div>
 
       <div className="rounded-lg border border-neutral-800 bg-gradient-to-r from-sky-500/10 to-neutral-900 p-4 text-center shadow-lg shadow-black/20">

@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
-import { getGameResult } from "@/lib/nhlResults";
+import { getGameResult } from "@/lib/gameResults";
+import { isMagnusGameId } from "@/lib/competition";
 import { getTeamName } from "@/lib/nhlTeams";
 import {
   STANLEY_CUP_CANDIDATES,
@@ -135,6 +136,14 @@ export default async function ProfilPage() {
   const nextRingTier = getNextRingTier(combinedPoints);
 
   const correctCount = graded.filter((p) => (p.points ?? 0) > 0).length;
+
+  // Ventilation par compétition pour la bascule NHL / Ligue Magnus de
+  // l'onglet Stats — dérivée du seul game_id, voir isMagnusGameId.
+  const nhlAll = all.filter((p) => !isMagnusGameId(p.game_id));
+  const nhlGraded = nhlAll.filter((p) => p.points !== null);
+  const magnusAll = all.filter((p) => isMagnusGameId(p.game_id));
+  const magnusGraded = magnusAll.filter((p) => p.points !== null);
+
   const initialStats = {
     points: combinedPoints,
     rank,
@@ -143,6 +152,20 @@ export default async function ProfilPage() {
     gradedCount: graded.length,
     correctCount,
     exactCount: exactScoreCount,
+    nhl: {
+      points: nhlGraded.reduce((sum, p) => sum + (p.points ?? 0), 0),
+      pronosCount: nhlAll.length,
+      gradedCount: nhlGraded.length,
+      correctCount: nhlGraded.filter((p) => (p.points ?? 0) > 0).length,
+      exactCount: nhlGraded.filter((p) => p.is_exact_score).length,
+    },
+    magnus: {
+      points: magnusGraded.reduce((sum, p) => sum + (p.points ?? 0), 0),
+      pronosCount: magnusAll.length,
+      gradedCount: magnusGraded.length,
+      correctCount: magnusGraded.filter((p) => (p.points ?? 0) > 0).length,
+      exactCount: magnusGraded.filter((p) => p.is_exact_score).length,
+    },
   };
 
   const isLocked = !season || new Date(season.lock_at) <= new Date();

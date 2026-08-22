@@ -8,6 +8,10 @@ import {
   getLeagueAverageGoals,
   type TeamStats,
 } from "@/lib/nhlStats";
+import {
+  getTeamStats as getMagnusTeamStats,
+  getLeagueAverageGoals as getMagnusLeagueAverageGoals,
+} from "@/lib/magnusStats";
 import { estimateWinPoints } from "@/lib/scoring";
 import { TEAM_TIMEZONES, getTeamColors } from "@/lib/nhlTeams";
 import { getMagnusTeamColors } from "@/lib/magnusTeams";
@@ -236,20 +240,31 @@ function groupByMonth(games: Game[]) {
   }));
 }
 
-// Vrais matchs Ligue Magnus (calendrier complet + matchs à venir), pour de
-// premier temps en lecture seule : le formulaire de pronostic (PredictionForm
-// + submitPrediction) n'est pas encore branché côté Magnus. Comme la Ligue
-// Magnus est hors saison au moment où ceci est écrit (0 match à venir), il
-// n'y a de toute façon rien à pronostiquer pour l'instant — cette étape sert
-// surtout à vérifier que les vraies données s'affichent correctement ; le
-// pronostic Magnus viendra dans une étape suivante, à la reprise de la
-// saison.
+// Vrais matchs Ligue Magnus (calendrier complet + matchs à venir). Le
+// pronostic (PredictionForm + submitPrediction) est branché ici exactement
+// comme côté NHL : submitPrediction est déjà agnostique de la compétition
+// (juste gameId + scores), donc aucun changement n'a été nécessaire côté
+// Server Action. Seuls les matchs confirmés par l'API sont pronostiquables
+// (isProvisional falsy) : un match provisoire a un id synthétique qui ne
+// correspond à aucune vraie rencontre, voir le commentaire sur
+// MagnusGame.isProvisional dans magnus.ts.
 function MagnusSchedule({
   upcomingGames,
   seasonGames,
+  predictionByGameId,
+  isPremium,
+  teamStats,
+  leagueAvgGoals,
 }: {
   upcomingGames: Game[];
   seasonGames: Game[];
+  predictionByGameId: Map<
+    number,
+    { away_score: number; home_score: number; boosted: boolean }
+  >;
+  isPremium: boolean;
+  teamStats: Map<string, TeamStats>;
+  leagueAvgGoals: number;
 }) {
   const dayGroups = groupByDay(upcomingGames);
   const monthGroups = groupByMonth(seasonGames);
@@ -276,63 +291,160 @@ function MagnusSchedule({
                     {group.label}
                   </h2>
                   <ul className="space-y-3">
-                    {group.games.map((game) => (
-                      <li
-                        key={game.id}
-                        className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 shadow-md shadow-black/20"
-                      >
-                        <MatchAccentBar
-                          awayAbbrev={game.awayTeam.abbrev}
-                          homeAbbrev={game.homeTeam.abbrev}
-                          league="magnus"
-                        />
-                        <div className="p-4">
-                          <div className="mb-3 flex items-center justify-center gap-1.5">
-                            {isStartingSoon(game.startTimeUTC) && <SoonPulse />}
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                game.isProvisional
-                                  ? "bg-amber-950/40 text-amber-500/80"
-                                  : "bg-neutral-800 text-neutral-400"
-                              }`}
-                            >
-                              {formatTime(game.startTimeUTC)}
-                              {game.isProvisional ? " ?" : ""}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-1">
-                            <div className="flex flex-1 flex-col items-center gap-1.5">
-                              <TeamBadge
-                                abbrev={game.awayTeam.abbrev}
-                                name={game.awayTeam.name}
-                                size={40}
-                                league="magnus"
-                              />
-                              <span className="text-sm font-medium text-neutral-200">
-                                {game.awayTeam.name}
+                    {group.games.map((game) => {
+                      const winPoints = getWinPointsPreview(
+                        game,
+                        teamStats,
+                        leagueAvgGoals,
+                      );
+
+                      return (
+                        <li
+                          key={game.id}
+                          className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 shadow-md shadow-black/20"
+                        >
+                          <MatchAccentBar
+                            awayAbbrev={game.awayTeam.abbrev}
+                            homeAbbrev={game.homeTeam.abbrev}
+                            league="magnus"
+                          />
+                          <div className="p-4">
+                            <div className="mb-3 flex items-center justify-center gap-1.5">
+                              {isStartingSoon(game.startTimeUTC) && (
+                                <SoonPulse />
+                              )}
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                  game.isProvisional
+                                    ? "bg-amber-950/40 text-amber-500/80"
+                                    : "bg-neutral-800 text-neutral-400"
+                                }`}
+                              >
+                                {formatTime(game.startTimeUTC)}
+                                {game.isProvisional ? " ?" : ""}
                               </span>
                             </div>
-                            <VsBadge />
-                            <div className="flex flex-1 flex-col items-center gap-1.5">
-                              <TeamBadge
-                                abbrev={game.homeTeam.abbrev}
-                                name={game.homeTeam.name}
-                                size={40}
-                                league="magnus"
-                              />
-                              <span className="text-sm font-medium text-neutral-200">
-                                {game.homeTeam.name}
-                              </span>
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="flex flex-1 flex-col items-center gap-1.5">
+                                <TeamBadge
+                                  abbrev={game.awayTeam.abbrev}
+                                  name={game.awayTeam.name}
+                                  size={40}
+                                  league="magnus"
+                                />
+                                <span className="text-sm font-medium text-neutral-200">
+                                  {game.awayTeam.name}
+                                </span>
+                              </div>
+                              <VsBadge />
+                              <div className="flex flex-1 flex-col items-center gap-1.5">
+                                <TeamBadge
+                                  abbrev={game.homeTeam.abbrev}
+                                  name={game.homeTeam.name}
+                                  size={40}
+                                  league="magnus"
+                                />
+                                <span className="text-sm font-medium text-neutral-200">
+                                  {game.homeTeam.name}
+                                </span>
+                              </div>
                             </div>
+
+                            {game.isProvisional ? (
+                              <p className="mt-3 text-center text-[11px] text-neutral-600">
+                                Heure estimée, en attente de confirmation par
+                                la ligue
+                              </p>
+                            ) : (
+                              <>
+                                {winPoints && (
+                                  <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
+                                    <span
+                                      className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                                      title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
+                                    >
+                                      {game.awayTeam.abbrev}{" "}
+                                      <span className="font-medium text-emerald-400">
+                                        {winPoints.awayPoints} pts
+                                      </span>
+                                    </span>
+                                    <span
+                                      className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-500"
+                                      title={`Probabilité de match nul à la fin du temps réglementaire : ${Math.round(winPoints.drawProbability * 100)}%`}
+                                    >
+                                      Nul{" "}
+                                      <span className="font-medium text-emerald-400">
+                                        {winPoints.drawPoints} pts
+                                      </span>
+                                    </span>
+                                    <span
+                                      className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
+                                      title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
+                                    >
+                                      {game.homeTeam.abbrev}{" "}
+                                      <span className="font-medium text-emerald-400">
+                                        {winPoints.homePoints} pts
+                                      </span>
+                                    </span>
+                                  </div>
+                                )}
+
+                                <PredictionForm
+                                  gameId={game.id}
+                                  startTimeUTC={game.startTimeUTC}
+                                  awayAbbrev={game.awayTeam.abbrev}
+                                  homeAbbrev={game.homeTeam.abbrev}
+                                  initialAwayScore={
+                                    predictionByGameId.get(game.id)
+                                      ?.away_score
+                                  }
+                                  initialHomeScore={
+                                    predictionByGameId.get(game.id)
+                                      ?.home_score
+                                  }
+                                />
+
+                                {predictionByGameId.has(game.id) &&
+                                  (isPremium ? (
+                                    <form
+                                      action={toggleBoost}
+                                      className="mt-2 flex justify-center"
+                                    >
+                                      <input
+                                        type="hidden"
+                                        name="gameId"
+                                        value={game.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="startTimeUTC"
+                                        value={game.startTimeUTC}
+                                      />
+                                      <SubmitButton
+                                        className={
+                                          predictionByGameId.get(game.id)
+                                            ?.boosted
+                                            ? "rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-neutral-950 transition-all duration-150 active:scale-[0.97]"
+                                            : "rounded-md border border-amber-500/40 px-3 py-1 text-xs font-medium text-amber-400 transition-all duration-150 hover:bg-amber-500/10 active:scale-[0.97]"
+                                        }
+                                      >
+                                        {predictionByGameId.get(game.id)
+                                          ?.boosted
+                                          ? "🔥 Boosté x2 — retirer"
+                                          : "Booster x2"}
+                                      </SubmitButton>
+                                    </form>
+                                  ) : (
+                                    <p className="mt-2 text-center text-[11px] text-neutral-600">
+                                      🔒 Boost x2 réservé aux membres Premium
+                                    </p>
+                                  ))}
+                              </>
+                            )}
                           </div>
-                          <p className="mt-3 text-center text-[11px] text-neutral-600">
-                            {game.isProvisional
-                              ? "Heure estimée, en attente de confirmation par la ligue"
-                              : "Pronostics Ligue Magnus bientôt disponibles"}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}
@@ -417,22 +529,37 @@ export default async function MatchesPage() {
   // — même approche que ProfileTabs sur la page profil. Aucune de ces
   // sources de données (NHL + Ligue Magnus) ne dépend d'une autre : on les
   // lance toutes en parallèle.
-  const [games, teamStats, seasonGames, magnusGames, magnusSeasonGames] =
-    await Promise.all([
-      getUpcomingGames(),
-      getTeamStats(),
-      getSeasonSchedule(),
-      getMagnusUpcomingGames(),
-      getMagnusSeasonSchedule(),
-    ]);
+  const [
+    games,
+    teamStats,
+    seasonGames,
+    magnusGames,
+    magnusSeasonGames,
+    magnusStats,
+  ] = await Promise.all([
+    getUpcomingGames(),
+    getTeamStats(),
+    getSeasonSchedule(),
+    getMagnusUpcomingGames(),
+    getMagnusSeasonSchedule(),
+    getMagnusTeamStats(),
+  ]);
   const leagueAvgGoals = getLeagueAverageGoals(teamStats);
+  const magnusLeagueAvgGoals = getMagnusLeagueAverageGoals(magnusStats);
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const gameIds = games.map((g) => g.id);
+  // Les deux compétitions partagent la même table `predictions` (les plages
+  // d'id NHL et Ligue Magnus ne se recoupent jamais, voir
+  // src/lib/competition.ts) : une seule requête couvre donc les pronostics
+  // des deux ligues.
+  const gameIds = [
+    ...games.map((g) => g.id),
+    ...magnusGames.map((g) => g.id),
+  ];
   // Les pronostics et le statut premium dépendent tous les deux de
   // l'utilisateur mais pas l'un de l'autre : on les lance en parallèle.
   const [{ data: predictions }, { data: profile }] = await Promise.all([
@@ -483,6 +610,10 @@ export default async function MatchesPage() {
             <MagnusSchedule
               upcomingGames={magnusGames}
               seasonGames={magnusSeasonGames}
+              predictionByGameId={predictionByGameId}
+              isPremium={isPremium}
+              teamStats={magnusStats}
+              leagueAvgGoals={magnusLeagueAvgGoals}
             />
           }
           nhlContent={

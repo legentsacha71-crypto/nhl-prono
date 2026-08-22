@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { getGameResult } from "@/lib/nhlResults";
-import { getTeamStats, getLeagueAverageGoals } from "@/lib/nhlStats";
+import { getGameResult } from "@/lib/gameResults";
+import { isMagnusGameId } from "@/lib/competition";
+import {
+  getTeamStats as getNhlTeamStats,
+  getLeagueAverageGoals as getNhlLeagueAverageGoals,
+} from "@/lib/nhlStats";
+import {
+  getTeamStats as getMagnusTeamStats,
+  getLeagueAverageGoals as getMagnusLeagueAverageGoals,
+} from "@/lib/magnusStats";
 import {
   expectedGoals,
   scoreProbabilityGrid,
@@ -27,8 +35,17 @@ export async function GET(request: NextRequest) {
 
   const gameIds = [...new Set((ungraded ?? []).map((p) => p.game_id))];
 
-  const stats = await getTeamStats();
-  const leagueAvg = getLeagueAverageGoals(stats);
+  // NHL et Ligue Magnus ont chacune leur propre source de stats d'équipe :
+  // on charge les deux une seule fois en parallèle, puis on choisit la
+  // bonne paire stats/moyenne pour chaque match selon sa compétition (voir
+  // isMagnusGameId). getGameResult (gameResults.ts) fait le même dispatch
+  // côté résultat de match.
+  const [nhlStats, magnusStats] = await Promise.all([
+    getNhlTeamStats(),
+    getMagnusTeamStats(),
+  ]);
+  const nhlLeagueAvg = getNhlLeagueAverageGoals(nhlStats);
+  const magnusLeagueAvg = getMagnusLeagueAverageGoals(magnusStats);
 
   let gradedGames = 0;
   let gradedPredictions = 0;
@@ -37,6 +54,10 @@ export async function GET(request: NextRequest) {
     try {
       const result = await getGameResult(gameId);
       if (!result.isFinal) continue;
+
+      const isMagnus = isMagnusGameId(gameId);
+      const stats = isMagnus ? magnusStats : nhlStats;
+      const leagueAvg = isMagnus ? magnusLeagueAvg : nhlLeagueAvg;
 
       const homeStats = stats.get(result.homeAbbrev);
       const awayStats = stats.get(result.awayAbbrev);
