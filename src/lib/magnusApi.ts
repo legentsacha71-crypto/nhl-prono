@@ -97,16 +97,27 @@ export function isMatchAssigned(
   return typeof m.receveur === "object" && typeof m.visiteur === "object";
 }
 
+// Toutes les compétitions Ligue Magnus (une par saison), triées de la plus
+// récente à la plus ancienne — utilisé pour repérer la saison en cours
+// (calendrier déjà publié) et, séparément, pour retomber sur les stats de
+// la dernière saison terminée quand la saison en cours n'a encore aucun
+// match joué (voir getTeamStats dans magnusStats.ts).
+export async function getCompetitionsBySeasonDesc(): Promise<
+  MagnusCompetition[]
+> {
+  const competitions = await magnusAjax<MagnusCompetition[]>(
+    "get_competition_by_type",
+    { id_type: LIGUE_MAGNUS_TYPE_ID },
+  );
+  return [...competitions].sort((a, b) => b.saison - a.saison);
+}
+
 // Repère la saison la plus récente qui a déjà un calendrier publié : au
 // moment du rollover annuel (~août), la nouvelle saison existe côté
 // compétitions mais n'a encore aucune phase/match, donc on retombe
 // automatiquement sur la dernière saison jouée.
 export async function getCurrentCompetitionId(): Promise<number | null> {
-  const competitions = await magnusAjax<MagnusCompetition[]>(
-    "get_competition_by_type",
-    { id_type: LIGUE_MAGNUS_TYPE_ID },
-  );
-  const bySeasonDesc = [...competitions].sort((a, b) => b.saison - a.saison);
+  const bySeasonDesc = await getCompetitionsBySeasonDesc();
 
   for (const competition of bySeasonDesc) {
     const phases = await getPhases(competition.id);

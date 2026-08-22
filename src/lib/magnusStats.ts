@@ -5,7 +5,7 @@
 import type { TeamStats } from "./nhlStats";
 import {
   findRegularSeasonPhase,
-  getCurrentCompetitionId,
+  getCompetitionsBySeasonDesc,
   getPhases,
 } from "./magnusApi";
 
@@ -22,13 +22,9 @@ type MagnusStandingsResponse = {
   positions: MagnusStandingsPosition[];
 };
 
-// Comme pour la NHL (/v1/standings/now), on ne calcule les stats d'équipe
-// qu'à partir de la saison régulière — les séries finales ont trop peu de
-// matchs par équipe pour être représentatives d'une force offensive/défensive.
-export async function getTeamStats(): Promise<Map<string, TeamStats>> {
-  const competitionId = await getCurrentCompetitionId();
-  if (!competitionId) return new Map();
-
+async function getClassementStats(
+  competitionId: number,
+): Promise<Map<string, TeamStats>> {
   const phases = await getPhases(competitionId);
   const regularSeason = findRegularSeasonPhase(phases);
   if (!regularSeason) return new Map();
@@ -65,6 +61,25 @@ export async function getTeamStats(): Promise<Map<string, TeamStats>> {
     });
   }
   return stats;
+}
+
+// Comme pour la NHL (/v1/standings/now, qui continue de renvoyer la saison
+// précédente tant que la nouvelle n'a pas commencé), on veut un aperçu des
+// points gagnables même avant le premier match de la saison en cours. Ici
+// l'API Ligue Magnus expose déjà un calendrier pour la saison à venir dès
+// l'été, mais son classement reste à 0 match joué pour tout le monde
+// jusqu'au coup d'envoi — on retombe donc sur la dernière saison qui a
+// vraiment des matchs joués, saison par saison en remontant dans le temps.
+// Dès que la saison en cours a au moins un match joué quelque part, elle
+// reprend la main automatiquement (plus besoin du fallback).
+export async function getTeamStats(): Promise<Map<string, TeamStats>> {
+  const competitions = await getCompetitionsBySeasonDesc();
+
+  for (const competition of competitions) {
+    const stats = await getClassementStats(competition.id);
+    if (stats.size > 0) return stats;
+  }
+  return new Map();
 }
 
 export function getLeagueAverageGoals(stats: Map<string, TeamStats>): number {
