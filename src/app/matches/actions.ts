@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getWeekKey } from "@/lib/week";
+import { isMagnusGameId } from "@/lib/competition";
 
 export async function submitPrediction(formData: FormData) {
   const gameId = Number(formData.get("gameId"));
@@ -32,16 +33,23 @@ export async function submitPrediction(formData: FormData) {
     throw new Error("Non connecté.");
   }
 
+  // La contrainte d'unicité réelle en base porte sur (user_id, game_id,
+  // competition) — pas seulement (user_id, game_id) — donc les deux doivent
+  // être passés à `onConflict` pour que Postgres retrouve l'index, sans quoi
+  // l'upsert échoue systématiquement avec "no unique or exclusion
+  // constraint matching the ON CONFLICT specification" (même sur un tout
+  // premier pronostic, avant même un vrai conflit).
   const { error } = await supabase.from("predictions").upsert(
     {
       user_id: user.id,
       game_id: gameId,
+      competition: isMagnusGameId(gameId) ? "magnus" : "nhl",
       away_score: awayScore,
       home_score: homeScore,
       game_start_time: startTimeUTC,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,game_id" },
+    { onConflict: "user_id,game_id,competition" },
   );
 
   if (error) {
