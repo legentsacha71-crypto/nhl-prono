@@ -32,13 +32,26 @@ export type ApnsAlert = {
 // Depuis février 2021, Apple unifie l'environnement sandbox/production sur
 // le même host (api.push.apple.com) : il route automatiquement selon le
 // token présenté. Plus besoin de distinguer TestFlight/dev vs App Store.
-function isApnsConfigured(): boolean {
+// Exporté : utilisé par push.ts pour décider s'il vaut la peine de tenter
+// un envoi APNs pour un token iOS, avant même d'appeler sendApnsPush.
+export function isApnsConfigured(): boolean {
   return Boolean(
     process.env.APNS_KEY_ID &&
       process.env.APNS_TEAM_ID &&
       process.env.APNS_PRIVATE_KEY &&
       process.env.APNS_BUNDLE_ID,
   );
+}
+
+// Détail des variables d'env manquantes, pour un log exploitable côté
+// Vercel quand isApnsConfigured() renvoie false (voir push.ts).
+export function apnsMissingEnvVars(): string[] {
+  return [
+    !process.env.APNS_KEY_ID && "APNS_KEY_ID",
+    !process.env.APNS_TEAM_ID && "APNS_TEAM_ID",
+    !process.env.APNS_PRIVATE_KEY && "APNS_PRIVATE_KEY",
+    !process.env.APNS_BUNDLE_ID && "APNS_BUNDLE_ID",
+  ].filter((v): v is string => Boolean(v));
 }
 
 function base64url(input: Buffer | string): string {
@@ -179,56 +192,8 @@ export async function sendApnsPush(
   }
 }
 
-// Point d'entrée à utiliser depuis les server actions / routes API : envoie
-// la notif à tous les appareils enregistrés d'un utilisateur (potentiellement
-// plusieurs iPhones), nettoie les tokens qu'Apple signale comme invalides,
-// et ne fait jamais planter l'appelant (best effort, comme les notifs
-// in-app déjà en place).
-export async function sendPushToUser(
-  userId: string,
-  alert: ApnsAlert,
-): Promise<void> {
-  if (!isApnsConfigured()) {
-    // Silencieux par design pour ne jamais casser l'appelant, mais on log
-    // quand même quelles variables manquent : sans ça, une config Vercel
-    // incomplète ne produit aucune trace nulle part et est indébuggable.
-    const missing = [
-      !process.env.APNS_KEY_ID && "APNS_KEY_ID",
-      !process.env.APNS_TEAM_ID && "APNS_TEAM_ID",
-      !process.env.APNS_PRIVATE_KEY && "APNS_PRIVATE_KEY",
-      !process.env.APNS_BUNDLE_ID && "APNS_BUNDLE_ID",
-    ].filter(Boolean);
-    console.error(
-      `Push APNs non configuré, variables manquantes : ${missing.join(", ")}`,
-    );
-    return;
-  }
-
-  // Import différé pour éviter tout cycle d'import avec admin.ts, qui n'a
-  // pas besoin de connaître ce module.
-  const { createAdminClient } = await import("@/utils/supabase/admin");
-  const admin = createAdminClient();
-
-  const { data: tokens } = await admin
-    .from("device_push_tokens")
-    .select("token")
-    .eq("user_id", userId);
-
-  if (!tokens || tokens.length === 0) {
-    return;
-  }
-
-  await Promise.all(
-    tokens.map(async ({ token }) => {
-      try {
-        await sendApnsPush(token, alert);
-      } catch (err) {
-        if (err instanceof ApnsInvalidTokenError) {
-          await admin.from("device_push_tokens").delete().eq("token", token);
-        } else {
-          console.error("Échec de l'envoi d'une notification push :", err);
-        }
-      }
-    }),
-  );
-}
+// L'orchestration multi-appareils / multi-plateformes (récupérer tous les
+// tokens d'un utilisateur, dispatcher vers APNs ou FCM selon la plateforme,
+// nettoyer les tokens invalides) vit désormais dans src/lib/push.ts, qui
+// importe sendApnsPush ci-dessus. Ce fichier ne s'occupe plus que du
+// protocole APNs pour un seul device.

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getUpcomingGames } from "@/lib/nhl";
-import { sendPushToUser } from "@/lib/apns";
+import { sendPushToUser } from "@/lib/push";
 
 // Fenêtre autour de "1h avant le match" : le déclenchement externe (GitHub
 // Actions, cron toutes les ~15 min) n'appelle jamais exactement à H-60, donc

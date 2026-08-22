@@ -5,6 +5,14 @@ import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { registerPushToken, logPushDebug } from "@/app/notifications/actions";
 
+// Capacitor.getPlatform() est typé `string` côté SDK (pas de littéral),
+// même si en pratique seules "ios"/"android"/"web" sortent du wrapper
+// natif. Ce type guard sert à la fois de garde runtime et à faire accepter
+// à TypeScript le paramètre `platform` de registerPushToken() plus bas.
+function isPushPlatform(value: string): value is "ios" | "android" {
+  return value === "ios" || value === "android";
+}
+
 // Enregistre l'appareil pour les notifications push APNs dès l'ouverture de
 // l'appli. `Capacitor.isNativePlatform()` est false sur le web (le site
 // tourne aussi hors de l'app iOS) : ce composant ne fait donc rien en
@@ -15,17 +23,17 @@ import { registerPushToken, logPushDebug } from "@/app/notifications/actions";
 export default function PushRegistration() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    // TODO(android push) : le plugin @capacitor/push-notifications bascule
-    // automatiquement sur Firebase Cloud Messaging sur Android, mais aucun
-    // projet Firebase n'est encore configuré côté natif (pas de
-    // google-services.json) — voir android/app/build.gradle. Appeler
-    // register() dans cet état échoue de façon non garantie côté natif
-    // (FirebaseApp non initialisé) plutôt que de simplement rejeter la
-    // promesse JS. On limite donc l'enregistrement à iOS pour l'instant, le
-    // temps de brancher FCM (nouveau module équivalent à apns.ts) dans un
-    // commit dédié ; sendPushToUser() côté serveur ne cible de toute façon
-    // que des tokens APNs aujourd'hui.
-    if (Capacitor.getPlatform() !== "ios") return;
+    // @capacitor/push-notifications bascule automatiquement sur Firebase
+    // Cloud Messaging sur Android (vs APNs sur iOS) ; google-services.json
+    // est présent depuis la config du projet Firebase "La Nuit Hockey" —
+    // voir android/app/build.gradle qui applique le plugin google-services
+    // conditionnellement à ce fichier. Le reste de cet effect est donc
+    // identique sur les deux plateformes, seule la valeur de `platform`
+    // transmise à registerPushToken() diffère (utilisée côté serveur par
+    // push.ts pour dispatcher vers APNs ou FCM).
+    const rawPlatform = Capacitor.getPlatform();
+    if (!isPushPlatform(rawPlatform)) return;
+    const platform = rawPlatform;
 
     let registrationListener: { remove: () => void } | undefined;
     let errorListener: { remove: () => void } | undefined;
@@ -60,7 +68,7 @@ export default function PushRegistration() {
             "listener registration déclenché",
             `token length=${token.value.length}`
           ).catch(() => {});
-          registerPushToken(token.value).catch((err) => {
+          registerPushToken(token.value, platform).catch((err) => {
             console.error("Échec de l'enregistrement du token push :", err);
             logPushDebug(
               "registerPushToken a rejeté",

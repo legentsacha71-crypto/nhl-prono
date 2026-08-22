@@ -13,13 +13,25 @@ export async function logPushDebug(event: string, detail?: string) {
 }
 
 // Appelée depuis PushRegistration.tsx dès que l'appli native récupère un
-// token d'appareil APNs. Upsert sur `token` (pas sur user_id) : un même
-// utilisateur peut avoir plusieurs appareils, et un même token ne doit
-// jamais être dupliqué pour un autre utilisateur (cas d'un appareil
-// partagé où quelqu'un se déconnecte/reconnecte avec un autre compte).
-export async function registerPushToken(token: string) {
+// token d'appareil (APNs sur iOS, FCM sur Android — @capacitor/push-notifications
+// bascule automatiquement sur FCM quand Capacitor.getPlatform() === "android").
+// Upsert sur `token` (pas sur user_id) : un même utilisateur peut avoir
+// plusieurs appareils, et un même token ne doit jamais être dupliqué pour un
+// autre utilisateur (cas d'un appareil partagé où quelqu'un se déconnecte/
+// reconnecte avec un autre compte).
+export async function registerPushToken(
+  token: string,
+  platform: "ios" | "android",
+) {
   if (!token) {
     throw new Error("Token manquant.");
+  }
+  if (platform !== "ios" && platform !== "android") {
+    // Entrée non fiable (PushRegistration.tsx est côté client) : on
+    // valide plutôt que de laisser une valeur arbitraire atterrir dans
+    // device_push_tokens, que push.ts utilise ensuite pour choisir entre
+    // APNs et FCM.
+    throw new Error("Plateforme invalide.");
   }
 
   const supabase = await createClient();
@@ -41,7 +53,7 @@ export async function registerPushToken(token: string) {
     {
       user_id: user.id,
       token,
-      platform: "ios",
+      platform,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "token" },

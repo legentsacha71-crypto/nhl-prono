@@ -7,7 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
-import { sendPushToUser } from "@/lib/apns";
+import { sendPushToUser } from "@/lib/push";
 
 export async function updateFavoriteTeam(favoriteTeam: string | null) {
   if (favoriteTeam && !NHL_TEAMS.some((t) => t.abbrev === favoriteTeam)) {
