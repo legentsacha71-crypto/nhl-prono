@@ -10,7 +10,7 @@ import {
   MAGNUS_SCHEDULE_2627_COMPETITION_ID,
   type StaticMagnusFixture,
 } from "./magnusSchedule2627";
-import { getMagnusTeamName } from "./magnusTeams";
+import { getMagnusDisplayName, getMagnusTeamName } from "./magnusTeams";
 
 // Même forme que NhlGame (voir nhl.ts) pour rester compatible avec les
 // composants existants (TeamBadge, PredictionForm, le regroupement par
@@ -41,12 +41,18 @@ function toGame(m: AssignedMagnusApiMatch): MagnusGame {
     gameState: m.etat === "T" ? "OFF" : "FUT",
     awayTeam: {
       abbrev: m.visiteur.abreviation,
-      name: m.visiteur.libelle_complet || m.visiteur.libelle_court,
+      name: getMagnusDisplayName(
+        m.visiteur.abreviation,
+        m.visiteur.libelle_complet || m.visiteur.libelle_court,
+      ),
       score: awayScoreEntry?.score,
     },
     homeTeam: {
       abbrev: m.receveur.abreviation,
-      name: m.receveur.libelle_complet || m.receveur.libelle_court,
+      name: getMagnusDisplayName(
+        m.receveur.abreviation,
+        m.receveur.libelle_complet || m.receveur.libelle_court,
+      ),
       score: homeScoreEntry?.score,
     },
   };

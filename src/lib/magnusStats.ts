@@ -8,6 +8,7 @@ import {
   getCompetitionsBySeasonDesc,
   getPhases,
 } from "./magnusApi";
+import { MAGNUS_ABBREV_RENAMES } from "./magnusTeams";
 
 const ADMIN_AJAX_URL = "https://liguemagnus.com/wp-admin/admin-ajax.php";
 
@@ -52,8 +53,17 @@ async function getClassementStats(
   const stats = new Map<string, TeamStats>();
   for (const position of data.positions) {
     if (position.nombre_rencontres_joues === 0) continue;
-    stats.set(position.equipe.abreviation, {
-      abbrev: position.equipe.abreviation,
+    // Une saison de repli (voir getTeamStats ci-dessous) classe forcément
+    // ses équipes sous les abréviations en vigueur *cette saison-là* — si
+    // la ligue a depuis renommé un club (ex. Briançon "BRI" → "DRB" entre
+    // 2025-26 et 2026-27, même club), on reclasse tout de suite sous
+    // l'abréviation actuelle pour que la recherche par abréviation des
+    // matchs en cours (getWinPointsPreview) retrouve bien ces stats.
+    const abbrev =
+      MAGNUS_ABBREV_RENAMES[position.equipe.abreviation] ??
+      position.equipe.abreviation;
+    stats.set(abbrev, {
+      abbrev,
       goalsForPerGame:
         position.nombre_but_marque / position.nombre_rencontres_joues,
       goalsAgainstPerGame:

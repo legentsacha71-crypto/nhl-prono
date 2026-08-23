@@ -74,6 +74,18 @@ export const MAGNUS_TEAMS: MagnusTeamInfo[] = [
     primaryColor: "#B3232F",
     secondaryColor: "#141414",
   },
+  // La ligue a renommé l'abréviation officielle de Briançon en "DRB" pour
+  // la saison 2026-2027 (même club, même code propriétaire API "93003S" —
+  // voir MAGNUS_ABBREV_RENAMES plus bas). On garde "BRI" ci-dessus pour que
+  // les matchs déjà joués la saison passée (encore servis sous ce code par
+  // l'API) gardent un blason coloré, et on ajoute "DRB" pour la saison en
+  // cours.
+  {
+    abbrev: "DRB",
+    name: "Briançon",
+    primaryColor: "#B3232F",
+    secondaryColor: "#141414",
+  },
   {
     abbrev: "CER",
     name: "Cergy-Pontoise",
@@ -97,6 +109,30 @@ export const MAGNUS_TEAMS: MagnusTeamInfo[] = [
 export function getMagnusTeamName(abbrev: string): string {
   return MAGNUS_TEAMS.find((t) => t.abbrev === abbrev)?.name ?? abbrev;
 }
+
+// L'API Ligue Magnus renvoie parfois le nom du club tout en majuscules
+// selon la saisie faite côté ligue (ex. "DIABLES ROUGES BRIANÇON",
+// "BOXERS DE BORDEAUX") alors que d'autres clubs sont en casse normale
+// ("Dragons de Rouen") — pas une histoire de club "connu" ou non, juste une
+// incohérence de saisie côté source. Pour un club déjà répertorié dans
+// MAGNUS_TEAMS, on préfère donc toujours notre nom local (casse propre et
+// stable d'une saison à l'autre) ; pour un club qu'on ne connaît pas
+// encore, on retombe sur le nom brut de l'API plutôt que la seule
+// abréviation, pour ne jamais afficher moins d'info qu'avant.
+export function getMagnusDisplayName(abbrev: string, apiName: string): string {
+  const team = MAGNUS_TEAMS.find((t) => t.abbrev === abbrev);
+  return team?.name ?? apiName;
+}
+
+// Renommages d'abréviation officielle constatés d'une saison à l'autre pour
+// un même club (même code propriétaire côté API) : "BRI" (Briançon,
+// 2025-2026) est devenu "DRB" en 2026-2027. Utilisé par
+// magnusStats.getTeamStats() pour que les stats d'une saison de repli
+// (voir son commentaire) restent trouvables sous l'abréviation *actuelle*
+// du club, même si la saison de repli les avait classées sous l'ancienne.
+export const MAGNUS_ABBREV_RENAMES: Record<string, string> = {
+  BRI: "DRB",
+};
 
 export function getMagnusTeamColors(abbrev: string): {
   primary: string;
