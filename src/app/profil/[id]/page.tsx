@@ -5,6 +5,7 @@ import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/gameResults";
 import { isMagnusGameId } from "@/lib/competition";
 import { getTeamName } from "@/lib/nhlTeams";
+import { getFavoriteTeamDisplay } from "@/lib/favoriteTeam";
 import { getRingForPoints, getNextRingTier } from "@/lib/profileRings";
 import RingInfoBadge from "@/components/RingInfoBadge";
 import TeamBadge from "@/components/TeamBadge";
@@ -98,7 +99,9 @@ export default async function PlayerProfilePage({
   if (!profile) notFound();
 
   const username = profile.username ?? "Joueur";
-  const favoriteTeam = profile.favorite_team as string | null | undefined;
+  const favoriteTeam = getFavoriteTeamDisplay(
+    profile.favorite_team as string | null | undefined,
+  );
   const avatarUrl = profile.avatar_url as string | null | undefined;
 
   const graded = predictions ?? [];
@@ -217,11 +220,12 @@ export default async function PlayerProfilePage({
             {favoriteTeam ? (
               <div className="flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 shadow-sm shadow-black/20">
                 <TeamBadge
-                  abbrev={favoriteTeam}
-                  name={getTeamName(favoriteTeam)}
+                  abbrev={favoriteTeam.abbrev}
+                  name={favoriteTeam.name}
                   size={28}
+                  league={favoriteTeam.league}
                 />
-                <span>{getTeamName(favoriteTeam)}</span>
+                <span>{favoriteTeam.name}</span>
               </div>
             ) : (
               <p className="text-xs text-neutral-500">

@@ -134,6 +134,14 @@ export const MAGNUS_ABBREV_RENAMES: Record<string, string> = {
   BRI: "DRB",
 };
 
+// Les 12 clubs actuels, pour tout endroit où l'utilisateur choisit une
+// équipe dans une liste (ex. FavoriteTeamPicker) : MAGNUS_TEAMS contient en
+// plus l'entrée historique "BRI" (conservée pour les matchs passés, voir
+// commentaire plus haut), qui afficherait sinon "Briançon" en double.
+export const SELECTABLE_MAGNUS_TEAMS: MagnusTeamInfo[] = MAGNUS_TEAMS.filter(
+  (t) => !(t.abbrev in MAGNUS_ABBREV_RENAMES),
+);
+
 export function getMagnusTeamColors(abbrev: string): {
   primary: string;
   secondary: string;

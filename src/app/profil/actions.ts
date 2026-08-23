@@ -4,14 +4,17 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { NHL_TEAMS } from "@/lib/nhlTeams";
 import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import { sendPushToUser } from "@/lib/push";
+import { decodeFavoriteTeam, isValidFavoriteTeam } from "@/lib/favoriteTeam";
 
 export async function updateFavoriteTeam(favoriteTeam: string | null) {
-  if (favoriteTeam && !NHL_TEAMS.some((t) => t.abbrev === favoriteTeam)) {
-    throw new Error("Équipe invalide.");
+  if (favoriteTeam) {
+    const decoded = decodeFavoriteTeam(favoriteTeam);
+    if (!decoded || !isValidFavoriteTeam(decoded.league, decoded.abbrev)) {
+      throw new Error("Équipe invalide.");
+    }
   }
 
   const supabase = await createClient();

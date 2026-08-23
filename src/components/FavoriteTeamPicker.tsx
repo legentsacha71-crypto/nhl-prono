@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import TeamBadge from "@/components/TeamBadge";
-import { NHL_TEAMS, getTeamName } from "@/lib/nhlTeams";
+import { NHL_TEAMS } from "@/lib/nhlTeams";
+import { SELECTABLE_MAGNUS_TEAMS } from "@/lib/magnusTeams";
+import {
+  decodeFavoriteTeam,
+  encodeFavoriteTeam,
+  getFavoriteTeamDisplay,
+  type FavoriteTeamLeague,
+} from "@/lib/favoriteTeam";
 
 type FavoriteTeamPickerProps = {
   favoriteTeam: string | null | undefined;
@@ -19,16 +26,29 @@ export default function FavoriteTeamPicker({
   favoriteTeam,
   updateFavoriteTeam,
 }: FavoriteTeamPickerProps) {
+  const current = getFavoriteTeamDisplay(favoriteTeam);
   const [isOpen, setIsOpen] = useState(false);
+  // Le panneau s'ouvre par défaut sur la ligue de l'équipe déjà choisie (NHL
+  // si aucune équipe n'est encore choisie), plutôt que de toujours retomber
+  // sur NHL — sinon changer de favori Magnus obligerait à re-cliquer
+  // l'onglet à chaque ouverture.
+  const [league, setLeague] = useState<FavoriteTeamLeague>(
+    current?.league ?? "nhl",
+  );
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  function handleOpen() {
+    setLeague(decodeFavoriteTeam(favoriteTeam)?.league ?? "nhl");
+    setIsOpen((open) => !open);
+  }
 
   function handlePick(abbrev: string) {
     setIsOpen(false);
     setError(null);
     startTransition(async () => {
       try {
-        await updateFavoriteTeam(abbrev);
+        await updateFavoriteTeam(encodeFavoriteTeam(league, abbrev));
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Erreur lors de la sauvegarde.",
@@ -37,21 +57,24 @@ export default function FavoriteTeamPicker({
     });
   }
 
+  const teams = league === "magnus" ? SELECTABLE_MAGNUS_TEAMS : NHL_TEAMS;
+
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={handleOpen}
         className="flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 shadow-sm shadow-black/20 transition-all duration-150 hover:border-neutral-600 hover:bg-neutral-800 active:scale-[0.98]"
       >
-        {favoriteTeam ? (
+        {current ? (
           <>
             <TeamBadge
-              abbrev={favoriteTeam}
-              name={getTeamName(favoriteTeam)}
+              abbrev={current.abbrev}
+              name={current.name}
               size={28}
+              league={current.league}
             />
-            <span>{getTeamName(favoriteTeam)}</span>
+            <span>{current.name}</span>
           </>
         ) : (
           <span className="text-neutral-400">Choisir une équipe favorite</span>
@@ -66,8 +89,33 @@ export default function FavoriteTeamPicker({
 
       {isOpen && (
         <div className="absolute left-1/2 z-50 mt-2 w-80 max-w-[90vw] -translate-x-1/2 rounded-xl border border-neutral-800 bg-neutral-950 p-3 shadow-xl">
+          <div className="mb-3 flex rounded-lg bg-neutral-900 p-1 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => setLeague("nhl")}
+              className={`flex-1 rounded-md py-1.5 transition-colors duration-150 ${
+                league === "nhl"
+                  ? "bg-sky-600 text-white"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
+            >
+              NHL
+            </button>
+            <button
+              type="button"
+              onClick={() => setLeague("magnus")}
+              className={`flex-1 rounded-md py-1.5 transition-colors duration-150 ${
+                league === "magnus"
+                  ? "bg-sky-600 text-white"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
+            >
+              Ligue Magnus
+            </button>
+          </div>
+
           <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
-            {NHL_TEAMS.map((team) => (
+            {teams.map((team) => (
               <button
                 key={team.abbrev}
                 type="button"
@@ -75,7 +123,12 @@ export default function FavoriteTeamPicker({
                 disabled={isPending}
                 className="flex flex-col items-center gap-1 rounded-lg p-1 transition-all duration-150 hover:bg-neutral-900 active:scale-90 disabled:opacity-50"
               >
-                <TeamBadge abbrev={team.abbrev} name={team.name} size={40} />
+                <TeamBadge
+                  abbrev={team.abbrev}
+                  name={team.name}
+                  size={40}
+                  league={league}
+                />
                 <span className="text-center text-[9px] leading-tight text-neutral-400">
                   {team.abbrev}
                 </span>
