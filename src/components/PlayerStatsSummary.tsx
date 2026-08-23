@@ -33,24 +33,24 @@ function CompetitionBlock({
 }) {
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-center shadow-md shadow-black/20">
+      <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 text-center shadow-sm shadow-black/10">
         <p className="font-display text-2xl text-sky-400">{stats.points}</p>
         <p className="text-xs text-neutral-500">points {label}</p>
       </div>
       <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+        <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
           <p className="text-lg font-bold text-sky-400">
             {stats.pronosCount}
           </p>
           <p className="text-xs text-neutral-500">Pronos</p>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+        <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
           <p className="text-lg font-bold text-emerald-400">
             {stats.correctCount}
           </p>
           <p className="text-xs text-neutral-500">Bons pronos</p>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+        <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
           <p className="text-lg font-bold text-sky-400">
             {stats.exactCount}
           </p>
@@ -89,7 +89,7 @@ export default function PlayerStatsSummary({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-neutral-800 bg-gradient-to-b from-sky-500/10 to-neutral-900 p-6 text-center shadow-lg shadow-black/20">
+      <div className="rounded-2xl border border-neutral-800/80 bg-gradient-to-b from-sky-500/10 to-neutral-900 p-6 text-center shadow-md shadow-black/10">
         {live && (
           <p className="flex items-center justify-center gap-1.5 text-xs font-medium tracking-wide text-neutral-400">
             <span className="relative flex h-2 w-2">
@@ -112,17 +112,17 @@ export default function PlayerStatsSummary({
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+        <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
           <p className="text-lg font-bold text-sky-400">{stats.pronosCount}</p>
           <p className="text-xs text-neutral-500">Pronos</p>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+        <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
           <p className="text-lg font-bold text-emerald-400">
             {stats.correctCount}
           </p>
           <p className="text-xs text-neutral-500">Bons pronos</p>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+        <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
           <p className="text-lg font-bold text-sky-400">{stats.exactCount}</p>
           <p className="text-xs text-neutral-500">
             {stats.exactCount > 1 ? "Scores exacts" : "Score exact"}
@@ -135,11 +135,11 @@ export default function PlayerStatsSummary({
           Précision
         </h3>
         <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+          <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
             <p className="text-xl font-bold text-sky-400">{successRate}%</p>
             <p className="text-xs text-neutral-500">Taux de réussite</p>
           </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-md shadow-black/20">
+          <div className="rounded-xl border border-neutral-800/80 bg-neutral-900 p-3 shadow-sm shadow-black/10">
             <p className="text-xl font-bold text-sky-400">{exactRate}%</p>
             <p className="text-xs text-neutral-500">Taux de score exact</p>
           </div>
@@ -158,7 +158,7 @@ export default function PlayerStatsSummary({
         />
       </div>
 
-      <div className="rounded-lg border border-neutral-800 bg-gradient-to-r from-sky-500/10 to-neutral-900 p-4 text-center shadow-lg shadow-black/20">
+      <div className="rounded-xl border border-neutral-800/80 bg-gradient-to-r from-sky-500/10 to-neutral-900 p-4 text-center shadow-md shadow-black/10">
         <p className="text-sm text-neutral-400">🏆 Classement général</p>
         <p className="text-lg font-medium text-neutral-100">
           {stats.rank > 0

@@ -12,6 +12,7 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import ProfileTabs from "@/components/ProfileTabs";
 import PlayerStatsSummary from "@/components/PlayerStatsSummary";
+import ProfileSection from "@/components/ProfileSection";
 
 // Profil en lecture seule d'un autre joueur (accessible depuis le
 // classement ou la liste d'amis). Contrairement à /profil (son propre
@@ -200,12 +201,14 @@ export default async function PlayerProfilePage({
               />
             </div>
 
-            <p className="flex items-center gap-1 text-xs font-medium text-neutral-400">
-              {ring.label}
+            <p className="flex items-center gap-1.5 text-xs font-medium text-neutral-400">
+              <span className="rounded-full bg-neutral-900/80 px-2 py-0.5 text-neutral-300">
+                {ring.label}
+              </span>
               <RingInfoBadge />
               {nextRingTier && (
                 <span className="text-neutral-600">
-                  · encore {nextRingTier.threshold - combinedPoints} pts pour{" "}
+                  encore {nextRingTier.threshold - combinedPoints} pts pour{" "}
                   {nextRingTier.label}
                 </span>
               )}
@@ -230,24 +233,21 @@ export default async function PlayerProfilePage({
 
         <ProfileTabs
           general={
-            <div className="space-y-6">
-              <div>
-                <h2 className="mb-1 font-medium text-neutral-200">
-                  🏒 Pronos récents
-                </h2>
+            <div className="space-y-4">
+              <ProfileSection title="🏒 Pronos récents">
                 <p className="mb-2 text-xs text-neutral-500">
                   Seuls les pronos déjà joués sont visibles.
                 </p>
                 {recent.length === 0 ? (
-                  <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+                  <p className="py-3 text-center text-sm text-neutral-500">
                     Aucun prono joué pour le moment.
                   </p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="divide-y divide-neutral-800/60">
                     {results.map(({ prediction, result }) => (
                       <li
                         key={prediction.game_id}
-                        className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm shadow-sm shadow-black/20"
+                        className="-mx-1 flex items-center justify-between rounded-md px-1 py-2.5 text-sm"
                       >
                         <span className="text-neutral-300">
                           {result
@@ -271,42 +271,43 @@ export default async function PlayerProfilePage({
                     ))}
                   </ul>
                 )}
-              </div>
+              </ProfileSection>
 
               {(stanleyCupResolved || topScorerResolved) && (
-                <div className="space-y-3">
-                  <h2 className="font-medium text-neutral-200">⭐ Favoris</h2>
-                  {stanleyCupResolved && theirPick && (
-                    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
-                      <p className="mb-2 text-sm font-medium text-neutral-300">
-                        Vainqueur de la coupe Stanley
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-300">
-                          Pick : {getTeamName(theirPick.team_abbrev)}
-                        </span>
-                        <span className="font-medium text-sky-400">
-                          {theirPick.points ?? 0} pts
-                        </span>
+                <ProfileSection title="⭐ Favoris">
+                  <div className="space-y-3">
+                    {stanleyCupResolved && theirPick && (
+                      <div className="rounded-xl bg-neutral-950/40 p-3">
+                        <p className="mb-2 text-sm font-medium text-neutral-300">
+                          Vainqueur de la coupe Stanley
+                        </p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-neutral-300">
+                            Pick : {getTeamName(theirPick.team_abbrev)}
+                          </span>
+                          <span className="font-medium text-sky-400">
+                            {theirPick.points ?? 0} pts
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {topScorerResolved && theirTopScorerPick && (
-                    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 shadow-lg shadow-black/20">
-                      <p className="mb-2 text-sm font-medium text-neutral-300">
-                        Meilleur buteur de la saison
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-300">
-                          Pick : {theirTopScorerPick.player_name}
-                        </span>
-                        <span className="font-medium text-sky-400">
-                          {theirTopScorerPick.points ?? 0} pts
-                        </span>
+                    )}
+                    {topScorerResolved && theirTopScorerPick && (
+                      <div className="rounded-xl bg-neutral-950/40 p-3">
+                        <p className="mb-2 text-sm font-medium text-neutral-300">
+                          Meilleur buteur de la saison
+                        </p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-neutral-300">
+                            Pick : {theirTopScorerPick.player_name}
+                          </span>
+                          <span className="font-medium text-sky-400">
+                            {theirTopScorerPick.points ?? 0} pts
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                </ProfileSection>
               )}
             </div>
           }

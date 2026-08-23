@@ -44,21 +44,26 @@ export default function AvatarUploadForm({
 
   const statusContent =
     status === "saving" ? (
-      <span className="text-neutral-500">Enregistrement…</span>
+      <span className="text-neutral-400">Enregistrement…</span>
     ) : status === "saved" ? (
       <span className="text-emerald-400">✓ Enregistré</span>
     ) : status === "error" ? (
       <span className="text-red-400">Erreur, réessaie</span>
     ) : null;
 
+  // Petit bouton crayon en surimpression sur l'avatar plutôt qu'un lien
+  // texte séparé sous la photo : ça évite une ligne de plus dans la hero
+  // section et se rapproche du geste "modifier ma photo" habituel des
+  // apps mobiles.
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="relative">
       <label
-        className={`rounded-md bg-neutral-800 px-2 py-1 text-xs font-medium text-neutral-200 transition-colors duration-150 hover:bg-neutral-700 ${
+        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-neutral-950 bg-sky-600 text-xs text-white shadow-md shadow-black/40 transition-colors duration-150 hover:bg-sky-500 ${
           isPending ? "pointer-events-none opacity-50" : "cursor-pointer"
         }`}
+        aria-label="Changer la photo de profil"
       >
-        Changer la photo
+        ✎
         <input
           ref={inputRef}
           type="file"
@@ -69,7 +74,11 @@ export default function AvatarUploadForm({
           className="hidden"
         />
       </label>
-      {statusContent && <p className="text-xs">{statusContent}</p>}
+      {statusContent && (
+        <p className="absolute top-full left-1/2 mt-1.5 w-max -translate-x-1/2 text-[10px] whitespace-nowrap">
+          {statusContent}
+        </p>
+      )}
     </div>
   );
 }
