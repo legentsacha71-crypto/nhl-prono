@@ -134,6 +134,19 @@ export const MAGNUS_ABBREV_RENAMES: Record<string, string> = {
   BRI: "DRB",
 };
 
+// La ligue n'est pas toujours cohérente elle-même : certains matchs déjà
+// désignés de la saison en cours renvoient encore "BRI" au lieu de "DRB"
+// dans `get_rencontres` (constaté sur un match du 15 septembre 2026,
+// pourtant bien saison 2026-2027), alors que le classement (get_
+// classementsphase) et les rencontres plus récentes utilisent déjà "DRB".
+// Toute donnée par-match (magnus.ts, magnusResults.ts) doit donc aussi
+// passer par ce renommage, pas seulement les stats de saison de repli —
+// sinon la recherche par abréviation (stats d'équipe, notation) échoue en
+// silence pour ces matchs-là.
+export function normalizeMagnusAbbrev(abbrev: string): string {
+  return MAGNUS_ABBREV_RENAMES[abbrev] ?? abbrev;
+}
+
 // Les 12 clubs actuels, pour tout endroit où l'utilisateur choisit une
 // équipe dans une liste (ex. FavoriteTeamPicker) : MAGNUS_TEAMS contient en
 // plus l'entrée historique "BRI" (conservée pour les matchs passés, voir

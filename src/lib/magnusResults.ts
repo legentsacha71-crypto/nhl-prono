@@ -4,6 +4,7 @@ import {
   isMatchAssigned,
   regulationScore,
 } from "./magnusApi";
+import { normalizeMagnusAbbrev } from "./magnusTeams";
 import type { GameResult } from "./nhlResults";
 
 const NOT_FOUND_RESULT: GameResult = {
@@ -37,8 +38,8 @@ export async function getGameResult(gameId: number): Promise<GameResult> {
 
   return {
     isFinal: true,
-    awayAbbrev: match.visiteur.abreviation,
-    homeAbbrev: match.receveur.abreviation,
+    awayAbbrev: normalizeMagnusAbbrev(match.visiteur.abreviation),
+    homeAbbrev: normalizeMagnusAbbrev(match.receveur.abreviation),
     regulationAwayScore: awayScore,
     regulationHomeScore: homeScore,
   };

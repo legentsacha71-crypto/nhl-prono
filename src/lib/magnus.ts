@@ -10,7 +10,11 @@ import {
   MAGNUS_SCHEDULE_2627_COMPETITION_ID,
   type StaticMagnusFixture,
 } from "./magnusSchedule2627";
-import { getMagnusDisplayName, getMagnusTeamName } from "./magnusTeams";
+import {
+  getMagnusDisplayName,
+  getMagnusTeamName,
+  normalizeMagnusAbbrev,
+} from "./magnusTeams";
 
 // Même forme que NhlGame (voir nhl.ts) pour rester compatible avec les
 // composants existants (TeamBadge, PredictionForm, le regroupement par
@@ -42,23 +46,29 @@ function toGameState(etat: string | null): string {
 function toGame(m: AssignedMagnusApiMatch): MagnusGame {
   const homeScoreEntry = m.score.find((s) => s.equipe_id === m.receveur.id);
   const awayScoreEntry = m.score.find((s) => s.equipe_id === m.visiteur.id);
+  // Voir normalizeMagnusAbbrev : certains matchs déjà désignés de la
+  // saison en cours renvoient encore l'ancienne abréviation d'un club
+  // renommé, ce qui casserait la recherche de stats d'équipe (aperçu des
+  // points gagnables) si on gardait la valeur brute de l'API ici.
+  const homeAbbrev = normalizeMagnusAbbrev(m.receveur.abreviation);
+  const awayAbbrev = normalizeMagnusAbbrev(m.visiteur.abreviation);
 
   return {
     id: m.id,
     startTimeUTC: parisLocalToUTC(m.date_rencontre),
     gameState: toGameState(m.etat),
     awayTeam: {
-      abbrev: m.visiteur.abreviation,
+      abbrev: awayAbbrev,
       name: getMagnusDisplayName(
-        m.visiteur.abreviation,
+        awayAbbrev,
         m.visiteur.libelle_complet || m.visiteur.libelle_court,
       ),
       score: awayScoreEntry?.score,
     },
     homeTeam: {
-      abbrev: m.receveur.abreviation,
+      abbrev: homeAbbrev,
       name: getMagnusDisplayName(
-        m.receveur.abreviation,
+        homeAbbrev,
         m.receveur.libelle_complet || m.receveur.libelle_court,
       ),
       score: homeScoreEntry?.score,
@@ -118,9 +128,14 @@ function mergeWithStatic(
 ): MagnusGame[] {
   if (competitionId !== MAGNUS_SCHEDULE_2627_COMPETITION_ID) return apiGames;
 
+  // Voir normalizeMagnusAbbrev : sans ça, un match déjà confirmé sous
+  // l'ancienne abréviation d'un club renommé (ex. "BRI") ne matcherait
+  // jamais la paire "DRB|..." du calendrier statique, et l'entrée
+  // provisoire correspondante ne serait pas exclue (doublon du même match).
   const assignedPairs = new Set(
     assignedMatches.map(
-      (m) => `${m.receveur.abreviation}|${m.visiteur.abreviation}`,
+      (m) =>
+        `${normalizeMagnusAbbrev(m.receveur.abreviation)}|${normalizeMagnusAbbrev(m.visiteur.abreviation)}`,
     ),
   );
   const staticGames = MAGNUS_SCHEDULE_2627.map((fixture, index) => ({
