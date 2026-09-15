@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getRegularSeasonStartDate } from "@/lib/nhl";
+import { getRanking } from "@/lib/ranking";
+import { isMagnusGameId } from "@/lib/competition";
 import { signout } from "./login/actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -15,13 +17,39 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = user
-    ? await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single()
-    : { data: null };
+  // Le classement (points globaux, qui incluent aussi les picks Coupe
+  // Stanley / meilleur buteur) et la ventilation NHL / Magnus des
+  // pronostics ne dépendent que de l'utilisateur, pas l'un de l'autre :
+  // lancés en parallèle. Même logique de ventilation que la page profil
+  // (voir isMagnusGameId).
+  const [{ data: profile }, ranking, { data: predictions }] =
+    await Promise.all([
+      user
+        ? supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", user.id)
+            .single()
+        : Promise.resolve({ data: null }),
+      user ? getRanking(supabase) : Promise.resolve([]),
+      user
+        ? supabase
+            .from("predictions")
+            .select("game_id, points")
+            .eq("user_id", user.id)
+            .not("points", "is", null)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+  const totalPoints = user
+    ? (ranking.find((entry) => entry.userId === user.id)?.totalPoints ?? 0)
+    : 0;
+  const nhlPoints = (predictions ?? [])
+    .filter((p) => !isMagnusGameId(p.game_id))
+    .reduce((sum, p) => sum + (p.points ?? 0), 0);
+  const magnusPoints = (predictions ?? [])
+    .filter((p) => isMagnusGameId(p.game_id))
+    .reduce((sum, p) => sum + (p.points ?? 0), 0);
 
   const seasonStartDate = await getRegularSeasonStartDate();
 
@@ -34,6 +62,31 @@ export default async function Home() {
           Content de te revoir, {profile?.username ?? user?.email}
         </p>
       </div>
+
+      {user && (
+        <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/20">
+          <div className="grid grid-cols-3 divide-x divide-neutral-800 text-center">
+            <div>
+              <p className="font-display text-2xl text-sky-400">
+                {totalPoints}
+              </p>
+              <p className="text-xs text-neutral-500">Total</p>
+            </div>
+            <div>
+              <p className="font-display text-2xl text-neutral-100">
+                {nhlPoints}
+              </p>
+              <p className="text-xs text-neutral-500">NHL</p>
+            </div>
+            <div>
+              <p className="font-display text-2xl text-neutral-100">
+                {magnusPoints}
+              </p>
+              <p className="text-xs text-neutral-500">Magnus</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {seasonStartDate && <SeasonCountdown targetDate={seasonStartDate} />}
 
