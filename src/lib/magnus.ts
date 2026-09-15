@@ -18,7 +18,7 @@ import { getMagnusDisplayName, getMagnusTeamName } from "./magnusTeams";
 export type MagnusGame = {
   id: number;
   startTimeUTC: string;
-  gameState: string; // "OFF" (terminé) | "FUT" (à venir)
+  gameState: string; // "OFF" (terminé) | "LIVE" (en cours) | "FUT" (à venir)
   awayTeam: { abbrev: string; name: string; score?: number };
   homeTeam: { abbrev: string; name: string; score?: number };
   // Vrai quand ce match vient du calendrier statique (magnusSchedule2627.ts)
@@ -31,6 +31,14 @@ export type MagnusGame = {
   isProvisional?: boolean;
 };
 
+// Voir le commentaire sur `etat` dans magnusApi.ts : "T" = terminé, "E" = en
+// cours, tout le reste (généralement null) = pas encore commencé.
+function toGameState(etat: string | null): string {
+  if (etat === "T") return "OFF";
+  if (etat === "E") return "LIVE";
+  return "FUT";
+}
+
 function toGame(m: AssignedMagnusApiMatch): MagnusGame {
   const homeScoreEntry = m.score.find((s) => s.equipe_id === m.receveur.id);
   const awayScoreEntry = m.score.find((s) => s.equipe_id === m.visiteur.id);
@@ -38,7 +46,7 @@ function toGame(m: AssignedMagnusApiMatch): MagnusGame {
   return {
     id: m.id,
     startTimeUTC: parisLocalToUTC(m.date_rencontre),
-    gameState: m.etat === "T" ? "OFF" : "FUT",
+    gameState: toGameState(m.etat),
     awayTeam: {
       abbrev: m.visiteur.abreviation,
       name: getMagnusDisplayName(
@@ -135,8 +143,15 @@ export async function getUpcomingGames(): Promise<MagnusGame[]> {
   const assigned = matches.filter(isMatchAssigned);
   const now = Date.now();
 
+  // Un match "en cours" (LIVE) reste affiché quelle que soit l'heure locale
+  // (sa durée réelle est imprévisible) ; seul "terminé" (OFF) en sort. Un
+  // match pas encore commencé continue de suivre l'heure de coup d'envoi.
   return mergeWithStatic(assigned.map(toGame), assigned, competitionId)
-    .filter((g) => new Date(g.startTimeUTC).getTime() > now)
+    .filter(
+      (g) =>
+        g.gameState !== "OFF" &&
+        (g.gameState === "LIVE" || new Date(g.startTimeUTC).getTime() > now),
+    )
     .sort(
       (a, b) =>
         new Date(a.startTimeUTC).getTime() - new Date(b.startTimeUTC).getTime(),

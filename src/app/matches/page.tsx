@@ -77,6 +77,17 @@ function isStartingSoon(iso: string): boolean {
   return diffMs > 0 && diffMs < 2 * 60 * 60 * 1000;
 }
 
+// "CRIT" (NHL uniquement) = fin de match serrée, toujours en cours. Magnus
+// ne connaît que "LIVE". Voir toGameState dans magnus.ts et le filtre de
+// getUpcomingGames dans nhl.ts / magnus.ts pour la même logique côté données.
+function isLive(game: Game): boolean {
+  return game.gameState === "LIVE" || game.gameState === "CRIT";
+}
+
+function isFinished(game: Game): boolean {
+  return game.gameState === "OFF";
+}
+
 // Barre d'accent en dégradé aux couleurs des deux équipes, affichée en haut
 // de chaque carte de match "À venir" — donne un repère visuel immédiat façon
 // scoreboard sportif, sans reproduire de logo (mêmes couleurs que TeamBadge).
@@ -127,7 +138,11 @@ function SoonPulse() {
 // terminé, le score prend le relief du font-display façon tableau
 // d'affichage sportif plutôt que rester en texte neutre discret.
 function CalendarScoreCell({ game }: { game: Game }) {
-  const isFinal = game.awayTeam.score != null && game.homeTeam.score != null;
+  // Le score Ligue Magnus est déjà rempli (à 0-0) pour les matchs pas
+  // encore commencés : se fier à sa seule présence classerait à tort tout
+  // le calendrier à venir comme "terminé". `gameState` est la source fiable.
+  const isFinal = isFinished(game);
+  const live = isLive(game);
   return (
     <span
       title={
@@ -138,13 +153,15 @@ function CalendarScoreCell({ game }: { game: Game }) {
       className={`w-14 shrink-0 rounded-full text-center ${
         isFinal
           ? "bg-neutral-800 py-0.5 font-display text-sm tracking-wide text-sky-400"
-          : game.isProvisional
-            ? "text-xs text-amber-500/80"
-            : "text-xs text-neutral-500"
+          : live
+            ? "bg-red-950/40 py-0.5 font-display text-sm tracking-wide text-red-400"
+            : game.isProvisional
+              ? "text-xs text-amber-500/80"
+              : "text-xs text-neutral-500"
       }`}
     >
-      {isFinal
-        ? `${game.awayTeam.score} - ${game.homeTeam.score}`
+      {isFinal || live
+        ? `${game.awayTeam.score ?? 0} - ${game.homeTeam.score ?? 0}`
         : `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`}
     </span>
   );
@@ -310,19 +327,30 @@ function MagnusSchedule({
                           />
                           <div className="p-4">
                             <div className="mb-3 flex items-center justify-center gap-1.5">
-                              {isStartingSoon(game.startTimeUTC) && (
-                                <SoonPulse />
+                              {isLive(game) ? (
+                                <>
+                                  <SoonPulse />
+                                  <span className="rounded-full bg-red-950/40 px-2.5 py-1 text-xs font-medium text-red-400">
+                                    EN DIRECT
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  {isStartingSoon(game.startTimeUTC) && (
+                                    <SoonPulse />
+                                  )}
+                                  <span
+                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                      game.isProvisional
+                                        ? "bg-amber-950/40 text-amber-500/80"
+                                        : "bg-neutral-800 text-neutral-400"
+                                    }`}
+                                  >
+                                    {formatTime(game.startTimeUTC)}
+                                    {game.isProvisional ? " ?" : ""}
+                                  </span>
+                                </>
                               )}
-                              <span
-                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                  game.isProvisional
-                                    ? "bg-amber-950/40 text-amber-500/80"
-                                    : "bg-neutral-800 text-neutral-400"
-                                }`}
-                              >
-                                {formatTime(game.startTimeUTC)}
-                                {game.isProvisional ? " ?" : ""}
-                              </span>
                             </div>
                             <div className="flex items-center justify-between gap-1">
                               <div className="flex flex-1 flex-col items-center gap-1.5">
@@ -350,6 +378,13 @@ function MagnusSchedule({
                               </div>
                             </div>
 
+                            {isLive(game) && (
+                              <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
+                                {game.awayTeam.score ?? 0} -{" "}
+                                {game.homeTeam.score ?? 0}
+                              </p>
+                            )}
+
                             {game.isProvisional ? (
                               <p className="mt-3 text-center text-[11px] text-neutral-600">
                                 Heure estimée, en attente de confirmation par
@@ -357,7 +392,7 @@ function MagnusSchedule({
                               </p>
                             ) : (
                               <>
-                                {winPoints && (
+                                {winPoints && !isLive(game) && (
                                   <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
                                     <span
                                       className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
@@ -660,19 +695,30 @@ export default async function MatchesPage() {
                                   />
                                   <div className="p-4">
                                     <div className="mb-3 flex items-center justify-center gap-1.5">
-                                      {isStartingSoon(game.startTimeUTC) && (
-                                        <SoonPulse />
+                                      {isLive(game) ? (
+                                        <>
+                                          <SoonPulse />
+                                          <span className="rounded-full bg-red-950/40 px-2.5 py-1 text-xs font-medium text-red-400">
+                                            EN DIRECT
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          {isStartingSoon(
+                                            game.startTimeUTC,
+                                          ) && <SoonPulse />}
+                                          <span className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-400">
+                                            {frenchTime}
+                                            {localTime &&
+                                              localTime !== frenchTime && (
+                                                <span className="text-neutral-500">
+                                                  {" "}
+                                                  · {localTime} heure locale
+                                                </span>
+                                              )}
+                                          </span>
+                                        </>
                                       )}
-                                      <span className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-400">
-                                        {frenchTime}
-                                        {localTime &&
-                                          localTime !== frenchTime && (
-                                            <span className="text-neutral-500">
-                                              {" "}
-                                              · {localTime} heure locale
-                                            </span>
-                                          )}
-                                      </span>
                                     </div>
                                     <div className="flex items-center justify-between gap-1">
                                       <div className="flex flex-1 flex-col items-center gap-1.5">
@@ -698,7 +744,14 @@ export default async function MatchesPage() {
                                       </div>
                                     </div>
 
-                                    {winPoints && (
+                                    {isLive(game) && (
+                                      <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
+                                        {game.awayTeam.score ?? 0} -{" "}
+                                        {game.homeTeam.score ?? 0}
+                                      </p>
+                                    )}
+
+                                    {winPoints && !isLive(game) && (
                                       <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
                                         <span
                                           className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"

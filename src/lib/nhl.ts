@@ -57,9 +57,17 @@ export async function getUpcomingGames(): Promise<NhlGame[]> {
   const data: NhlScheduleResponse = await res.json();
   const now = Date.now();
 
+  // Un match "en cours" (LIVE/CRIT) reste affiché quelle que soit l'heure
+  // locale (sa durée réelle est imprévisible) ; seul "terminé" (OFF) en
+  // sort. Un match pas encore commencé continue de suivre l'heure de
+  // coup d'envoi.
   return data.gameWeek
     .flatMap((day) => day.games)
-    .filter((g) => new Date(g.startTimeUTC).getTime() > now)
+    .filter((g) => {
+      if (g.gameState === "OFF") return false;
+      if (g.gameState === "LIVE" || g.gameState === "CRIT") return true;
+      return new Date(g.startTimeUTC).getTime() > now;
+    })
     .map(toGame);
 }
 

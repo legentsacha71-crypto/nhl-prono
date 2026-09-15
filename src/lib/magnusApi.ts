@@ -80,7 +80,11 @@ export type MagnusApiMatch = {
   receveur: MagnusApiTeam | "NA";
   visiteur: MagnusApiTeam | "NA";
   score: MagnusApiScore[];
-  etat: string; // "T" = terminé
+  // "T" = terminé, "E" = en cours (live), null = pas encore commencé.
+  // `score` est déjà rempli (à 0-0) pour les matchs pas encore commencés,
+  // donc ce champ est la seule façon fiable de distinguer un match en
+  // direct d'un match à venir — voir toGame dans magnus.ts.
+  etat: string | null;
   victoire_par: string | null; // "S" (temps réglementaire) | "PRL" (prolongation) | "TAB" (tirs au but)
 };
 
