@@ -1,0 +1,26 @@
+name: Grade finished games
+
+# Le cron Vercel (vercel.json) ne tourne qu'1x/jour (limite du plan
+# gratuit — voir commit 247ceed). Ce workflow appelle la même route
+# toutes les 10 min pour que les points s'affichent rapidement après
+# la fin d'un match, sans dépendre d'un plan Vercel payant.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appelle /api/grade-games
+        run: |
+          status=$(curl -sS -o response.json -w "%{http_code}" \
+            "https://nhl-prono-drjd.vercel.app/api/grade-games" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          cat response.json
+          echo
+          if [ "$status" != "200" ]; then
+            echo "grade-games a répondu HTTP $status"
+            exit 1
+          fi
