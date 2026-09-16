@@ -33,7 +33,7 @@ export default function SeasonCountdown({
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-center shadow-lg shadow-black/20">
       <p className="mb-2 text-sm text-neutral-400">
-        Début de la saison régulière
+        Début de la saison régulière en NHL
       </p>
       <div className="flex justify-center gap-4">
         {[

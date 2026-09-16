@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getRegularSeasonStartDate } from "@/lib/nhl";
@@ -64,25 +65,43 @@ export default async function Home() {
       </div>
 
       {user && (
-        <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-4 shadow-md shadow-black/20">
-          <div className="grid grid-cols-3 divide-x divide-neutral-800 text-center">
-            <div>
-              <p className="font-display text-2xl text-sky-400">
-                {totalPoints}
-              </p>
-              <p className="text-xs text-neutral-500">Total</p>
-            </div>
-            <div>
-              <p className="font-display text-2xl text-neutral-100">
+        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 text-center shadow-xl shadow-black/30">
+          <div className="pointer-events-none absolute -right-6 -top-6 text-8xl opacity-10">
+            🏆
+          </div>
+
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+            Tes points
+          </p>
+          <p className="font-display text-6xl leading-none text-sky-400 drop-shadow-[0_0_18px_rgba(56,189,248,0.35)]">
+            {totalPoints}
+          </p>
+
+          <div className="mt-4 flex items-center justify-center gap-3 border-t border-neutral-800/80 pt-3">
+            <div className="flex flex-1 items-center justify-center gap-2">
+              <Image
+                src="/logos/nhl.png"
+                alt="NHL"
+                width={20}
+                height={20}
+                className="h-5 w-5 object-contain opacity-90"
+              />
+              <span className="font-display text-2xl text-neutral-100">
                 {nhlPoints}
-              </p>
-              <p className="text-xs text-neutral-500">NHL</p>
+              </span>
             </div>
-            <div>
-              <p className="font-display text-2xl text-neutral-100">
+            <div className="h-8 w-px bg-neutral-800" />
+            <div className="flex flex-1 items-center justify-center gap-2">
+              <Image
+                src="/logos/magnus.png"
+                alt="Ligue Magnus"
+                width={20}
+                height={20}
+                className="h-5 w-5 object-contain opacity-90"
+              />
+              <span className="font-display text-2xl text-neutral-100">
                 {magnusPoints}
-              </p>
-              <p className="text-xs text-neutral-500">Magnus</p>
+              </span>
             </div>
           </div>
         </div>
