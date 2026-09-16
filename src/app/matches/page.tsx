@@ -1,4 +1,8 @@
-import { getUpcomingGames, getSeasonSchedule } from "@/lib/nhl";
+import {
+  getUpcomingGames,
+  getSeasonSchedule,
+  getRegularSeasonStartDate,
+} from "@/lib/nhl";
 import {
   getUpcomingGames as getMagnusUpcomingGames,
   getSeasonSchedule as getMagnusSeasonSchedule,
@@ -571,6 +575,7 @@ export default async function MatchesPage() {
     magnusGames,
     magnusSeasonGames,
     magnusStats,
+    nhlSeasonStartDate,
   ] = await Promise.all([
     getUpcomingGames(),
     getTeamStats(),
@@ -578,6 +583,7 @@ export default async function MatchesPage() {
     getMagnusUpcomingGames(),
     getMagnusSeasonSchedule(),
     getMagnusTeamStats(),
+    getRegularSeasonStartDate(),
   ]);
   const leagueAvgGoals = getLeagueAverageGoals(teamStats);
   const magnusLeagueAvgGoals = getMagnusLeagueAverageGoals(magnusStats);
@@ -624,6 +630,21 @@ export default async function MatchesPage() {
   const monthGroups = groupByMonth(seasonGames);
   const firstUpcomingIndex = monthGroups.findIndex((g) => g.hasUpcoming);
 
+  // getRegularSeasonStartDate() ne renvoie une date que tant que la saison
+  // régulière n'a pas commencé (voir son commentaire dans nhl.ts) — utile
+  // ici pour donner la vraie date plutôt qu'un mois générique (ex. la
+  // pré-saison se termine fin septembre, pas "en octobre"). Une fois la
+  // saison lancée, elle renvoie null et on retombe sur un message neutre.
+  const nhlNoGamesMessage = nhlSeasonStartDate
+    ? `Pas de matchs à venir pour le moment. La saison NHL reprend le ${new Date(
+        nhlSeasonStartDate,
+      ).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        timeZone: "Europe/Paris",
+      })}.`
+    : "Pas de matchs à venir pour le moment.";
+
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
@@ -661,8 +682,7 @@ export default async function MatchesPage() {
                     <div className="space-y-4">
                       {games.length === 0 && (
                         <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-                          Pas de matchs à venir pour le moment. La saison NHL
-                          reprend en octobre.
+                          {nhlNoGamesMessage}
                         </p>
                       )}
 
