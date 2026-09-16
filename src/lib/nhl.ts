@@ -17,6 +17,8 @@ type NhlApiGame = {
   id: number;
   startTimeUTC: string;
   gameState: string;
+  // 1 = pré-saison, 2 = saison régulière, 3 = séries éliminatoires.
+  gameType: number;
   awayTeam: NhlTeam;
   homeTeam: NhlTeam;
 };
@@ -26,6 +28,8 @@ type NhlScheduleResponse = {
   regularSeasonStartDate: string;
   regularSeasonEndDate: string;
 };
+
+const NHL_PRESEASON_GAME_TYPE = 1;
 
 function toGame(g: NhlApiGame): NhlGame {
   return {
@@ -60,10 +64,13 @@ export async function getUpcomingGames(): Promise<NhlGame[]> {
   // Un match "en cours" (LIVE/CRIT) reste affiché quelle que soit l'heure
   // locale (sa durée réelle est imprévisible) ; seul "terminé" (OFF) en
   // sort. Un match pas encore commencé continue de suivre l'heure de
-  // coup d'envoi.
+  // coup d'envoi. La pré-saison n'est pas pronostiquable (matchs amicaux,
+  // effectifs incomplets) : seule la saison régulière (et plus tard les
+  // séries, non gérées ici pour l'instant) doit apparaître.
   return data.gameWeek
     .flatMap((day) => day.games)
     .filter((g) => {
+      if (g.gameType === NHL_PRESEASON_GAME_TYPE) return false;
       if (g.gameState === "OFF") return false;
       if (g.gameState === "LIVE" || g.gameState === "CRIT") return true;
       return new Date(g.startTimeUTC).getTime() > now;
@@ -135,6 +142,7 @@ export async function getSeasonSchedule(): Promise<NhlGame[]> {
 
   return weeks
     .flat()
+    .filter((g) => g.gameType !== NHL_PRESEASON_GAME_TYPE)
     .map(toGame)
     .sort(
       (a, b) =>
