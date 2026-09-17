@@ -49,6 +49,19 @@ function toGame(g: NhlApiGame): NhlGame {
   };
 }
 
+// Un match "en cours" (LIVE/CRIT) reste affiché quelle que soit l'heure
+// locale (sa durée réelle est imprévisible) ; seul "terminé" (OFF) en sort.
+// Un match pas encore commencé continue de suivre l'heure de coup d'envoi.
+// La pré-saison n'est pas pronostiquable (matchs amicaux, effectifs
+// incomplets) : seule la saison régulière (et plus tard les séries, non
+// gérées ici pour l'instant) doit apparaître.
+function isPredictable(g: NhlApiGame, now: number): boolean {
+  if (g.gameType === NHL_PRESEASON_GAME_TYPE) return false;
+  if (g.gameState === "OFF") return false;
+  if (g.gameState === "LIVE" || g.gameState === "CRIT") return true;
+  return new Date(g.startTimeUTC).getTime() > now;
+}
+
 export async function getUpcomingGames(): Promise<NhlGame[]> {
   const res = await fetch("https://api-web.nhle.com/v1/schedule/now", {
     next: { revalidate: 60 },
@@ -61,21 +74,38 @@ export async function getUpcomingGames(): Promise<NhlGame[]> {
   const data: NhlScheduleResponse = await res.json();
   const now = Date.now();
 
-  // Un match "en cours" (LIVE/CRIT) reste affiché quelle que soit l'heure
-  // locale (sa durée réelle est imprévisible) ; seul "terminé" (OFF) en
-  // sort. Un match pas encore commencé continue de suivre l'heure de
-  // coup d'envoi. La pré-saison n'est pas pronostiquable (matchs amicaux,
-  // effectifs incomplets) : seule la saison régulière (et plus tard les
-  // séries, non gérées ici pour l'instant) doit apparaître.
-  return data.gameWeek
+  const upcoming = data.gameWeek
     .flatMap((day) => day.games)
-    .filter((g) => {
-      if (g.gameType === NHL_PRESEASON_GAME_TYPE) return false;
-      if (g.gameState === "OFF") return false;
-      if (g.gameState === "LIVE" || g.gameState === "CRIT") return true;
-      return new Date(g.startTimeUTC).getTime() > now;
-    })
-    .map(toGame);
+    .filter((g) => isPredictable(g, now));
+
+  if (upcoming.length > 0) {
+    return upcoming.map(toGame);
+  }
+
+  // Rien de pronostiquable dans la fenêtre glissante de "now" (ex. seule
+  // la pré-saison y est encore, maintenant filtrée) : plutôt que de
+  // laisser "À venir" vide jusqu'à ce que cette fenêtre glisse
+  // naturellement jusqu'à la saison régulière (ça peut prendre plus d'une
+  // semaine), on va chercher directement sa première semaine dès qu'elle
+  // est publiée, pour que les matchs d'ouverture soient pronostiquables
+  // dès que possible.
+  if (
+    data.regularSeasonStartDate &&
+    new Date(data.regularSeasonStartDate).getTime() > now
+  ) {
+    const openingRes = await fetch(
+      `https://api-web.nhle.com/v1/schedule/${data.regularSeasonStartDate}`,
+      { next: { revalidate: 60 } },
+    );
+    if (!openingRes.ok) return [];
+    const openingData: NhlScheduleResponse = await openingRes.json();
+    return openingData.gameWeek
+      .flatMap((day) => day.games)
+      .filter((g) => isPredictable(g, now))
+      .map(toGame);
+  }
+
+  return [];
 }
 
 // Tant que le calendrier de la nouvelle saison n'est pas publié, l'API
