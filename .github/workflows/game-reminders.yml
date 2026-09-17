@@ -13,3 +13,7 @@ jobs:
         run: |
           curl -sf -X GET "https://nhl-prono-drjd.vercel.app/api/notify-game-reminders" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: Call match-day (13h) reminder endpoint
+        run: |
+          curl -sf -X GET "https://nhl-prono-drjd.vercel.app/api/notify-match-day" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

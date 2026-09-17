@@ -15,6 +15,7 @@ import {
   scoreProbabilityGrid,
   calculatePoints,
 } from "@/lib/scoring";
+import { sendPushToUser } from "@/lib/push";
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -102,6 +103,16 @@ export async function GET(request: NextRequest) {
             ? `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points (boost x2 🔥).`
             : `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points.`,
         });
+
+        // Notif push dédiée, en plus de la notif in-app ci-dessus, dès
+        // qu'un pronostic tombe pile sur le score exact — best effort
+        // (sendPushToUser ne fait jamais planter l'appelant, voir push.ts).
+        if (isExactScore) {
+          await sendPushToUser(prediction.user_id, {
+            title: "WOOWW SCORE EXACT 🔥",
+            body: `${result.awayAbbrev} @ ${result.homeAbbrev} : ${prediction.away_score}-${prediction.home_score}, ${points} points !`,
+          });
+        }
 
         gradedPredictions++;
       }
