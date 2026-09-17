@@ -4,6 +4,13 @@ const HOME_ADVANTAGE = 1.05;
 const AWAY_DISADVANTAGE = 0.95;
 const MAX_GOALS = 10;
 const BASE_POINTS_CONSTANT = 30;
+// Plafond des points de base (round(30 / probabilité), avant bonus score
+// exact) : sans lui, un outsider extrême (probabilité proche de 0, voire
+// exactement 0 avec un échantillon de stats minuscule — ex. une équipe à 0
+// but marqué par match) donne des valeurs absurdes (des milliers de points,
+// voire Infinity qui casse l'affichage de l'aperçu). 200 pts, décidé avec
+// l'utilisateur après avoir vu un exemple réel à 5452 pts.
+const MAX_BASE_POINTS = 200;
 
 function factorial(n: number): number {
   let result = 1;
@@ -59,6 +66,10 @@ export function outcomeProbabilities(grid: number[][]) {
   return { homeWin, awayWin, draw };
 }
 
+function basePointsFor(probability: number): number {
+  return Math.min(Math.round(BASE_POINTS_CONSTANT / probability), MAX_BASE_POINTS);
+}
+
 function exactScoreBonus(probability: number): number {
   if (probability < 0.005) return 100;
   if (probability < 0.02) return 60;
@@ -90,9 +101,9 @@ export function estimateWinPoints(
     homeWinProbability: homeWin,
     awayWinProbability: awayWin,
     drawProbability: draw,
-    homePoints: Math.round(BASE_POINTS_CONSTANT / homeWin),
-    awayPoints: Math.round(BASE_POINTS_CONSTANT / awayWin),
-    drawPoints: Math.round(BASE_POINTS_CONSTANT / draw),
+    homePoints: basePointsFor(homeWin),
+    awayPoints: basePointsFor(awayWin),
+    drawPoints: basePointsFor(draw),
   };
 }
 
@@ -127,7 +138,7 @@ export function calculatePoints({
   const outcomeProbability =
     actualOutcome === "home" ? homeWin : actualOutcome === "away" ? awayWin : draw;
 
-  const basePoints = Math.round(BASE_POINTS_CONSTANT / outcomeProbability);
+  const basePoints = basePointsFor(outcomeProbability);
 
   const isExactScore =
     predictedHome === actualHome && predictedAway === actualAway;
