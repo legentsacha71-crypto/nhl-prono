@@ -10,6 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
 import Logo from "@/components/Logo";
 import RulesCard from "@/components/RulesCard";
+import AndroidCallout from "@/components/AndroidCallout";
 import SubmitButton from "@/components/SubmitButton";
 
 export default async function Home() {
@@ -108,6 +109,12 @@ export default async function Home() {
       )}
 
       {seasonStartDate && <SeasonCountdown targetDate={seasonStartDate} />}
+
+      {user && (
+        <AndroidCallout
+          alreadyRegistered={Boolean(user.user_metadata?.android_tester_email)}
+        />
+      )}
 
       <RulesCard />
 
