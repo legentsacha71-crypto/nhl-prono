@@ -69,7 +69,7 @@ export default function AssistancePage() {
           <p className="text-sm text-neutral-400">
             Écris-nous à{" "}
             <span className="font-medium text-neutral-100">
-              contact@lanuithockey.app
+              contact@lanuitnhl.com
             </span>{" "}
             et on te répond au plus vite.
           </p>

@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
               Pour toute question relative à cette politique ou à vos
               données, contactez-nous à l&apos;adresse :{" "}
               <span className="font-medium text-neutral-100">
-                contact@lanuithockey.app
+                contact@lanuitnhl.com
               </span>
               .
             </p>
@@ -104,7 +104,7 @@ export default function PrivacyPolicyPage() {
               l&apos;accès, la correction ou la suppression de vos données en
               nous contactant à{" "}
               <span className="font-medium text-neutral-100">
-                contact@lanuithockey.app
+                contact@lanuitnhl.com
               </span>
               . Vous pouvez également supprimer votre compte directement
               depuis la page{" "}
