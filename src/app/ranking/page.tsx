@@ -6,13 +6,15 @@ import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 import LeagueSwitch from "@/components/LeagueSwitch";
 
-// Style du podium des 3 premiers : ordre CSS (order-*) plutôt que l'ordre du
-// tableau, pour placer visuellement le 1er au centre et en hauteur — motif
-// classique "podium" des apps sportives — sans changer l'ordre logique des
-// données (toujours 1er/2e/3e dans `ranking`).
+// Style du podium des 3 premiers : placement explicite en grille (colonne
+// 2 = 1er, 1 = 2e, 3 = 3e) plutôt que l'ordre du tableau, pour garder le 1er
+// au centre et en hauteur — motif classique "podium" des apps sportives —
+// sans changer l'ordre logique des données (toujours 1er/2e/3e dans
+// `ranking`). Les 3 colonnes sont de largeur strictement égale, donc le
+// podium reste symétrique quelle que soit la longueur des pseudos.
 const PODIUM_STYLES = [
   {
-    order: "order-2",
+    place: "col-start-2 row-start-1",
     height: "min-h-44",
     avatarSize: 72,
     medal: "🥇",
@@ -20,7 +22,7 @@ const PODIUM_STYLES = [
     label: "text-amber-400",
   },
   {
-    order: "order-1",
+    place: "col-start-1 row-start-1",
     height: "min-h-36",
     avatarSize: 60,
     medal: "🥈",
@@ -28,7 +30,7 @@ const PODIUM_STYLES = [
     label: "text-neutral-300",
   },
   {
-    order: "order-3",
+    place: "col-start-3 row-start-1",
     height: "min-h-32",
     avatarSize: 56,
     medal: "🥉",
@@ -61,7 +63,7 @@ function RankingBoard({
   return (
     <div className="space-y-4">
       {podium.length > 0 && (
-        <div className="flex items-end justify-center gap-3">
+        <div className="grid grid-cols-3 items-end gap-3">
           {podium.map((entry, index) => {
             const style = PODIUM_STYLES[index];
             const isMe = entry.userId === currentUserId;
@@ -69,7 +71,7 @@ function RankingBoard({
               <Link
                 key={entry.userId}
                 href={`/profil/${entry.userId}`}
-                className={`flex ${style.order} ${style.height} flex-1 flex-col items-center justify-end gap-1.5 rounded-2xl border px-2 pb-3 pt-6 transition-transform duration-200 hover:scale-[1.02] ${style.card} ${
+                className={`flex ${style.place} ${style.height} min-w-0 flex-col items-center justify-end gap-1.5 rounded-2xl border px-2 pb-3 pt-6 transition-transform duration-200 hover:scale-[1.02] ${style.card} ${
                   isMe ? "ring-1 ring-sky-500/50" : ""
                 }`}
               >
