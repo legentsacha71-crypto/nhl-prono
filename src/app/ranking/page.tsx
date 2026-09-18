@@ -47,7 +47,7 @@ function RankingBoard({
   ranking: RankingEntry[];
   currentUserId?: string;
 }) {
-  if (ranking.length === 0 || ranking.every((entry) => entry.totalPoints === 0)) {
+  if (ranking.length === 0) {
     return (
       <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
         Aucun point attribué pour le moment.
