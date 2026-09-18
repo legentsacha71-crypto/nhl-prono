@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import {
   getUpcomingGames,
   getSeasonSchedule,
@@ -274,6 +275,7 @@ function MagnusSchedule({
   seasonGames,
   predictionByGameId,
   isPremium,
+  hidePremiumUpsell,
   teamStats,
   leagueAvgGoals,
 }: {
@@ -284,6 +286,7 @@ function MagnusSchedule({
     { away_score: number; home_score: number; boosted: boolean }
   >;
   isPremium: boolean;
+  hidePremiumUpsell: boolean;
   teamStats: Map<string, TeamStats>;
   leagueAvgGoals: number;
 }) {
@@ -473,7 +476,7 @@ function MagnusSchedule({
                                           : "Booster x2"}
                                       </SubmitButton>
                                     </form>
-                                  ) : (
+                                  ) : hidePremiumUpsell ? null : (
                                     <p className="mt-2 text-center text-[11px] text-neutral-600">
                                       🔒 Boost x2 réservé aux membres Premium
                                     </p>
@@ -626,6 +629,13 @@ export default async function MatchesPage() {
 
   const isPremium = profile?.is_premium ?? false;
 
+  // App Android (Play Store) : pas d'achat intégré sur cette plateforme, donc
+  // on n'affiche pas l'upsell "réservé aux membres Premium". L'appli Capacitor
+  // charge ce site dans la WebView système, dont le user-agent contient "; wv)".
+  const userAgent = (await headers()).get("user-agent") ?? "";
+  const hidePremiumUpsell =
+    /Android/.test(userAgent) && /; wv\)/.test(userAgent);
+
   const dayGroups = groupByDay(games);
   const monthGroups = groupByMonth(seasonGames);
   const firstUpcomingIndex = monthGroups.findIndex((g) => g.hasUpcoming);
@@ -668,6 +678,7 @@ export default async function MatchesPage() {
               seasonGames={magnusSeasonGames}
               predictionByGameId={predictionByGameId}
               isPremium={isPremium}
+              hidePremiumUpsell={hidePremiumUpsell}
               teamStats={magnusStats}
               leagueAvgGoals={magnusLeagueAvgGoals}
             />
@@ -848,7 +859,7 @@ export default async function MatchesPage() {
                                               : "Booster x2"}
                                           </SubmitButton>
                                         </form>
-                                      ) : (
+                                      ) : hidePremiumUpsell ? null : (
                                         <p className="mt-2 text-center text-[11px] text-neutral-600">
                                           🔒 Boost x2 réservé aux membres
                                           Premium
