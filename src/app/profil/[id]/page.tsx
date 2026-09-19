@@ -72,7 +72,7 @@ export default async function PlayerProfilePage({
     supabase
       .from("predictions")
       .select(
-        "game_id, away_score, home_score, points, is_exact_score, boosted, game_start_time, updated_at",
+        "game_id, away_score, home_score, points, base_points, bonus_points, is_exact_score, boosted, game_start_time, updated_at",
       )
       .eq("user_id", id)
       .not("points", "is", null)

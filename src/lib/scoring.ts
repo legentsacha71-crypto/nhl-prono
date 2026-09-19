@@ -107,7 +107,9 @@ export function estimateWinPoints(
   };
 }
 
-export function calculatePoints({
+// Points d'un pronostic, avant l'éventuel boost x2 : `basePoints` pour le bon
+// vainqueur (0 si raté) et `bonus` en plus quand le score est exact.
+export function calculatePointsBreakdown({
   predictedHome,
   predictedAway,
   actualHome,
@@ -119,7 +121,7 @@ export function calculatePoints({
   actualHome: number;
   actualAway: number;
   grid: number[][];
-}): number {
+}): { basePoints: number; bonus: number } {
   const { homeWin, awayWin, draw } = outcomeProbabilities(grid);
 
   const predictedOutcome =
@@ -132,7 +134,7 @@ export function calculatePoints({
     actualHome > actualAway ? "home" : actualHome < actualAway ? "away" : "draw";
 
   if (predictedOutcome !== actualOutcome) {
-    return 0;
+    return { basePoints: 0, bonus: 0 };
   }
 
   const outcomeProbability =
@@ -143,12 +145,12 @@ export function calculatePoints({
   const isExactScore =
     predictedHome === actualHome && predictedAway === actualAway;
   if (!isExactScore) {
-    return basePoints;
+    return { basePoints, bonus: 0 };
   }
 
   const clampedH = Math.min(actualHome, MAX_GOALS);
   const clampedA = Math.min(actualAway, MAX_GOALS);
   const exactScoreProbability = grid[clampedH]?.[clampedA] ?? 0;
 
-  return basePoints + exactScoreBonus(exactScoreProbability);
+  return { basePoints, bonus: exactScoreBonus(exactScoreProbability) };
 }

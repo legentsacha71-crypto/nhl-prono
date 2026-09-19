@@ -13,7 +13,7 @@ import {
 import {
   expectedGoals,
   scoreProbabilityGrid,
-  calculatePoints,
+  calculatePointsBreakdown,
 } from "@/lib/scoring";
 import { sendPushToUser } from "@/lib/push";
 
@@ -80,28 +80,47 @@ export async function GET(request: NextRequest) {
       if (predError || !predictions) continue;
 
       for (const prediction of predictions) {
-        const basePoints = calculatePoints({
+        const { basePoints, bonus } = calculatePointsBreakdown({
           predictedHome: prediction.home_score,
           predictedAway: prediction.away_score,
           actualHome: result.regulationHomeScore,
           actualAway: result.regulationAwayScore,
           grid,
         });
-        const points = prediction.boosted ? basePoints * 2 : basePoints;
+        const points = (basePoints + bonus) * (prediction.boosted ? 2 : 1);
         const isExactScore =
           prediction.home_score === result.regulationHomeScore &&
           prediction.away_score === result.regulationAwayScore;
 
-        await supabase
+        // base_points / bonus_points : détail avant boost x2, pour que
+        // l'appli affiche "45 + 10" plutôt que la seule somme.
+        const { error: updateError } = await supabase
           .from("predictions")
-          .update({ points, is_exact_score: isExactScore })
+          .update({
+            points,
+            base_points: basePoints,
+            bonus_points: bonus,
+            is_exact_score: isExactScore,
+          })
           .eq("id", prediction.id);
+        if (updateError) {
+          console.error(
+            `Erreur d'enregistrement des points (pronostic ${prediction.id}) :`,
+            updateError.message,
+          );
+          continue;
+        }
+
+        const details: string[] = [];
+        if (bonus > 0) {
+          details.push(`${basePoints} + ${bonus} de bonus score exact 🎯`);
+        }
+        if (prediction.boosted) details.push("boost x2 🔥");
+        const suffix = details.length > 0 ? ` (${details.join(", ")})` : "";
 
         await supabase.from("notifications").insert({
           user_id: prediction.user_id,
-          message: prediction.boosted
-            ? `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points (boost x2 🔥).`
-            : `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points.`,
+          message: `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points${suffix}.`,
         });
 
         // Notif push dédiée, en plus de la notif in-app ci-dessus, dès

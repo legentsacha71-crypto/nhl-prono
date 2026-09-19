@@ -3,7 +3,7 @@ import {
   expectedGoals,
   scoreProbabilityGrid,
   outcomeProbabilities,
-  calculatePoints,
+  calculatePointsBreakdown,
 } from "../src/lib/scoring";
 
 async function main() {
@@ -34,8 +34,10 @@ async function main() {
 
   console.log("\n--- Exemples de points ---");
   for (const c of cases) {
-    const points = calculatePoints({ ...c, grid });
-    console.log(`${c.label} : ${points} pts`);
+    const { basePoints, bonus } = calculatePointsBreakdown({ ...c, grid });
+    console.log(
+      `${c.label} : ${basePoints + bonus} pts (${basePoints} + ${bonus} de bonus)`,
+    );
   }
 }
 

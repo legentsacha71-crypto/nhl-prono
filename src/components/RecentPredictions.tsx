@@ -8,6 +8,10 @@ export type RecentPrediction = {
   predictedAway: number;
   predictedHome: number;
   points: number;
+  // Détail avant boost x2 ; null pour les anciens pronos notés avant que
+  // l'appli n'enregistre la part "vainqueur" et la part "bonus".
+  basePoints: number | null;
+  bonusPoints: number | null;
   isExactScore: boolean;
   boosted: boolean;
   gameStartTime: string | null;
@@ -24,6 +28,8 @@ type PredictionRow = {
   away_score: number;
   home_score: number;
   points: number | null;
+  base_points: number | null;
+  bonus_points: number | null;
   is_exact_score: boolean | null;
   boosted: boolean | null;
   game_start_time: string | null;
@@ -49,6 +55,8 @@ export function toRecentPrediction(
     predictedAway: p.away_score,
     predictedHome: p.home_score,
     points: p.points ?? 0,
+    basePoints: p.base_points,
+    bonusPoints: p.bonus_points,
     isExactScore: Boolean(p.is_exact_score),
     boosted: Boolean(p.boosted),
     gameStartTime: p.game_start_time,
@@ -109,6 +117,23 @@ const STATUS = {
   },
 } as const;
 
+// Détail du total quand il n'est pas évident : bonus de score exact et/ou
+// boost x2 ("45 + 10 bonus", "(45 + 10) × 2", "45 × 2"). Rien pour un simple
+// bon vainqueur sans boost (total = base), ni pour les anciens pronos dont
+// le détail n'a pas été enregistré.
+function pointsBreakdown(item: RecentPrediction): string | null {
+  const { basePoints, bonusPoints } = item;
+  if (basePoints === null || bonusPoints === null || item.points <= 0) {
+    return null;
+  }
+  if (item.boosted) {
+    return bonusPoints > 0
+      ? `(${basePoints} + ${bonusPoints}) × 2`
+      : `${basePoints} × 2`;
+  }
+  return bonusPoints > 0 ? `${basePoints} + ${bonusPoints} bonus` : null;
+}
+
 function TeamLine({
   abbrev,
   league,
@@ -144,6 +169,7 @@ function PredictionRowView({ item }: { item: RecentPrediction }) {
   const homeWon = result ? result.regulationHomeScore > result.regulationAwayScore : false;
   const predictionTone =
     status === "exact" ? "text-amber-300" : "text-neutral-400";
+  const breakdown = pointsBreakdown(item);
 
   return (
     <li className={`${COLUMNS} py-2.5`}>
@@ -185,6 +211,11 @@ function PredictionRowView({ item }: { item: RecentPrediction }) {
         <p className={`mt-0.5 text-[10px] leading-tight font-medium ${style.labelClass}`}>
           {style.label}
         </p>
+        {breakdown && (
+          <p className="mt-0.5 text-[10px] leading-tight text-neutral-500">
+            {breakdown}
+          </p>
+        )}
       </div>
     </li>
   );
