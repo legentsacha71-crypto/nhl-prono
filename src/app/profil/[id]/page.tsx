@@ -14,6 +14,10 @@ import BottomNav from "@/components/BottomNav";
 import ProfileTabs from "@/components/ProfileTabs";
 import PlayerStatsSummary from "@/components/PlayerStatsSummary";
 import ProfileSection from "@/components/ProfileSection";
+import RecentPredictions, {
+  latestPlayed,
+  toRecentPrediction,
+} from "@/components/RecentPredictions";
 
 // Profil en lecture seule d'un autre joueur (accessible depuis le
 // classement ou la liste d'amis). Contrairement à /profil (son propre
@@ -68,7 +72,7 @@ export default async function PlayerProfilePage({
     supabase
       .from("predictions")
       .select(
-        "game_id, away_score, home_score, points, is_exact_score, updated_at",
+        "game_id, away_score, home_score, points, is_exact_score, boosted, game_start_time, updated_at",
       )
       .eq("user_id", id)
       .not("points", "is", null)
@@ -144,14 +148,13 @@ export default async function PlayerProfilePage({
     },
   };
 
-  const recent = graded.slice(0, 8);
-  const results = await Promise.all(
+  const recent = latestPlayed(graded, 8);
+  const recentItems = await Promise.all(
     recent.map(async (p) => {
       try {
-        const result = await getGameResult(p.game_id);
-        return { prediction: p, result };
+        return toRecentPrediction(p, await getGameResult(p.game_id));
       } catch {
-        return { prediction: p, result: null };
+        return toRecentPrediction(p, null);
       }
     }),
   );
@@ -247,33 +250,7 @@ export default async function PlayerProfilePage({
                     Aucun prono joué pour le moment.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-neutral-800/60">
-                    {results.map(({ prediction, result }) => (
-                      <li
-                        key={prediction.game_id}
-                        className="-mx-1 flex items-center justify-between rounded-md px-1 py-2.5 text-sm"
-                      >
-                        <span className="text-neutral-300">
-                          {result
-                            ? `${result.awayAbbrev} @ ${result.homeAbbrev}`
-                            : `Match #${prediction.game_id}`}
-                          <span className="ml-2 text-neutral-500">
-                            (prono {prediction.away_score}-
-                            {prediction.home_score})
-                          </span>
-                        </span>
-                        <span
-                          className={`font-medium ${
-                            (prediction.points ?? 0) > 0
-                              ? "text-emerald-400"
-                              : "text-neutral-600"
-                          }`}
-                        >
-                          {prediction.points ?? 0} pts
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <RecentPredictions items={recentItems} />
                 )}
               </ProfileSection>
 

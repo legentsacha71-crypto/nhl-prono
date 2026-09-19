@@ -35,6 +35,10 @@ import AddFriendForm from "@/components/AddFriendForm";
 import FriendRequestActions from "@/components/FriendRequestActions";
 import ProfileStatsPanel from "@/components/ProfileStatsPanel";
 import ProfileSection from "@/components/ProfileSection";
+import RecentPredictions, {
+  latestPlayed,
+  toRecentPrediction,
+} from "@/components/RecentPredictions";
 
 function formatLockCountdown(lockAt: string): string {
   const diffMs = new Date(lockAt).getTime() - Date.now();
@@ -87,7 +91,7 @@ export default async function ProfilPage() {
     supabase
       .from("predictions")
       .select(
-        "game_id, away_score, home_score, points, is_exact_score, updated_at",
+        "game_id, away_score, home_score, points, is_exact_score, boosted, game_start_time, updated_at",
       )
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false }),
@@ -191,14 +195,14 @@ export default async function ProfilPage() {
     lockGroups.set(entry.lockAt, labels);
   }
 
-  const recent = all.slice(0, 8);
-  const results = await Promise.all(
+  const recent = latestPlayed(graded, 8);
+  const pendingCount = all.length - graded.length;
+  const recentItems = await Promise.all(
     recent.map(async (p) => {
       try {
-        const result = await getGameResult(p.game_id);
-        return { prediction: p, result };
+        return toRecentPrediction(p, await getGameResult(p.game_id));
       } catch {
-        return { prediction: p, result: null };
+        return toRecentPrediction(p, null);
       }
     }),
   );
@@ -319,42 +323,18 @@ export default async function ProfilPage() {
           general={
             <div className="space-y-4">
               <ProfileSection title="🏒 Pronos récents">
+                {pendingCount > 0 && (
+                  <p className="mb-2 text-xs text-neutral-500">
+                    {pendingCount} prono{pendingCount > 1 ? "s" : ""} en
+                    attente (matchs à venir).
+                  </p>
+                )}
                 {recent.length === 0 ? (
                   <p className="py-3 text-center text-sm text-neutral-500">
-                    Aucun prono pour le moment.
+                    Aucun prono joué pour le moment.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-neutral-800/60">
-                    {results.map(({ prediction, result }) => (
-                      <li
-                        key={prediction.game_id}
-                        className="-mx-1 flex items-center justify-between rounded-md px-1 py-2.5 text-sm transition-colors duration-150 hover:bg-neutral-800/40"
-                      >
-                        <span className="text-neutral-300">
-                          {result
-                            ? `${result.awayAbbrev} @ ${result.homeAbbrev}`
-                            : `Match #${prediction.game_id}`}
-                          <span className="ml-2 text-neutral-500">
-                            (prono {prediction.away_score}-
-                            {prediction.home_score})
-                          </span>
-                        </span>
-                        <span
-                          className={`font-medium ${
-                            prediction.points === null
-                              ? "text-neutral-500"
-                              : prediction.points > 0
-                                ? "text-emerald-400"
-                                : "text-neutral-600"
-                          }`}
-                        >
-                          {prediction.points !== null
-                            ? `${prediction.points} pts`
-                            : "en attente"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <RecentPredictions items={recentItems} />
                 )}
               </ProfileSection>
 
