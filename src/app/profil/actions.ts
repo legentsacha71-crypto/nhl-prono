@@ -41,19 +41,22 @@ export async function updateFavoriteTeam(favoriteTeam: string | null) {
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_AVATAR_SIZE = 3 * 1024 * 1024; // 3 Mo
 
-export async function uploadAvatar(formData: FormData) {
+// Retourne l'erreur au lieu de la lancer : en production Next.js masque le
+// message d'une erreur lancée par une Server Action, et le joueur ne saurait
+// jamais pourquoi sa photo est refusée.
+export async function uploadAvatar(formData: FormData): Promise<{ error?: string }> {
   const file = formData.get("avatar") as File | null;
 
   if (!file || file.size === 0) {
-    throw new Error("Aucune image sélectionnée.");
+    return { error: "Aucune image sélectionnée." };
   }
 
   if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-    throw new Error("Format d'image non supporté (jpg, png ou webp uniquement).");
+    return { error: "Format non supporté (JPG, PNG ou WebP)." };
   }
 
   if (file.size > MAX_AVATAR_SIZE) {
-    throw new Error("L'image est trop lourde (3 Mo maximum).");
+    return { error: "Image trop lourde (3 Mo maximum)." };
   }
 
   const supabase = await createClient();
@@ -62,7 +65,7 @@ export async function uploadAvatar(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Non connecté.");
+    return { error: "Non connecté." };
   }
 
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
@@ -73,7 +76,7 @@ export async function uploadAvatar(formData: FormData) {
     .upload(path, file, { upsert: true, contentType: file.type });
 
   if (uploadError) {
-    throw new Error(uploadError.message);
+    return { error: uploadError.message };
   }
 
   const {
@@ -86,10 +89,11 @@ export async function uploadAvatar(formData: FormData) {
     .eq("id", user.id);
 
   if (updateError) {
-    throw new Error(updateError.message);
+    return { error: updateError.message };
   }
 
   revalidatePath("/profil");
+  return {};
 }
 
 export async function submitStanleyCupPick(teamAbbrev: string) {
