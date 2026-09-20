@@ -25,11 +25,12 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // IMPORTANT : ne rien exécuter entre createServerClient et getUser().
+  // IMPORTANT : ne rien exécuter entre createServerClient et getClaims().
   // Un appel ici pourrait invalider la session de l'utilisateur.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() vérifie le JWT en local (et rafraîchit la session si besoin)
+  // sans aller-retour vers Supabase Auth à chaque requête.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||

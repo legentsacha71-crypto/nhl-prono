@@ -29,6 +29,8 @@ export default function RankAvatar({
     <img
       src={avatarUrl}
       alt=""
+      loading="lazy"
+      decoding="async"
       style={{ width: innerSize, height: innerSize }}
       className="shrink-0 rounded-full border border-neutral-700 object-cover"
     />

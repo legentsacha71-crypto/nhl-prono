@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/gameResults";
 import { isMagnusGameId } from "@/lib/competition";
@@ -33,9 +34,7 @@ export default async function PlayerProfilePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return (

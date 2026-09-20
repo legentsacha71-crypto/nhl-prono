@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
 export default async function ChatPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
 

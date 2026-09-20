@@ -13,26 +13,78 @@ export type LeagueRankings = {
   magnus: RankingEntry[];
 };
 
+const PAGE_SIZE = 1000;
+
+// PostgREST plafonne chaque réponse (1000 lignes par défaut) sans renvoyer
+// d'erreur : sans pagination, le classement serait silencieusement tronqué
+// dès qu'il y a plus de 1000 pronostics notés. La première page donne le
+// total, les suivantes sont lues en parallèle (tri par id : pages stables).
+async function fetchGradedPredictions(
+  supabase: SupabaseClient,
+  userIds?: string[],
+) {
+  const page = (from: number, to: number) => {
+    let query = supabase
+      .from("predictions")
+      .select("user_id, game_id, points", { count: "exact" })
+      .not("points", "is", null);
+    if (userIds) query = query.in("user_id", userIds);
+    return query.order("id").range(from, to);
+  };
+
+  const first = await page(0, PAGE_SIZE - 1);
+  const rows = first.data ?? [];
+  const total = first.count ?? rows.length;
+  if (rows.length === 0 || rows.length >= total) return rows;
+
+  const otherPages = await Promise.all(
+    Array.from({ length: Math.ceil(total / PAGE_SIZE) - 1 }, (_, i) =>
+      page((i + 1) * PAGE_SIZE, (i + 2) * PAGE_SIZE - 1),
+    ),
+  );
+  return rows.concat(...otherPages.map((result) => result.data ?? []));
+}
+
+// Les lectures sont indépendantes : lancées en parallèle plutôt qu'à la suite
+// (chaque requête séquentielle ajoutait un aller-retour réseau).
+async function fetchRankingRows(supabase: SupabaseClient, userIds?: string[]) {
+  let profilesQuery = supabase
+    .from("profiles")
+    .select("id, username, avatar_url");
+  let stanleyCupQuery = supabase
+    .from("stanley_cup_picks")
+    .select("user_id, points")
+    .not("points", "is", null);
+  let topScorerQuery = supabase
+    .from("top_scorer_picks")
+    .select("user_id, points")
+    .not("points", "is", null);
+
+  if (userIds) {
+    profilesQuery = profilesQuery.in("id", userIds);
+    stanleyCupQuery = stanleyCupQuery.in("user_id", userIds);
+    topScorerQuery = topScorerQuery.in("user_id", userIds);
+  }
+
+  const [profiles, predictions, stanleyCup, topScorer] = await Promise.all([
+    profilesQuery,
+    fetchGradedPredictions(supabase, userIds),
+    stanleyCupQuery,
+    topScorerQuery,
+  ]);
+  return [profiles, { data: predictions }, stanleyCup, topScorer] as const;
+}
+
 export async function getRanking(
   supabase: SupabaseClient,
   userIds?: string[],
 ): Promise<RankingEntry[]> {
-  let profilesQuery = supabase
-    .from("profiles")
-    .select("id, username, avatar_url");
-  if (userIds) {
-    profilesQuery = profilesQuery.in("id", userIds);
-  }
-  const { data: profiles } = await profilesQuery;
-
-  let predictionsQuery = supabase
-    .from("predictions")
-    .select("user_id, points")
-    .not("points", "is", null);
-  if (userIds) {
-    predictionsQuery = predictionsQuery.in("user_id", userIds);
-  }
-  const { data: predictions } = await predictionsQuery;
+  const [
+    { data: profiles },
+    { data: predictions },
+    { data: stanleyCupPicks },
+    { data: topScorerPicks },
+  ] = await fetchRankingRows(supabase, userIds);
 
   const pointsByUser = new Map<string, number>();
   for (const p of predictions ?? []) {
@@ -41,33 +93,7 @@ export async function getRanking(
       (pointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),
     );
   }
-
-  let stanleyCupQuery = supabase
-    .from("stanley_cup_picks")
-    .select("user_id, points")
-    .not("points", "is", null);
-  if (userIds) {
-    stanleyCupQuery = stanleyCupQuery.in("user_id", userIds);
-  }
-  const { data: stanleyCupPicks } = await stanleyCupQuery;
-
-  for (const p of stanleyCupPicks ?? []) {
-    pointsByUser.set(
-      p.user_id,
-      (pointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),
-    );
-  }
-
-  let topScorerQuery = supabase
-    .from("top_scorer_picks")
-    .select("user_id, points")
-    .not("points", "is", null);
-  if (userIds) {
-    topScorerQuery = topScorerQuery.in("user_id", userIds);
-  }
-  const { data: topScorerPicks } = await topScorerQuery;
-
-  for (const p of topScorerPicks ?? []) {
+  for (const p of [...(stanleyCupPicks ?? []), ...(topScorerPicks ?? [])]) {
     pointsByUser.set(
       p.user_id,
       (pointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),
@@ -92,22 +118,12 @@ export async function getLeagueRankings(
   supabase: SupabaseClient,
   userIds?: string[],
 ): Promise<LeagueRankings> {
-  let profilesQuery = supabase
-    .from("profiles")
-    .select("id, username, avatar_url");
-  if (userIds) {
-    profilesQuery = profilesQuery.in("id", userIds);
-  }
-  const { data: profiles } = await profilesQuery;
-
-  let predictionsQuery = supabase
-    .from("predictions")
-    .select("user_id, game_id, points")
-    .not("points", "is", null);
-  if (userIds) {
-    predictionsQuery = predictionsQuery.in("user_id", userIds);
-  }
-  const { data: predictions } = await predictionsQuery;
+  const [
+    { data: profiles },
+    { data: predictions },
+    { data: stanleyCupPicks },
+    { data: topScorerPicks },
+  ] = await fetchRankingRows(supabase, userIds);
 
   const nhlPointsByUser = new Map<string, number>();
   const magnusPointsByUser = new Map<string, number>();
@@ -117,33 +133,7 @@ export async function getLeagueRankings(
       : nhlPointsByUser;
     bucket.set(p.user_id, (bucket.get(p.user_id) ?? 0) + (p.points ?? 0));
   }
-
-  let stanleyCupQuery = supabase
-    .from("stanley_cup_picks")
-    .select("user_id, points")
-    .not("points", "is", null);
-  if (userIds) {
-    stanleyCupQuery = stanleyCupQuery.in("user_id", userIds);
-  }
-  const { data: stanleyCupPicks } = await stanleyCupQuery;
-
-  for (const p of stanleyCupPicks ?? []) {
-    nhlPointsByUser.set(
-      p.user_id,
-      (nhlPointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),
-    );
-  }
-
-  let topScorerQuery = supabase
-    .from("top_scorer_picks")
-    .select("user_id, points")
-    .not("points", "is", null);
-  if (userIds) {
-    topScorerQuery = topScorerQuery.in("user_id", userIds);
-  }
-  const { data: topScorerPicks } = await topScorerQuery;
-
-  for (const p of topScorerPicks ?? []) {
+  for (const p of [...(stanleyCupPicks ?? []), ...(topScorerPicks ?? [])]) {
     nhlPointsByUser.set(
       p.user_id,
       (nhlPointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0),

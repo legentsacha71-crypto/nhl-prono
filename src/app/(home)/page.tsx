@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { getRegularSeasonStartDate } from "@/lib/nhl";
-import { getRanking } from "@/lib/ranking";
 import { isMagnusGameId } from "@/lib/competition";
-import { signout } from "./login/actions";
+import { signout } from "@/app/login/actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
@@ -15,45 +15,57 @@ import SubmitButton from "@/components/SubmitButton";
 
 export default async function Home() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  // Le classement (points globaux, qui incluent aussi les picks Coupe
-  // Stanley / meilleur buteur) et la ventilation NHL / Magnus des
-  // pronostics ne dépendent que de l'utilisateur, pas l'un de l'autre :
-  // lancés en parallèle. Même logique de ventilation que la page profil
-  // (voir isMagnusGameId).
-  const [{ data: profile }, ranking, { data: predictions }] =
-    await Promise.all([
-      user
-        ? supabase
-            .from("profiles")
-            .select("username")
-            .eq("id", user.id)
-            .single()
-        : Promise.resolve({ data: null }),
-      user ? getRanking(supabase) : Promise.resolve([]),
-      user
-        ? supabase
-            .from("predictions")
-            .select("game_id, points")
-            .eq("user_id", user.id)
-            .not("points", "is", null)
-        : Promise.resolve({ data: [] }),
-    ]);
+  // Les points ne dépendent que de l'utilisateur : ses pronostics notés plus
+  // ses picks Coupe Stanley / meilleur buteur (même total que le classement,
+  // sans charger les pronostics de tous les joueurs). Ventilation NHL /
+  // Magnus comme sur la page profil (voir isMagnusGameId).
+  const [
+    { data: profile },
+    { data: predictions },
+    { data: stanleyCupPick },
+    { data: topScorerPick },
+    seasonStartDate,
+  ] = await Promise.all([
+    user
+      ? supabase.from("profiles").select("username").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("predictions")
+          .select("game_id, points")
+          .eq("user_id", user.id)
+          .not("points", "is", null)
+      : Promise.resolve({ data: [] }),
+    user
+      ? supabase
+          .from("stanley_cup_picks")
+          .select("points")
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("top_scorer_picks")
+          .select("points")
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    getRegularSeasonStartDate(),
+  ]);
 
-  const totalPoints = user
-    ? (ranking.find((entry) => entry.userId === user.id)?.totalPoints ?? 0)
-    : 0;
   const nhlPoints = (predictions ?? [])
     .filter((p) => !isMagnusGameId(p.game_id))
     .reduce((sum, p) => sum + (p.points ?? 0), 0);
   const magnusPoints = (predictions ?? [])
     .filter((p) => isMagnusGameId(p.game_id))
     .reduce((sum, p) => sum + (p.points ?? 0), 0);
-
-  const seasonStartDate = await getRegularSeasonStartDate();
+  const totalPoints =
+    nhlPoints +
+    magnusPoints +
+    (stanleyCupPick?.points ?? 0) +
+    (topScorerPick?.points ?? 0);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 pt-28 pb-24">

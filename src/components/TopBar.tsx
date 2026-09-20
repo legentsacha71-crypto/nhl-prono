@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import Logo from "@/components/Logo";
 
 export default async function TopBar() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   let unreadCount = 0;
   if (user) {

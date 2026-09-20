@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { createLeague, joinLeague } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -13,9 +14,7 @@ export default async function LeaguesPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const { data: memberships } = user
     ? await supabase

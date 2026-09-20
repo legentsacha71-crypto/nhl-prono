@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/gameResults";
 import { isMagnusGameId } from "@/lib/competition";
@@ -52,9 +53,7 @@ function formatLockCountdown(lockAt: string): string {
 
 export default async function ProfilPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return (

@@ -43,7 +43,13 @@ export default function SeasonCountdown({
           { value: timeLeft.seconds, label: "s" },
         ].map((unit) => (
           <div key={unit.label}>
-            <p className="bg-gradient-to-b from-sky-300 to-sky-500 bg-clip-text text-2xl font-black text-transparent drop-shadow-[0_0_10px_rgba(56,189,248,0.25)]">
+            {/* Le rendu serveur date de 1 à 2 s de plus que l'hydratation : sans
+                suppressHydrationWarning, React signale l'écart et refait
+                toute la page côté client. */}
+            <p
+              suppressHydrationWarning
+              className="bg-gradient-to-b from-sky-300 to-sky-500 bg-clip-text text-2xl font-black text-transparent drop-shadow-[0_0_10px_rgba(56,189,248,0.25)]"
+            >
               {unit.value}
             </p>
             <p className="text-xs text-neutral-500">{unit.label}</p>

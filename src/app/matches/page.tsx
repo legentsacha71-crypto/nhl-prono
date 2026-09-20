@@ -21,6 +21,7 @@ import { estimateWinPoints } from "@/lib/scoring";
 import { TEAM_TIMEZONES, getTeamColors } from "@/lib/nhlTeams";
 import { getMagnusTeamColors } from "@/lib/magnusTeams";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -28,6 +29,10 @@ import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
 import SlidingTabs from "@/components/SlidingTabs";
 import LeagueSwitch from "@/components/LeagueSwitch";
+import CalendarMonths, {
+  type CalendarGame,
+  type CalendarMonth,
+} from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
 
 // Forme commune à NhlGame (src/lib/nhl.ts) et MagnusGame (src/lib/magnus.ts)
@@ -139,39 +144,6 @@ function SoonPulse() {
   );
 }
 
-// Cellule score/heure des lignes de calendrier compact : une fois le match
-// terminé, le score prend le relief du font-display façon tableau
-// d'affichage sportif plutôt que rester en texte neutre discret.
-function CalendarScoreCell({ game }: { game: Game }) {
-  // Le score Ligue Magnus est déjà rempli (à 0-0) pour les matchs pas
-  // encore commencés : se fier à sa seule présence classerait à tort tout
-  // le calendrier à venir comme "terminé". `gameState` est la source fiable.
-  const isFinal = isFinished(game);
-  const live = isLive(game);
-  return (
-    <span
-      title={
-        game.isProvisional
-          ? "Heure estimée, en attente de confirmation par la ligue"
-          : undefined
-      }
-      className={`w-14 shrink-0 rounded-full text-center ${
-        isFinal
-          ? "bg-neutral-800 py-0.5 font-display text-sm tracking-wide text-sky-400"
-          : live
-            ? "bg-red-950/40 py-0.5 font-display text-sm tracking-wide text-red-400"
-            : game.isProvisional
-              ? "text-xs text-amber-500/80"
-              : "text-xs text-neutral-500"
-      }`}
-    >
-      {isFinal || live
-        ? `${game.awayTeam.score ?? 0} - ${game.homeTeam.score ?? 0}`
-        : `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`}
-    </span>
-  );
-}
-
 function getWinPointsPreview(
   game: Game,
   teamStats: Map<string, TeamStats>,
@@ -262,6 +234,45 @@ function groupByMonth(games: Game[]) {
   }));
 }
 
+function toCalendarGame(game: Game): CalendarGame {
+  // Le score Ligue Magnus est déjà rempli (à 0-0) pour les matchs pas
+  // encore commencés : se fier à sa seule présence classerait à tort tout
+  // le calendrier à venir comme "terminé". `gameState` est la source fiable.
+  const status = isFinished(game)
+    ? "final"
+    : isLive(game)
+      ? "live"
+      : "scheduled";
+  return {
+    id: game.id,
+    awayAbbrev: game.awayTeam.abbrev,
+    awayName: game.awayTeam.name,
+    homeAbbrev: game.homeTeam.abbrev,
+    homeName: game.homeTeam.name,
+    status,
+    label:
+      status === "scheduled"
+        ? `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`
+        : `${game.awayTeam.score ?? 0} - ${game.homeTeam.score ?? 0}`,
+    provisional: Boolean(game.isProvisional),
+  };
+}
+
+// Données compactes pour CalendarMonths (composant client) : seul le mois
+// "en cours" est ouvert, les autres ne construisent leurs lignes qu'au clic.
+function toCalendarMonths(games: Game[]): CalendarMonth[] {
+  const groups = groupByMonth(games);
+  const firstUpcomingIndex = groups.findIndex((g) => g.hasUpcoming);
+  return groups.map((group, index) => ({
+    label: group.label,
+    open: index === firstUpcomingIndex,
+    days: group.days.map((day) => ({
+      label: day.label,
+      games: day.games.map(toCalendarGame),
+    })),
+  }));
+}
+
 // Vrais matchs Ligue Magnus (calendrier complet + matchs à venir). Le
 // pronostic (PredictionForm + submitPrediction) est branché ici exactement
 // comme côté NHL : submitPrediction est déjà agnostique de la compétition
@@ -291,8 +302,7 @@ function MagnusSchedule({
   leagueAvgGoals: number;
 }) {
   const dayGroups = groupByDay(upcomingGames);
-  const monthGroups = groupByMonth(seasonGames);
-  const firstUpcomingIndex = monthGroups.findIndex((g) => g.hasUpcoming);
+  const calendarMonths = toCalendarMonths(seasonGames);
 
   return (
     <SlidingTabs
@@ -504,58 +514,7 @@ function MagnusSchedule({
                 </p>
               )}
 
-              {monthGroups.map((group, index) => (
-                <details
-                  key={group.label}
-                  open={index === firstUpcomingIndex}
-                  className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
-                >
-                  <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-200">
-                    {group.label}
-                  </summary>
-                  <div className="space-y-3 border-t border-neutral-800 px-3 pb-3 pt-3">
-                    {group.days.map((day) => (
-                      <div key={day.label} className="space-y-1.5">
-                        <h3 className="px-1 text-xs font-medium text-neutral-500">
-                          {day.label}
-                        </h3>
-                        <ul className="space-y-1.5">
-                          {day.games.map((game) => (
-                            <li
-                              key={game.id}
-                              className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2 text-sm"
-                            >
-                              <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
-                                <span className="truncate text-neutral-300">
-                                  {game.awayTeam.abbrev}
-                                </span>
-                                <TeamBadge
-                                  abbrev={game.awayTeam.abbrev}
-                                  name={game.awayTeam.name}
-                                  size={22}
-                                  league="magnus"
-                                />
-                              </div>
-                              <CalendarScoreCell game={game} />
-                              <div className="flex flex-1 items-center gap-1.5">
-                                <TeamBadge
-                                  abbrev={game.homeTeam.abbrev}
-                                  name={game.homeTeam.name}
-                                  size={22}
-                                  league="magnus"
-                                />
-                                <span className="truncate text-neutral-300">
-                                  {game.homeTeam.abbrev}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              ))}
+              <CalendarMonths months={calendarMonths} league="magnus" />
             </div>
           ),
         },
@@ -592,9 +551,7 @@ export default async function MatchesPage() {
   const magnusLeagueAvgGoals = getMagnusLeagueAverageGoals(magnusStats);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   // Les deux compétitions partagent la même table `predictions` (les plages
   // d'id NHL et Ligue Magnus ne se recoupent jamais, voir
@@ -637,8 +594,7 @@ export default async function MatchesPage() {
     /Android/.test(userAgent) && /; wv\)/.test(userAgent);
 
   const dayGroups = groupByDay(games);
-  const monthGroups = groupByMonth(seasonGames);
-  const firstUpcomingIndex = monthGroups.findIndex((g) => g.hasUpcoming);
+  const calendarMonths = toCalendarMonths(seasonGames);
 
   // getRegularSeasonStartDate() ne renvoie une date que tant que la saison
   // régulière n'a pas commencé (voir son commentaire dans nhl.ts) — utile
@@ -887,56 +843,7 @@ export default async function MatchesPage() {
                         </p>
                       )}
 
-                      {monthGroups.map((group, index) => (
-                        <details
-                          key={group.label}
-                          open={index === firstUpcomingIndex}
-                          className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
-                        >
-                          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-200">
-                            {group.label}
-                          </summary>
-                          <div className="space-y-3 border-t border-neutral-800 px-3 pb-3 pt-3">
-                            {group.days.map((day) => (
-                              <div key={day.label} className="space-y-1.5">
-                                <h3 className="px-1 text-xs font-medium text-neutral-500">
-                                  {day.label}
-                                </h3>
-                                <ul className="space-y-1.5">
-                                  {day.games.map((game) => (
-                                    <li
-                                      key={game.id}
-                                      className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2 text-sm"
-                                    >
-                                      <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
-                                        <span className="truncate text-neutral-300">
-                                          {game.awayTeam.abbrev}
-                                        </span>
-                                        <TeamBadge
-                                          abbrev={game.awayTeam.abbrev}
-                                          name={game.awayTeam.name}
-                                          size={22}
-                                        />
-                                      </div>
-                                      <CalendarScoreCell game={game} />
-                                      <div className="flex flex-1 items-center gap-1.5">
-                                        <TeamBadge
-                                          abbrev={game.homeTeam.abbrev}
-                                          name={game.homeTeam.name}
-                                          size={22}
-                                        />
-                                        <span className="truncate text-neutral-300">
-                                          {game.homeTeam.abbrev}
-                                        </span>
-                                      </div>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      ))}
+                      <CalendarMonths months={calendarMonths} league="nhl" />
                     </div>
                   ),
                 },

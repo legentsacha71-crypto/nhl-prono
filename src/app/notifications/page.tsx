@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { respondToFriendRequest } from "@/app/profil/actions";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -16,9 +17,7 @@ function formatTime(iso: string) {
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
 

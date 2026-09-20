@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/utils/supabase/user";
 import { getLeagueRankings, type RankingEntry } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -140,10 +141,10 @@ function RankingBoard({
 
 export default async function RankingPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { nhl, magnus } = await getLeagueRankings(supabase);
+  const [user, { nhl, magnus }] = await Promise.all([
+    getCurrentUser(),
+    getLeagueRankings(supabase),
+  ]);
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
