@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 import PushRegistration from "@/components/PushRegistration";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import NavigationOverlay from "@/components/NavigationOverlay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,6 +60,7 @@ export default function RootLayout({
         <PushRegistration />
         <ServiceWorkerRegistration />
         {children}
+        <NavigationOverlay />
       </body>
     </html>
   );

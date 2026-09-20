@@ -1,7 +1,13 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  getPendingHref,
+  setPendingHref,
+  subscribePendingHref,
+} from "@/lib/navigationPending";
 
 const items = [
   { href: "/", label: "Accueil", icon: "🏠" },
@@ -13,6 +19,13 @@ const items = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const pendingHref = useSyncExternalStore(
+    subscribePendingHref,
+    getPendingHref,
+    () => null,
+  );
+  // L'onglet touché s'allume tout de suite, sans attendre l'arrivée de la page.
+  const currentPath = pendingHref ?? pathname;
 
   // Dans cette version de Next.js, <Link> conserve la position de scroll par
   // défaut (au lieu de remonter en haut) tant que la page cible reste dans
@@ -28,13 +41,16 @@ export default function BottomNav() {
         {items.map((item) => {
           const isActive =
             item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+              ? currentPath === "/"
+              : currentPath.startsWith(item.href);
           return (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  if (item.href !== pathname) setPendingHref(item.href);
+                }}
                 className={`group flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors duration-200 ${
                   isActive
                     ? "text-sky-400"
