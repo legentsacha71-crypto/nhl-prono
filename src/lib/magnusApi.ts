@@ -193,18 +193,21 @@ export function parisLocalToUTC(dateStr: string): string {
   return new Date(naiveUTC - offsetMinutes * 60_000).toISOString();
 }
 
+// Créé une seule fois : ce calcul tourne pour chaque match de la saison, et
+// construire un Intl.DateTimeFormat coûte bien plus cher que de s'en servir.
+const PARIS_PARTS_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Paris",
+  hourCycle: "h23",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+});
+
 function getParisOffsetMinutes(date: Date): number {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Paris",
-    hourCycle: "h23",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-  });
   const parts = Object.fromEntries(
-    formatter.formatToParts(date).map((p) => [p.type, p.value]),
+    PARIS_PARTS_FORMAT.formatToParts(date).map((p) => [p.type, p.value]),
   );
   const parisAsUTC = Date.UTC(
     Number(parts.year),

@@ -1,21 +1,9 @@
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
-import { getCurrentUser } from "@/utils/supabase/user";
+import { getUnreadCount } from "@/lib/unreadCount";
 import Logo from "@/components/Logo";
 
 export default async function TopBar() {
-  const supabase = await createClient();
-  const user = await getCurrentUser();
-
-  let unreadCount = 0;
-  if (user) {
-    const { count } = await supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .is("read_at", null);
-    unreadCount = count ?? 0;
-  }
+  const unreadCount = await getUnreadCount();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-neutral-800 bg-neutral-900/95 shadow-[0_4px_20px_rgba(0,0,0,0.35)] backdrop-blur pt-[env(safe-area-inset-top)]">

@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { getLeagueRankings, type RankingEntry } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 import LeagueSwitch from "@/components/LeagueSwitch";
@@ -140,6 +141,7 @@ function RankingBoard({
 }
 
 export default async function RankingPage() {
+  void getUnreadCount();
   const supabase = await createClient();
   const [user, { nhl, magnus }] = await Promise.all([
     getCurrentUser(),

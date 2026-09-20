@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { createLeague, joinLeague } from "./actions";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -11,6 +12,7 @@ export default async function LeaguesPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  void getUnreadCount();
   const { error } = await searchParams;
 
   const supabase = await createClient();

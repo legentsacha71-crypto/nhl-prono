@@ -6,6 +6,7 @@ import { getRegularSeasonStartDate } from "@/lib/nhl";
 import { isMagnusGameId } from "@/lib/competition";
 import { signout } from "@/app/login/actions";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
 import Logo from "@/components/Logo";
@@ -14,6 +15,7 @@ import AndroidCallout from "@/components/AndroidCallout";
 import SubmitButton from "@/components/SubmitButton";
 
 export default async function Home() {
+  void getUnreadCount();
   const supabase = await createClient();
   const user = await getCurrentUser();
 

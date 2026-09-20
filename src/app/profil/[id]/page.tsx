@@ -11,6 +11,7 @@ import { getRingForPoints, getNextRingTier } from "@/lib/profileRings";
 import RingInfoBadge from "@/components/RingInfoBadge";
 import TeamBadge from "@/components/TeamBadge";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import ProfileTabs from "@/components/ProfileTabs";
 import PlayerStatsSummary from "@/components/PlayerStatsSummary";
@@ -32,6 +33,7 @@ export default async function PlayerProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  void getUnreadCount();
   const { id } = await params;
   const supabase = await createClient();
   const user = await getCurrentUser();

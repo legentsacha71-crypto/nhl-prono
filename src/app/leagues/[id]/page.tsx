@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 
@@ -11,6 +12,7 @@ export default async function LeagueDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  void getUnreadCount();
   const { id } = await params;
   const supabase = await createClient();
 

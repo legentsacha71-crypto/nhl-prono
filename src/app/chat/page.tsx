@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 
 export default async function ChatPage() {
+  void getUnreadCount();
   const supabase = await createClient();
   const user = await getCurrentUser();
 

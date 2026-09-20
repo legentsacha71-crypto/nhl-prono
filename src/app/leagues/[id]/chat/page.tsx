@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { sendMessage } from "./actions";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -21,6 +22,7 @@ export default async function LeagueChatPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  void getUnreadCount();
   const { id } = await params;
   const supabase = await createClient();
   const user = await getCurrentUser();

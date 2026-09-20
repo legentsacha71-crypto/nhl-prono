@@ -24,6 +24,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
@@ -52,31 +53,48 @@ type Game = {
   isProvisional?: boolean;
 };
 
+// Construire un Intl.DateTimeFormat coûte bien plus cher que de s'en servir :
+// toLocaleTimeString() en recrée un à chaque appel, soit plus de 1 600 par
+// visite de la page (un par match du calendrier). On les crée une seule fois.
+const DAY_LABEL_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "short",
+  day: "2-digit",
+  month: "short",
+  timeZone: "Europe/Paris",
+});
+const TIME_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Paris",
+});
+const MONTH_LABEL_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+  month: "long",
+  year: "numeric",
+  timeZone: "Europe/Paris",
+});
+const localTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
 function formatDayLabel(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    timeZone: "Europe/Paris",
-  });
+  return DAY_LABEL_FORMAT.format(new Date(iso));
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Paris",
-  });
+  return TIME_FORMAT.format(new Date(iso));
 }
 
 function formatLocalTime(iso: string, homeAbbrev: string): string | null {
   const timeZone = TEAM_TIMEZONES[homeAbbrev];
   if (!timeZone) return null;
-  return new Date(iso).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone,
-  });
+  let format = localTimeFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone,
+    });
+    localTimeFormats.set(timeZone, format);
+  }
+  return format.format(new Date(iso));
 }
 
 // Un match est considéré "bientôt" dans les 2h qui précèdent son coup
@@ -179,11 +197,7 @@ function groupByDay(games: Game[]) {
 }
 
 function formatMonthLabel(iso: string) {
-  const label = new Date(iso).toLocaleDateString("fr-FR", {
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  });
+  const label = MONTH_LABEL_FORMAT.format(new Date(iso));
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -524,6 +538,7 @@ function MagnusSchedule({
 }
 
 export default async function MatchesPage() {
+  void getUnreadCount();
   // Les deux onglets ("À venir" et "Calendrier") sont désormais rendus tous
   // les deux côté serveur pour permettre un changement d'onglet coulissant
   // (via SlidingTabs) sans rechargement ni état de chargement intermédiaire

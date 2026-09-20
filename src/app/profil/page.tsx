@@ -24,6 +24,7 @@ import {
   deleteAccount,
 } from "./actions";
 import TopBar from "@/components/TopBar";
+import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import StanleyCupPicker from "@/components/StanleyCupPicker";
@@ -52,6 +53,7 @@ function formatLockCountdown(lockAt: string): string {
 }
 
 export default async function ProfilPage() {
+  void getUnreadCount();
   const supabase = await createClient();
   const user = await getCurrentUser();
 
