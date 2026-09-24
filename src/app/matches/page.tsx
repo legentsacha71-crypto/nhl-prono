@@ -545,6 +545,20 @@ export default async function MatchesPage() {
   // — même approche que ProfileTabs sur la page profil. Aucune de ces
   // sources de données (NHL + Ligue Magnus) ne dépend d'une autre : on les
   // lance toutes en parallèle.
+  //
+  // .catch() sur chaque source plutôt qu'un seul try/catch autour du
+  // Promise.all : le 22/09/2026, pendant les 6 matchs Ligue Magnus en
+  // direct, liguemagnus.com (leur propre site, pas le nôtre) a eu des
+  // erreurs de connexion sous la charge de tout le monde qui suivait les
+  // scores en même temps — voir le commentaire sur getGameResult dans
+  // magnusResults.ts pour un autre exemple. Sans ce filet, une simple panne
+  // passagère d'une des deux compétitions faisait planter le rendu et
+  // rendait tout l'onglet Matchs inaccessible (aucun error.tsx n'existait
+  // pour rattraper le Promise.all qui rejetait). Une source en panne
+  // retombe maintenant sur une valeur vide : l'autre compétition reste
+  // utilisable, et les aperçus de points (getWinPointsPreview) s'effacent
+  // proprement plutôt que de planter (Number.isFinite garde déjà contre un
+  // Map vide, voir plus haut).
   const [
     games,
     teamStats,
@@ -554,13 +568,13 @@ export default async function MatchesPage() {
     magnusStats,
     nhlSeasonStartDate,
   ] = await Promise.all([
-    getUpcomingGames(),
-    getTeamStats(),
-    getSeasonSchedule(),
-    getMagnusUpcomingGames(),
-    getMagnusSeasonSchedule(),
-    getMagnusTeamStats(),
-    getRegularSeasonStartDate(),
+    getUpcomingGames().catch(() => []),
+    getTeamStats().catch(() => new Map<string, TeamStats>()),
+    getSeasonSchedule().catch(() => []),
+    getMagnusUpcomingGames().catch(() => []),
+    getMagnusSeasonSchedule().catch(() => []),
+    getMagnusTeamStats().catch(() => new Map<string, TeamStats>()),
+    getRegularSeasonStartDate().catch(() => null),
   ]);
   const leagueAvgGoals = getLeagueAverageGoals(teamStats);
   const magnusLeagueAvgGoals = getMagnusLeagueAverageGoals(magnusStats);
