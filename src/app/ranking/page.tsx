@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
-import { getLeagueRankings, type RankingEntry } from "@/lib/ranking";
+import {
+  getLeagueRankingsWithWeekly,
+  weekWinners,
+  type RankingEntry,
+} from "@/lib/ranking";
+import { formatWeekRange } from "@/lib/rankingWeek";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 import LeagueSwitch from "@/components/LeagueSwitch";
+import SlidingTabs from "@/components/SlidingTabs";
 
 // Style du podium des 3 premiers : placement explicite en grille (colonne
 // 2 = 1er, 1 = 2e, 3 = 3e) plutôt que l'ordre du tableau, pour garder le 1er
@@ -47,14 +53,16 @@ const PODIUM_STYLES = [
 function RankingBoard({
   ranking,
   currentUserId,
+  emptyMessage = "Aucun point attribué pour le moment.",
 }: {
   ranking: RankingEntry[];
   currentUserId?: string;
+  emptyMessage?: string;
 }) {
   if (ranking.length === 0) {
     return (
       <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-        Aucun point attribué pour le moment.
+        {emptyMessage}
       </p>
     );
   }
@@ -82,7 +90,7 @@ function RankingBoard({
                 <RankAvatar
                   avatarUrl={entry.avatarUrl}
                   username={entry.username}
-                  points={entry.totalPoints}
+                  points={entry.ringPoints ?? entry.totalPoints}
                   size={style.avatarSize}
                 />
                 <span className="max-w-full truncate text-sm font-semibold text-white">
@@ -142,13 +150,73 @@ function RankingBoard({
   );
 }
 
+// Onglets "Général" / "Semaine" d'une compétition : le classement de la
+// semaine (lundi-dimanche, heure de Paris) redonne leur chance aux joueurs
+// arrivés en cours de saison, et rappelle qui a gagné la semaine dernière.
+function CompetitionRanking({
+  general,
+  week,
+  lastWeek,
+  weekLabel,
+  currentUserId,
+}: {
+  general: RankingEntry[];
+  week: RankingEntry[];
+  lastWeek: RankingEntry[];
+  weekLabel: string;
+  currentUserId?: string;
+}) {
+  const winners = weekWinners(lastWeek);
+
+  return (
+    <SlidingTabs
+      tabs={[
+        {
+          key: "general",
+          label: "Général",
+          content: (
+            <RankingBoard ranking={general} currentUserId={currentUserId} />
+          ),
+        },
+        {
+          key: "semaine",
+          label: "📅 Cette semaine",
+          content: (
+            <div className="space-y-4">
+              <p className="text-center text-xs text-neutral-500">
+                Points des matchs du {weekLabel}
+              </p>
+              {winners.length > 0 && (
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center text-sm text-amber-200">
+                  🏅 Vainqueur{winners.length > 1 ? "s" : ""} de la semaine
+                  dernière :{" "}
+                  <span className="font-semibold">
+                    {winners.map((w) => w.username).join(", ")}
+                  </span>{" "}
+                  ({winners[0].totalPoints} pts)
+                </p>
+              )}
+              <RankingBoard
+                ranking={week}
+                currentUserId={currentUserId}
+                emptyMessage="Personne n'a encore marqué de points cette semaine."
+              />
+            </div>
+          ),
+        },
+      ]}
+    />
+  );
+}
+
 export default async function RankingPage() {
   void getUnreadCount();
   const supabase = await createClient();
-  const [user, { nhl, magnus }] = await Promise.all([
+  const [user, { general, week, lastWeek, weekBounds }] = await Promise.all([
     getCurrentUser(),
-    getLeagueRankings(supabase),
+    getLeagueRankingsWithWeekly(supabase),
   ]);
+  const weekLabel = formatWeekRange(weekBounds);
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
@@ -167,9 +235,23 @@ export default async function RankingPage() {
         </div>
 
         <LeagueSwitch
-          nhlContent={<RankingBoard ranking={nhl} currentUserId={user?.id} />}
+          nhlContent={
+            <CompetitionRanking
+              general={general.nhl}
+              week={week.nhl}
+              lastWeek={lastWeek.nhl}
+              weekLabel={weekLabel}
+              currentUserId={user?.id}
+            />
+          }
           magnusContent={
-            <RankingBoard ranking={magnus} currentUserId={user?.id} />
+            <CompetitionRanking
+              general={general.magnus}
+              week={week.magnus}
+              lastWeek={lastWeek.magnus}
+              weekLabel={weekLabel}
+              currentUserId={user?.id}
+            />
           }
         />
       </div>
