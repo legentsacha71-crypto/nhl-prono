@@ -6,6 +6,8 @@ import { getRegularSeasonStartDate } from "@/lib/nhl";
 import { isMagnusGameId } from "@/lib/competition";
 import { signout } from "@/app/login/actions";
 import TopBar from "@/components/TopBar";
+import HomeMenu from "@/components/HomeMenu";
+import { updateUsername, deleteAccount } from "@/app/profil/actions";
 import { getUnreadCount } from "@/lib/unreadCount";
 import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
@@ -71,7 +73,17 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6 pt-28 pb-24">
-      <TopBar />
+      <TopBar
+        menu={
+          user && profile?.username ? (
+            <HomeMenu
+              username={profile.username}
+              updateUsername={updateUsername}
+              deleteAccount={deleteAccount}
+            />
+          ) : undefined
+        }
+      />
       <div className="text-center">
         <Logo size="lg" className="justify-center" />
         <p className="mt-2 text-neutral-400">

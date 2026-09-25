@@ -1,19 +1,24 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getUnreadCount } from "@/lib/unreadCount";
 import Logo from "@/components/Logo";
 
-export default async function TopBar() {
+// `menu` : bouton affiché à gauche du logo (le menu de l'accueil).
+export default async function TopBar({ menu }: { menu?: ReactNode } = {}) {
   const unreadCount = await getUnreadCount();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-neutral-800 bg-neutral-900/95 shadow-[0_4px_20px_rgba(0,0,0,0.35)] backdrop-blur pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-2">
-        <Link
-          href="/"
-          className="flex items-center gap-2 transition-opacity hover:opacity-80"
-        >
-          <Logo size="sm" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {menu}
+          <Link
+            href="/"
+            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+          >
+            <Logo size="sm" />
+          </Link>
+        </div>
 
         <div className="flex items-center gap-4">
           <Link

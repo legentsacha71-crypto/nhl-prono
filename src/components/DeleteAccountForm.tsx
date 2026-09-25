@@ -5,6 +5,11 @@ import SubmitButton from "./SubmitButton";
 
 type DeleteAccountFormProps = {
   deleteAccount: () => Promise<void>;
+  // Dans le menu de l'accueil, la section est déjà ouverte par l'entrée
+  // "Supprimer mon compte" : on saute le lien intermédiaire, et "Annuler"
+  // referme la section au lieu de revenir à ce lien.
+  startExpanded?: boolean;
+  onCancel?: () => void;
 };
 
 const CONFIRM_WORD = "SUPPRIMER";
@@ -14,8 +19,10 @@ const CONFIRM_WORD = "SUPPRIMER";
 // clic, pour éviter les suppressions accidentelles.
 export default function DeleteAccountForm({
   deleteAccount,
+  startExpanded = false,
+  onCancel,
 }: DeleteAccountFormProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(startExpanded);
   const [confirmText, setConfirmText] = useState("");
 
   if (!expanded) {
@@ -42,13 +49,13 @@ export default function DeleteAccountForm({
         </span>{" "}
         pour confirmer.
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input
           type="text"
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
           placeholder={CONFIRM_WORD}
-          className="min-w-0 flex-1 rounded-md border border-red-900 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-600 transition-colors focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+          className="min-w-32 flex-1 rounded-md border border-red-900 bg-neutral-950 p-2 text-sm text-neutral-100 placeholder:text-neutral-600 transition-colors focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/50"
         />
         <SubmitButton
           disabled={confirmText !== CONFIRM_WORD}
@@ -60,8 +67,9 @@ export default function DeleteAccountForm({
       <button
         type="button"
         onClick={() => {
-          setExpanded(false);
           setConfirmText("");
+          if (onCancel) onCancel();
+          else setExpanded(false);
         }}
         className="text-xs text-neutral-500 transition-all duration-150 hover:text-neutral-300 active:scale-[0.97]"
       >
