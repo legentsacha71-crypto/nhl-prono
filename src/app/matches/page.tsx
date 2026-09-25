@@ -135,7 +135,7 @@ function MatchAccentBar({
     <div
       className="h-1.5 w-full"
       style={{
-        background: `linear-gradient(90deg, ${away.primary}, ${home.primary})`,
+        background: `linear-gradient(90deg, ${home.primary}, ${away.primary})`,
       }}
     />
   );
@@ -267,7 +267,7 @@ function toCalendarGame(game: Game): CalendarGame {
     label:
       status === "scheduled"
         ? `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`
-        : `${game.awayTeam.score ?? 0} - ${game.homeTeam.score ?? 0}`,
+        : `${game.homeTeam.score ?? 0} - ${game.awayTeam.score ?? 0}`,
     provisional: Boolean(game.isProvisional),
   };
 }
@@ -386,18 +386,6 @@ function MagnusSchedule({
                             <div className="flex items-center justify-between gap-1">
                               <div className="flex flex-1 flex-col items-center gap-1.5">
                                 <TeamBadge
-                                  abbrev={game.awayTeam.abbrev}
-                                  name={game.awayTeam.name}
-                                  size={40}
-                                  league="magnus"
-                                />
-                                <span className="text-sm font-medium text-neutral-200">
-                                  {game.awayTeam.name}
-                                </span>
-                              </div>
-                              <VsBadge />
-                              <div className="flex flex-1 flex-col items-center gap-1.5">
-                                <TeamBadge
                                   abbrev={game.homeTeam.abbrev}
                                   name={game.homeTeam.name}
                                   size={40}
@@ -407,12 +395,24 @@ function MagnusSchedule({
                                   {game.homeTeam.name}
                                 </span>
                               </div>
+                              <VsBadge />
+                              <div className="flex flex-1 flex-col items-center gap-1.5">
+                                <TeamBadge
+                                  abbrev={game.awayTeam.abbrev}
+                                  name={game.awayTeam.name}
+                                  size={40}
+                                  league="magnus"
+                                />
+                                <span className="text-sm font-medium text-neutral-200">
+                                  {game.awayTeam.name}
+                                </span>
+                              </div>
                             </div>
 
                             {isLive(game) && (
                               <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
-                                {game.awayTeam.score ?? 0} -{" "}
-                                {game.homeTeam.score ?? 0}
+                                {game.homeTeam.score ?? 0} -{" "}
+                                {game.awayTeam.score ?? 0}
                               </p>
                             )}
 
@@ -427,11 +427,11 @@ function MagnusSchedule({
                                   <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
                                     <span
                                       className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                      title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
+                                      title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
                                     >
-                                      {game.awayTeam.abbrev}{" "}
+                                      {game.homeTeam.abbrev}{" "}
                                       <span className="font-medium text-emerald-400">
-                                        {winPoints.awayPoints} pts
+                                        {winPoints.homePoints} pts
                                       </span>
                                     </span>
                                     <span
@@ -445,11 +445,11 @@ function MagnusSchedule({
                                     </span>
                                     <span
                                       className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                      title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
+                                      title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
                                     >
-                                      {game.homeTeam.abbrev}{" "}
+                                      {game.awayTeam.abbrev}{" "}
                                       <span className="font-medium text-emerald-400">
-                                        {winPoints.homePoints} pts
+                                        {winPoints.awayPoints} pts
                                       </span>
                                     </span>
                                   </div>
@@ -739,17 +739,6 @@ export default async function MatchesPage() {
                                     <div className="flex items-center justify-between gap-1">
                                       <div className="flex flex-1 flex-col items-center gap-1.5">
                                         <TeamBadge
-                                          abbrev={game.awayTeam.abbrev}
-                                          name={game.awayTeam.name}
-                                          size={40}
-                                        />
-                                        <span className="text-sm font-medium text-neutral-200">
-                                          {game.awayTeam.name}
-                                        </span>
-                                      </div>
-                                      <VsBadge />
-                                      <div className="flex flex-1 flex-col items-center gap-1.5">
-                                        <TeamBadge
                                           abbrev={game.homeTeam.abbrev}
                                           name={game.homeTeam.name}
                                           size={40}
@@ -758,12 +747,23 @@ export default async function MatchesPage() {
                                           {game.homeTeam.name}
                                         </span>
                                       </div>
+                                      <VsBadge />
+                                      <div className="flex flex-1 flex-col items-center gap-1.5">
+                                        <TeamBadge
+                                          abbrev={game.awayTeam.abbrev}
+                                          name={game.awayTeam.name}
+                                          size={40}
+                                        />
+                                        <span className="text-sm font-medium text-neutral-200">
+                                          {game.awayTeam.name}
+                                        </span>
+                                      </div>
                                     </div>
 
                                     {isLive(game) && (
                                       <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
-                                        {game.awayTeam.score ?? 0} -{" "}
-                                        {game.homeTeam.score ?? 0}
+                                        {game.homeTeam.score ?? 0} -{" "}
+                                        {game.awayTeam.score ?? 0}
                                       </p>
                                     )}
 
@@ -771,11 +771,11 @@ export default async function MatchesPage() {
                                       <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
                                         <span
                                           className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                          title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
+                                          title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
                                         >
-                                          {game.awayTeam.abbrev}{" "}
+                                          {game.homeTeam.abbrev}{" "}
                                           <span className="font-medium text-emerald-400">
-                                            {winPoints.awayPoints} pts
+                                            {winPoints.homePoints} pts
                                           </span>
                                         </span>
                                         <span
@@ -789,11 +789,11 @@ export default async function MatchesPage() {
                                         </span>
                                         <span
                                           className="rounded-full bg-neutral-800 px-2 py-0.5 text-neutral-400"
-                                          title={`Probabilité de victoire ${game.homeTeam.abbrev} : ${Math.round(winPoints.homeWinProbability * 100)}%`}
+                                          title={`Probabilité de victoire ${game.awayTeam.abbrev} : ${Math.round(winPoints.awayWinProbability * 100)}%`}
                                         >
-                                          {game.homeTeam.abbrev}{" "}
+                                          {game.awayTeam.abbrev}{" "}
                                           <span className="font-medium text-emerald-400">
-                                            {winPoints.homePoints} pts
+                                            {winPoints.awayPoints} pts
                                           </span>
                                         </span>
                                       </div>

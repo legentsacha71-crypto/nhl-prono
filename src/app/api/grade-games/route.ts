@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
         await supabase.from("notifications").insert({
           user_id: prediction.user_id,
-          message: `${result.awayAbbrev} @ ${result.homeAbbrev} : tu as gagné ${points} points${suffix}.`,
+          message: `${result.homeAbbrev} – ${result.awayAbbrev} : tu as gagné ${points} points${suffix}.`,
         });
 
         // Notif push dédiée, en plus de la notif in-app ci-dessus, dès
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
         if (isExactScore) {
           await sendPushToUser(prediction.user_id, {
             title: "WOOWW SCORE EXACT 🔥",
-            body: `${result.awayAbbrev} @ ${result.homeAbbrev} : ${prediction.away_score}-${prediction.home_score}, ${points} points !`,
+            body: `${result.homeAbbrev} – ${result.awayAbbrev} : ${prediction.home_score}-${prediction.away_score}, ${points} points !`,
           });
         }
 

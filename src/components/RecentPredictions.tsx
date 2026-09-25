@@ -175,27 +175,27 @@ function PredictionRowView({ item }: { item: RecentPrediction }) {
     <li className={`${COLUMNS} py-2.5`}>
       {result ? (
         <div className="flex flex-col gap-1.5">
-          <TeamLine abbrev={result.awayAbbrev} league={league} won={awayWon} />
           <TeamLine abbrev={result.homeAbbrev} league={league} won={homeWon} />
+          <TeamLine abbrev={result.awayAbbrev} league={league} won={awayWon} />
         </div>
       ) : (
         <span className="text-[13px] text-neutral-400">Match #{item.gameId}</span>
       )}
 
       <div className="flex flex-col items-center gap-1.5 font-display text-xl leading-6">
-        <span className={awayWon ? "text-neutral-50" : "text-neutral-500"}>
-          {result ? result.regulationAwayScore : "–"}
-        </span>
         <span className={homeWon ? "text-neutral-50" : "text-neutral-500"}>
           {result ? result.regulationHomeScore : "–"}
+        </span>
+        <span className={awayWon ? "text-neutral-50" : "text-neutral-500"}>
+          {result ? result.regulationAwayScore : "–"}
         </span>
       </div>
 
       <div
         className={`flex flex-col items-center gap-1.5 text-sm leading-6 tabular-nums ${predictionTone}`}
       >
-        <span>{item.predictedAway}</span>
         <span>{item.predictedHome}</span>
+        <span>{item.predictedAway}</span>
       </div>
 
       <div className="text-right">

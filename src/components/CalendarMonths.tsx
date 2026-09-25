@@ -85,11 +85,11 @@ function MonthDetails({
                   >
                     <div className="flex flex-1 items-center justify-end gap-1.5 text-right">
                       <span className="truncate text-neutral-300">
-                        {game.awayAbbrev}
+                        {game.homeAbbrev}
                       </span>
                       <TeamBadge
-                        abbrev={game.awayAbbrev}
-                        name={game.awayName}
+                        abbrev={game.homeAbbrev}
+                        name={game.homeName}
                         size={22}
                         league={league}
                       />
@@ -97,13 +97,13 @@ function MonthDetails({
                     <ScoreCell game={game} />
                     <div className="flex flex-1 items-center gap-1.5">
                       <TeamBadge
-                        abbrev={game.homeAbbrev}
-                        name={game.homeName}
+                        abbrev={game.awayAbbrev}
+                        name={game.awayName}
                         size={22}
                         league={league}
                       />
                       <span className="truncate text-neutral-300">
-                        {game.homeAbbrev}
+                        {game.awayAbbrev}
                       </span>
                     </div>
                   </li>

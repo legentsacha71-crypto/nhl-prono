@@ -127,27 +127,6 @@ export default function PredictionForm({
       <div className="flex items-end gap-3">
         <div className="flex flex-col items-center">
           <label
-            htmlFor={`away-${gameId}`}
-            className="text-xs text-neutral-500"
-          >
-            {awayAbbrev}
-          </label>
-          <input
-            id={`away-${gameId}`}
-            type="number"
-            min={0}
-            disabled={locked}
-            value={awayScore}
-            onChange={(e) => {
-              setAwayScore(e.target.value);
-              scheduleSave(e.target.value, homeScore);
-            }}
-            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
-          />
-        </div>
-        <span className="pb-2 text-sm text-neutral-600">-</span>
-        <div className="flex flex-col items-center">
-          <label
             htmlFor={`home-${gameId}`}
             className="text-xs text-neutral-500"
           >
@@ -162,6 +141,27 @@ export default function PredictionForm({
             onChange={(e) => {
               setHomeScore(e.target.value);
               scheduleSave(awayScore, e.target.value);
+            }}
+            className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
+          />
+        </div>
+        <span className="pb-2 text-sm text-neutral-600">-</span>
+        <div className="flex flex-col items-center">
+          <label
+            htmlFor={`away-${gameId}`}
+            className="text-xs text-neutral-500"
+          >
+            {awayAbbrev}
+          </label>
+          <input
+            id={`away-${gameId}`}
+            type="number"
+            min={0}
+            disabled={locked}
+            value={awayScore}
+            onChange={(e) => {
+              setAwayScore(e.target.value);
+              scheduleSave(e.target.value, homeScore);
             }}
             className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
           />
