@@ -374,6 +374,7 @@ export default async function ProfilPage() {
                       >
                         <Link
                           href={`/profil/${f.friendId}`}
+                          prefetch={false}
                           className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
                         >
                           {f.username}

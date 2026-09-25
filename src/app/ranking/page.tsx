@@ -73,6 +73,7 @@ function RankingBoard({
               <Link
                 key={entry.userId}
                 href={`/profil/${entry.userId}`}
+                prefetch={false}
                 className={`flex ${style.place} ${style.height} min-w-0 flex-col items-center justify-end gap-1.5 rounded-2xl border px-2 pb-3 pt-6 transition-transform duration-200 hover:scale-[1.02] ${style.card} ${
                   isMe ? "ring-1 ring-sky-500/50" : ""
                 }`}
@@ -112,6 +113,7 @@ function RankingBoard({
               >
                 <Link
                   href={`/profil/${entry.userId}`}
+                  prefetch={false}
                   className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
                 >
                   <span className="mr-2 w-6 text-center font-display text-base text-neutral-500">

@@ -54,6 +54,7 @@ export default async function LeagueDetailPage({
             >
               <Link
                 href={`/profil/${entry.userId}`}
+                prefetch={false}
                 className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
               >
                 <span className="mr-2 text-sm text-neutral-500">
