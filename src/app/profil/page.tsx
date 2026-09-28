@@ -25,7 +25,6 @@ import {
 } from "./actions";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import StanleyCupPicker from "@/components/StanleyCupPicker";
 import TopScorerPicker from "@/components/TopScorerPicker";
@@ -64,7 +63,6 @@ export default async function ProfilPage() {
         <p className="text-center text-neutral-400">
           Connecte-toi pour voir ton profil.
         </p>
-        <BottomNav />
       </div>
     );
   }
@@ -540,7 +538,6 @@ export default async function ProfilPage() {
         />
       </div>
 
-      <BottomNav />
     </div>
   );
 }

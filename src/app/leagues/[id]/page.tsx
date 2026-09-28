@@ -4,7 +4,6 @@ import { createClient } from "@/utils/supabase/server";
 import { getRanking } from "@/lib/ranking";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 
 export default async function LeagueDetailPage({
@@ -80,7 +79,6 @@ export default async function LeagueDetailPage({
         </p>
       </div>
 
-      <BottomNav />
     </div>
   );
 }

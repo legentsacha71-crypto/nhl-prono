@@ -25,7 +25,6 @@ import { getCurrentUser } from "@/utils/supabase/user";
 import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
 import SlidingTabs from "@/components/SlidingTabs";
@@ -882,7 +881,6 @@ export default async function MatchesPage() {
         />
       </div>
 
-      <BottomNav />
     </div>
   );
 }

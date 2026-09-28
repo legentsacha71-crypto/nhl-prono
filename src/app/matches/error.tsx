@@ -1,6 +1,5 @@
 "use client";
 
-import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 
 // Filet de sécurité pour tout ce qui échapperait encore au .catch() posé sur
@@ -32,7 +31,6 @@ export default function MatchesError({
       >
         Réessayer
       </button>
-      <BottomNav />
     </div>
   );
 }

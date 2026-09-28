@@ -9,7 +9,6 @@ import {
 import { formatWeekRange } from "@/lib/rankingWeek";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import RankAvatar from "@/components/RankAvatar";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import SlidingTabs from "@/components/SlidingTabs";
@@ -255,7 +254,6 @@ export default async function RankingPage() {
           }
         />
       </div>
-      <BottomNav />
     </div>
   );
 }

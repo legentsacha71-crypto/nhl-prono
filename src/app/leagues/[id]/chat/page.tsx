@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/utils/supabase/user";
 import { sendMessage } from "./actions";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import SubmitButton from "@/components/SubmitButton";
 
 function formatTime(iso: string) {
@@ -117,7 +116,6 @@ export default async function LeagueChatPage({
         </form>
       </div>
 
-      <BottomNav />
     </div>
   );
 }

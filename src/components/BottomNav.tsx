@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,6 +17,21 @@ const items = [
   { href: "/profil", label: "Profil", icon: "👤" },
 ];
 
+// Pages sans barre du bas : connexion, inscription, et les deux pages
+// publiques fournies à Apple/Google (accessibles sans compte).
+const HIDDEN_ON = ["/login", "/signup", "/confidentialite", "/assistance"];
+
+function activeIndex(path: string) {
+  return items.findIndex((item) =>
+    item.href === "/" ? path === "/" : path.startsWith(item.href),
+  );
+}
+
+// Barre "liquid" : l'onglet actif monte dans un cercle qui dépasse de la
+// barre, dans une encoche découpée dans la barre (voir .nav-liquid-* dans
+// globals.css), et les deux glissent d'un onglet à l'autre. Rendue une seule
+// fois dans le layout racine : si chaque page avait la sienne, elle serait
+// recréée à chaque navigation et le cercle sauterait au lieu de glisser.
 export default function BottomNav() {
   const pathname = usePathname();
   const pendingHref = useSyncExternalStore(
@@ -24,49 +39,66 @@ export default function BottomNav() {
     getPendingHref,
     () => null,
   );
-  // L'onglet touché s'allume tout de suite, sans attendre l'arrivée de la page.
-  const currentPath = pendingHref ?? pathname;
+
+  if (HIDDEN_ON.some((prefix) => pathname.startsWith(prefix))) return null;
+
+  // L'onglet touché s'allume (et le cercle part) tout de suite, sans attendre
+  // l'arrivée de la page.
+  const current = activeIndex(pendingHref ?? pathname);
 
   // Dans cette version de Next.js, <Link> conserve la position de scroll par
   // défaut (au lieu de remonter en haut) tant que la page cible reste dans
   // le viewport — voir node_modules/next/dist/docs/.../components/link.md,
-  // section "Disable scrolling to the top of the page". Comme le contenu
-  // défile souvent peu (SPA à onglets en bas d'écran), ce cas se déclenche
-  // sans arrêt. On force donc explicitement le retour en haut au clic, pour
-  // le comportement attendu d'une appli mobile (chaque onglet repart du
-  // début).
+  // section "Disable scrolling to the top of the page". On force donc le
+  // retour en haut au clic, comme dans une appli mobile.
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-neutral-800 bg-neutral-900/95 shadow-[0_-4px_20px_rgba(0,0,0,0.35)] backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto flex max-w-md items-stretch justify-between">
-        {items.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? currentPath === "/"
-              : currentPath.startsWith(item.href);
+    <nav
+      className="nav-liquid fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)]"
+      style={{ "--nav-i": Math.max(current, 0) } as CSSProperties}
+    >
+      <div
+        aria-hidden="true"
+        data-notch={current !== -1}
+        className="nav-liquid-bar absolute inset-0 border-t border-neutral-800 bg-neutral-900"
+      />
+      <ul className="relative mx-auto flex h-16 max-w-md">
+        <li
+          aria-hidden="true"
+          className={`nav-liquid-indicator pointer-events-none bg-sky-500 shadow-[0_4px_14px_rgba(14,165,233,0.45)] transition-opacity duration-300 ${
+            current === -1 ? "opacity-0" : "opacity-100"
+          }`}
+        />
+
+        {items.map((item, index) => {
+          const isActive = index === current;
           return (
-            <li key={item.href} className="flex-1">
+            <li key={item.href} className="relative z-10 flex-1">
               <Link
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                   if (item.href !== pathname) setPendingHref(item.href);
                 }}
-                className={`group flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors duration-200 ${
-                  isActive
-                    ? "text-sky-400"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
+                className="relative flex h-16 flex-col items-center justify-center"
               >
                 <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none transition-all duration-200 ${
-                    isActive
-                      ? "scale-110 bg-sky-500/15 shadow-[0_0_12px_rgba(56,189,248,0.25)]"
-                      : "scale-100 group-hover:bg-neutral-800/60"
+                  aria-hidden="true"
+                  className={`flex h-8 w-8 items-center justify-center text-2xl leading-none transition-[transform,opacity] duration-500 motion-reduce:transition-none ${
+                    isActive ? "-translate-y-8 opacity-100" : "opacity-60"
                   }`}
                 >
                   {item.icon}
                 </span>
-                {item.label}
+                <span
+                  className={`absolute bottom-1.5 text-[11px] font-medium text-sky-400 transition-[transform,opacity] duration-500 motion-reduce:transition-none ${
+                    isActive
+                      ? "translate-y-0 opacity-100"
+                      : "translate-y-2 opacity-0"
+                  }`}
+                >
+                  {item.label}
+                </span>
               </Link>
             </li>
           );

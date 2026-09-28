@@ -3,7 +3,6 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { respondToFriendRequest } from "@/app/profil/actions";
 import TopBar from "@/components/TopBar";
-import BottomNav from "@/components/BottomNav";
 import FriendRequestActions from "@/components/FriendRequestActions";
 
 function formatTime(iso: string) {
@@ -112,7 +111,6 @@ export default async function NotificationsPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

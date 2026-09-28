@@ -12,7 +12,6 @@ import RingInfoBadge from "@/components/RingInfoBadge";
 import TeamBadge from "@/components/TeamBadge";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import ProfileTabs from "@/components/ProfileTabs";
 import PlayerStatsSummary from "@/components/PlayerStatsSummary";
 import ProfileSection from "@/components/ProfileSection";
@@ -45,7 +44,6 @@ export default async function PlayerProfilePage({
         <p className="text-center text-neutral-400">
           Connecte-toi pour voir ce profil.
         </p>
-        <BottomNav />
       </div>
     );
   }
@@ -297,7 +295,6 @@ export default async function PlayerProfilePage({
         />
       </div>
 
-      <BottomNav />
     </div>
   );
 }

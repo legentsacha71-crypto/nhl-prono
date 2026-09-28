@@ -9,7 +9,6 @@ import TopBar from "@/components/TopBar";
 import HomeMenu from "@/components/HomeMenu";
 import { updateUsername, deleteAccount } from "@/app/profil/actions";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import SeasonCountdown from "@/components/SeasonCountdown";
 import Logo from "@/components/Logo";
 import RulesCard from "@/components/RulesCard";
@@ -171,7 +170,6 @@ export default async function Home() {
         </SubmitButton>
       </form>
 
-      <BottomNav />
     </div>
   );
 }

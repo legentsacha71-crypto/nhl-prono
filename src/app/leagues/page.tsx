@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/utils/supabase/user";
 import { createLeague, joinLeague } from "./actions";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import BottomNav from "@/components/BottomNav";
 import SubmitButton from "@/components/SubmitButton";
 
 export default async function LeaguesPage({
@@ -161,7 +160,6 @@ export default async function LeaguesPage({
         </div>
       </div>
 
-      <BottomNav />
     </div>
   );
 }
