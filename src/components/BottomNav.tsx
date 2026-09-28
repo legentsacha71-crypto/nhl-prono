@@ -3,6 +3,9 @@
 import { useSyncExternalStore, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { House, Trophy, User, Users } from "lucide-react";
+import HockeyStick from "@/components/icons/HockeyStick";
+import { isPublicPath } from "@/lib/publicPaths";
 import {
   getPendingHref,
   setPendingHref,
@@ -10,16 +13,12 @@ import {
 } from "@/lib/navigationPending";
 
 const items = [
-  { href: "/", label: "Accueil", icon: "🏠" },
-  { href: "/matches", label: "Matchs", icon: "🏒" },
-  { href: "/leagues", label: "Ligues", icon: "👥" },
-  { href: "/ranking", label: "Classement", icon: "🏆" },
-  { href: "/profil", label: "Profil", icon: "👤" },
+  { href: "/", label: "Accueil", Icon: House },
+  { href: "/matches", label: "Matchs", Icon: HockeyStick },
+  { href: "/leagues", label: "Ligues", Icon: Users },
+  { href: "/ranking", label: "Classement", Icon: Trophy },
+  { href: "/profil", label: "Profil", Icon: User },
 ];
-
-// Pages sans barre du bas : connexion, inscription, et les deux pages
-// publiques fournies à Apple/Google (accessibles sans compte).
-const HIDDEN_ON = ["/login", "/signup", "/confidentialite", "/assistance"];
 
 function activeIndex(path: string) {
   return items.findIndex((item) =>
@@ -40,7 +39,7 @@ export default function BottomNav() {
     () => null,
   );
 
-  if (HIDDEN_ON.some((prefix) => pathname.startsWith(prefix))) return null;
+  if (isPublicPath(pathname)) return null;
 
   // L'onglet touché s'allume (et le cercle part) tout de suite, sans attendre
   // l'arrivée de la page.
@@ -84,11 +83,13 @@ export default function BottomNav() {
               >
                 <span
                   aria-hidden="true"
-                  className={`flex h-8 w-8 items-center justify-center text-2xl leading-none transition-[transform,opacity] duration-500 motion-reduce:transition-none ${
-                    isActive ? "-translate-y-8 opacity-100" : "opacity-60"
+                  className={`flex h-8 w-8 items-center justify-center transition-[transform,color] duration-500 motion-reduce:transition-none ${
+                    isActive
+                      ? "-translate-y-8 text-white"
+                      : "text-neutral-400 hover:text-neutral-200"
                   }`}
                 >
-                  {item.icon}
+                  <item.Icon size={22} strokeWidth={isActive ? 2.25 : 2} />
                 </span>
                 <span
                   className={`absolute bottom-1.5 text-[11px] font-medium text-sky-400 transition-[transform,opacity] duration-500 motion-reduce:transition-none ${

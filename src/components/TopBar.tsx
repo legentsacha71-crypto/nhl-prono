@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Bell, MessageCircle } from "lucide-react";
 import { getUnreadCount } from "@/lib/unreadCount";
 import Logo from "@/components/Logo";
 
@@ -23,17 +24,17 @@ export default async function TopBar({ menu }: { menu?: ReactNode } = {}) {
         <div className="flex items-center gap-4">
           <Link
             href="/chat"
-            className="text-xl leading-none text-neutral-300 transition-colors hover:text-sky-400"
+            className="text-neutral-300 transition-colors hover:text-sky-400"
             aria-label="Chat"
           >
-            💬
+            <MessageCircle size={22} aria-hidden="true" />
           </Link>
           <Link
             href="/notifications"
-            className="relative text-xl leading-none text-neutral-300 transition-colors hover:text-sky-400"
+            className="relative text-neutral-300 transition-colors hover:text-sky-400"
             aria-label="Notifications"
           >
-            🔔
+            <Bell size={22} aria-hidden="true" />
             {unreadCount > 0 && (
               <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-medium text-white shadow-md shadow-red-950/60">
                 {unreadCount > 9 ? "9+" : unreadCount}

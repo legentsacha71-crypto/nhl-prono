@@ -70,9 +70,46 @@ body {
   mask-repeat: no-repeat;
 }
 
+/* Bandeau des nouveaux points (PointsToast) : glisse depuis le haut avec un
+   léger rebond, remonte en sortant. */
+@keyframes toast-in {
+  from {
+    transform: translateY(calc(-100% - 1.5rem));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(calc(-100% - 1.5rem));
+    opacity: 0;
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 550ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.animate-toast-out {
+  animation: toast-out 300ms ease-in both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav-liquid {
     transition: none;
+  }
+
+  .animate-toast-in,
+  .animate-toast-out {
+    animation-duration: 1ms;
   }
 }
 

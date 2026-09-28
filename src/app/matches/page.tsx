@@ -24,6 +24,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { toggleBoost } from "./actions";
 import TopBar from "@/components/TopBar";
+import { CalendarDays } from "lucide-react";
 import { getUnreadCount } from "@/lib/unreadCount";
 import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
@@ -518,7 +519,12 @@ function MagnusSchedule({
         },
         {
           key: "calendrier",
-          label: "📅 Calendrier",
+          label: (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays size={16} aria-hidden="true" />
+              Calendrier
+            </span>
+          ),
           content: (
             <div className="space-y-4">
               {seasonGames.length === 0 && (
@@ -861,7 +867,12 @@ export default async function MatchesPage() {
                 },
                 {
                   key: "calendrier",
-                  label: "📅 Calendrier",
+                  label: (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays size={16} aria-hidden="true" />
+              Calendrier
+            </span>
+          ),
                   content: (
                     <div className="space-y-4">
                       {seasonGames.length === 0 && (

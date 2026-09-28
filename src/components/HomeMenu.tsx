@@ -10,6 +10,15 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import {
+  BookOpen,
+  ChevronRight,
+  Menu,
+  PencilLine,
+  Trash2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { RulesList } from "@/components/RulesCard";
 import DeleteAccountForm from "@/components/DeleteAccountForm";
 
@@ -25,7 +34,7 @@ const noopSubscribe = () => () => {};
 
 function MenuSection({
   id,
-  icon,
+  icon: Icon,
   title,
   open,
   onToggle,
@@ -33,7 +42,7 @@ function MenuSection({
   children,
 }: {
   id: string;
-  icon: string;
+  icon: LucideIcon;
   title: string;
   open: boolean;
   onToggle: () => void;
@@ -51,18 +60,15 @@ function MenuSection({
           danger ? "text-red-400" : "text-neutral-100"
         }`}
       >
-        <span className="text-lg leading-none" aria-hidden="true">
-          {icon}
-        </span>
+        <Icon size={20} aria-hidden="true" className="shrink-0" />
         <span className="flex-1">{title}</span>
-        <span
+        <ChevronRight
+          size={18}
           aria-hidden="true"
-          className={`text-neutral-500 transition-transform duration-200 ${
+          className={`shrink-0 text-neutral-500 transition-transform duration-200 ${
             open ? "rotate-90" : ""
           }`}
-        >
-          ›
-        </span>
+        />
       </button>
       {open && (
         <div id={id} className="px-5 pb-5">
@@ -221,16 +227,16 @@ export default function HomeMenu({
             type="button"
             onClick={close}
             aria-label="Fermer le menu"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-100"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-100"
           >
-            ✕
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           <MenuSection
             id={`${baseId}-rules`}
-            icon="📖"
+            icon={BookOpen}
             title="Règles du jeu"
             open={section === "rules"}
             onToggle={() => toggle("rules")}
@@ -240,7 +246,7 @@ export default function HomeMenu({
 
           <MenuSection
             id={`${baseId}-username`}
-            icon="✏️"
+            icon={PencilLine}
             title="Changer mon pseudo"
             open={section === "username"}
             onToggle={() => toggle("username")}
@@ -250,7 +256,7 @@ export default function HomeMenu({
 
           <MenuSection
             id={`${baseId}-delete`}
-            icon="🗑️"
+            icon={Trash2}
             title="Supprimer mon compte"
             open={section === "delete"}
             onToggle={() => toggle("delete")}
@@ -276,11 +282,9 @@ export default function HomeMenu({
         aria-label="Ouvrir le menu"
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="-ml-1.5 flex h-9 w-9 flex-col items-center justify-center gap-[5px] rounded-md transition-colors hover:bg-neutral-800 active:scale-95"
+        className="-ml-1.5 flex h-9 w-9 items-center justify-center rounded-md text-neutral-300 transition-colors hover:bg-neutral-800 active:scale-95"
       >
-        <span className="h-0.5 w-5 rounded-full bg-neutral-300" />
-        <span className="h-0.5 w-5 rounded-full bg-neutral-300" />
-        <span className="h-0.5 w-5 rounded-full bg-neutral-300" />
+        <Menu size={22} aria-hidden="true" />
       </button>
       {isClient && createPortal(panel, document.body)}
     </>

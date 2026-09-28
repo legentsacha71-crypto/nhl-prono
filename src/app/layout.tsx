@@ -5,6 +5,7 @@ import PushRegistration from "@/components/PushRegistration";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import NavigationOverlay from "@/components/NavigationOverlay";
 import BottomNav from "@/components/BottomNav";
+import PointsToast from "@/components/PointsToast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +64,7 @@ export default function RootLayout({
         {children}
         <NavigationOverlay />
         <BottomNav />
+        <PointsToast />
       </body>
     </html>
   );

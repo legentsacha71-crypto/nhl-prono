@@ -8,6 +8,7 @@ import {
 } from "@/lib/ranking";
 import { formatWeekRange } from "@/lib/rankingWeek";
 import TopBar from "@/components/TopBar";
+import { CalendarDays } from "lucide-react";
 import { getUnreadCount } from "@/lib/unreadCount";
 import RankAvatar from "@/components/RankAvatar";
 import LeagueSwitch from "@/components/LeagueSwitch";
@@ -179,7 +180,12 @@ function CompetitionRanking({
         },
         {
           key: "semaine",
-          label: "📅 Cette semaine",
+          label: (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays size={16} aria-hidden="true" />
+              Cette semaine
+            </span>
+          ),
           content: (
             <div className="space-y-4">
               <p className="text-center text-xs text-neutral-500">
