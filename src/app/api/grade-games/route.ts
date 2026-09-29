@@ -69,6 +69,13 @@ export async function GET(request: NextRequest) {
         awayStats,
         leagueAvg,
       );
+      // Stats inexploitables (ex. 0 match joué et pas d'historique) : on
+      // laisse le match non noté pour un prochain passage plutôt que
+      // d'enregistrer et d'annoncer des points NaN.
+      if (!Number.isFinite(lambdaHome) || !Number.isFinite(lambdaAway)) {
+        console.error(`Stats d'équipe inexploitables pour le match ${gameId}`);
+        continue;
+      }
       const grid = scoreProbabilityGrid(lambdaHome, lambdaAway);
 
       const { data: predictions, error: predError } = await supabase
