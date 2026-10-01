@@ -8,6 +8,7 @@ import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
 import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import { sendPushToUser } from "@/lib/push";
 import { decodeFavoriteTeam, isValidFavoriteTeam } from "@/lib/favoriteTeam";
+import { USERNAME_MAX, USERNAME_MIN, escapeLike } from "@/lib/username";
 
 export async function updateFavoriteTeam(favoriteTeam: string | null) {
   if (favoriteTeam) {
@@ -36,15 +37,6 @@ export async function updateFavoriteTeam(favoriteTeam: string | null) {
   }
 
   revalidatePath("/profil");
-}
-
-const USERNAME_MIN = 3;
-const USERNAME_MAX = 20;
-
-// ilike traite "%" et "_" comme des jokers : on les échappe pour comparer le
-// pseudo tel quel (sinon "Zora_bgs" bloquerait aussi "ZoraXbgs").
-function escapeLike(value: string) {
-  return value.replace(/[\\%_]/g, "\\$&");
 }
 
 // Retourne l'erreur au lieu de la lancer (message masqué en production sinon).

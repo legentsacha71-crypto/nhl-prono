@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { getUpcomingGames } from "@/lib/nhl";
+import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
+import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
 import { sendPushToUser } from "@/lib/push";
 
-// Fenêtre autour de "1h avant le match" : le déclenchement externe (GitHub
-// Actions, cron toutes les ~15 min) n'appelle jamais exactement à H-60, donc
-// on élargit la cible à H-70/H-50 pour être sûr d'attraper chaque match au
-// moins une fois. La table game_reminders_sent empêche qu'un même match
+// Fenêtre autour de "1h avant le match" : le déclenchement externe (cron
+// Supabase toutes les 10 min, voir supabase/cron_jobs.sql) n'appelle jamais
+// exactement à H-60, donc on élargit la cible à H-70/H-50 pour être sûr
+// d'attraper chaque match au moins une fois. La table game_reminders_sent empêche qu'un même match
 // déclenche plusieurs rappels au même joueur si plusieurs passages du cron
 // tombent dans la fenêtre.
 const WINDOW_MIN_MS = 50 * 60 * 1000;
@@ -21,7 +22,16 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const now = Date.now();
 
-  const games = (await getUpcomingGames()).filter((g) => {
+  // NHL et Ligue Magnus. Les matchs Magnus provisoires (calendrier
+  // statique, heure estimée, pas de pronostic possible) sont exclus.
+  const [nhlGames, magnusGames] = await Promise.all([
+    getNhlUpcomingGames(),
+    getMagnusUpcomingGames(),
+  ]);
+  const games = [
+    ...nhlGames,
+    ...magnusGames.filter((g) => !g.isProvisional),
+  ].filter((g) => {
     const delta = new Date(g.startTimeUTC).getTime() - now;
     return delta >= WINDOW_MIN_MS && delta <= WINDOW_MAX_MS;
   });

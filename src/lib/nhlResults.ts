@@ -52,7 +52,10 @@ export async function getGameResult(gameId: number): Promise<GameResult> {
   }
 
   return {
-    isFinal: data.gameState === "OFF",
+    // "FINAL" arrive dès le coup de sifflet final, "OFF" (feuille de match
+    // officialisée) parfois plus d'une heure après : le score ne change plus
+    // entre les deux, on note donc dès FINAL.
+    isFinal: data.gameState === "FINAL" || data.gameState === "OFF",
     awayAbbrev: data.awayTeam.abbrev,
     homeAbbrev: data.homeTeam.abbrev,
     regulationAwayScore,

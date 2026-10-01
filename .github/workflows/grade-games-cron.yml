@@ -1,9 +1,10 @@
 name: Grade finished games
 
-# Le cron Vercel (vercel.json) ne tourne qu'1x/jour (limite du plan
-# gratuit — voir commit 247ceed). Ce workflow appelle la même route
-# toutes les 10 min pour que les points s'affichent rapidement après
-# la fin d'un match, sans dépendre d'un plan Vercel payant.
+# Secours seulement : le vrai déclencheur est le cron Supabase toutes les
+# 5 min (voir supabase/cron_jobs.sql). Programmé ici toutes les 10 min,
+# GitHub ne le lance en pratique que toutes les 3 à 5 heures. Les deux
+# peuvent se chevaucher sans risque : grade-games ne note (et n'annonce)
+# chaque pronostic qu'une fois.
 on:
   schedule:
     - cron: "*/10 * * * *"

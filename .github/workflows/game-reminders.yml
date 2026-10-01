@@ -1,5 +1,10 @@
 name: Game reminders
 
+# Secours seulement : le vrai déclencheur est le cron Supabase (voir
+# supabase/cron_jobs.sql), les crons gratuits de GitHub partant avec
+# plusieurs heures de retard. Le rappel de 13h n'est volontairement plus
+# appelé d'ici (il n'a pas de déduplication : il partirait en double).
+
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -12,8 +17,4 @@ jobs:
       - name: Call reminder endpoint
         run: |
           curl -sf -X GET "https://nhl-prono-drjd.vercel.app/api/notify-game-reminders" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-      - name: Call match-day (13h) reminder endpoint
-        run: |
-          curl -sf -X GET "https://nhl-prono-drjd.vercel.app/api/notify-match-day" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

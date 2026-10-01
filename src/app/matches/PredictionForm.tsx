@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { submitPrediction } from "./actions";
+import { MAX_PREDICTED_SCORE } from "@/lib/predictionRules";
 
 type Props = {
   gameId: number;
@@ -79,6 +80,10 @@ export default function PredictionForm({
       setStatus("idle");
       return;
     }
+    if (awayNum > MAX_PREDICTED_SCORE || homeNum > MAX_PREDICTED_SCORE) {
+      setStatus("error");
+      return;
+    }
 
     saveTimeout.current = setTimeout(async () => {
       setStatus("saving");
@@ -136,6 +141,7 @@ export default function PredictionForm({
             id={`home-${gameId}`}
             type="number"
             min={0}
+            max={MAX_PREDICTED_SCORE}
             disabled={locked}
             value={homeScore}
             onChange={(e) => {
@@ -157,6 +163,7 @@ export default function PredictionForm({
             id={`away-${gameId}`}
             type="number"
             min={0}
+            max={MAX_PREDICTED_SCORE}
             disabled={locked}
             value={awayScore}
             onChange={(e) => {

@@ -4,13 +4,12 @@ import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
 import { sendPushToUser } from "@/lib/push";
 
-// Le déclenchement externe (GitHub Actions, cron toutes les ~15 min en UTC)
-// ne tombe jamais exactement sur 13h00 heure de Paris à la minute près :
-// on élargit donc à 13h00-13h14, une seule des exécutions quotidiennes du
-// cron tombant dans cette fenêtre. Contrairement à game_reminders_sent (le
-// rappel à H-1), pas besoin de table de déduplication ici : un passage de
-// cron en retard/raté un jour donné fait juste sauter la notif ce jour-là,
-// jamais un double envoi (la fenêtre ne repasse que 24h plus tard).
+// Appelé par le cron Supabase à 11h00 et 12h00 UTC (voir
+// supabase/cron_jobs.sql) : selon l'heure d'été ou d'hiver, un seul des deux
+// appels tombe à 13h heure de Paris, l'autre est ignoré ci-dessous. La
+// fenêtre 13h00-13h14 absorbe un léger retard de déclenchement. Pas de table
+// de déduplication ici : il n'y a qu'un seul appel par jour dans la fenêtre
+// (ne pas rappeler cette route depuis un autre cron, sinon double envoi).
 const TARGET_HOUR = 13;
 const WINDOW_MINUTES = 15;
 

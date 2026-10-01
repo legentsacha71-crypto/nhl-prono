@@ -25,10 +25,17 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
 
+  // Seuls les matchs commencés depuis au moins 90 min peuvent être finis :
+  // inutile d'interroger les API pour les pronos des matchs à venir. Ça
+  // évite surtout la limite de 1000 lignes par requête de Supabase, qui
+  // aurait fait oublier des matchs terminés une fois la saison NHL remplie
+  // de pronos sur des matchs futurs.
+  const playedBefore = new Date(Date.now() - 90 * 60 * 1000).toISOString();
   const { data: ungraded, error } = await supabase
     .from("predictions")
     .select("game_id")
-    .is("points", null);
+    .is("points", null)
+    .or(`game_start_time.is.null,game_start_time.lt.${playedBefore}`);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -101,7 +108,11 @@ export async function GET(request: NextRequest) {
 
         // base_points / bonus_points : détail avant boost x2, pour que
         // l'appli affiche "45 + 10" plutôt que la seule somme.
-        const { error: updateError } = await supabase
+        // `.is("points", null)` : si un autre passage (le cron Supabase et
+        // celui de GitHub peuvent se chevaucher) vient de noter ce pronostic,
+        // la mise à jour ne touche aucune ligne et on n'envoie pas une
+        // seconde notification.
+        const { data: updated, error: updateError } = await supabase
           .from("predictions")
           .update({
             points,
@@ -109,7 +120,9 @@ export async function GET(request: NextRequest) {
             bonus_points: bonus,
             is_exact_score: isExactScore,
           })
-          .eq("id", prediction.id);
+          .eq("id", prediction.id)
+          .is("points", null)
+          .select("id");
         if (updateError) {
           console.error(
             `Erreur d'enregistrement des points (pronostic ${prediction.id}) :`,
@@ -117,6 +130,7 @@ export async function GET(request: NextRequest) {
           );
           continue;
         }
+        if (!updated || updated.length === 0) continue;
 
         const details: string[] = [];
         if (bonus > 0) {
