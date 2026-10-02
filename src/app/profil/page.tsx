@@ -47,6 +47,7 @@ function formatLockCountdown(lockAt: string): string {
   const dateLabel = new Date(lockAt).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
+    timeZone: "Europe/Paris",
   });
   return `${days} jour${days > 1 ? "s" : ""} (${dateLabel})`;
 }

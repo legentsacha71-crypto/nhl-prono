@@ -72,7 +72,17 @@ const MONTH_LABEL_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
   timeZone: "Europe/Paris",
 });
+// Date AAAA-MM-JJ à Paris, pour regrouper par jour et par mois. Le serveur
+// tourne en UTC : sans ça, un match NHL à 1h30 heure de Paris (23h30 UTC la
+// veille) atterrissait dans la journée précédente.
+const PARIS_DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Paris",
+});
 const localTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
+function parisDateKey(iso: string) {
+  return PARIS_DATE_KEY_FORMAT.format(new Date(iso));
+}
 
 function formatDayLabel(iso: string) {
   return DAY_LABEL_FORMAT.format(new Date(iso));
@@ -184,7 +194,7 @@ function getWinPointsPreview(
 function groupByDay(games: Game[]) {
   const groups = new Map<string, { label: string; games: Game[] }>();
   for (const game of games) {
-    const dayKey = new Date(game.startTimeUTC).toDateString();
+    const dayKey = parisDateKey(game.startTimeUTC);
     if (!groups.has(dayKey)) {
       groups.set(dayKey, {
         label: formatDayLabel(game.startTimeUTC),
@@ -218,7 +228,8 @@ function groupByMonth(games: Game[]) {
 
   for (const game of games) {
     const date = new Date(game.startTimeUTC);
-    const monthKey = `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+    const dayKey = parisDateKey(game.startTimeUTC);
+    const monthKey = dayKey.slice(0, 7);
     if (!months.has(monthKey)) {
       months.set(monthKey, {
         label: formatMonthLabel(game.startTimeUTC),
@@ -231,7 +242,6 @@ function groupByMonth(games: Game[]) {
       month.hasUpcoming = true;
     }
 
-    const dayKey = date.toDateString();
     if (!month.days.has(dayKey)) {
       month.days.set(dayKey, {
         label: formatDayLabel(game.startTimeUTC),

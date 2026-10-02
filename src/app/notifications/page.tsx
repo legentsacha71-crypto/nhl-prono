@@ -11,6 +11,9 @@ function formatTime(iso: string) {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    // Rendu côté serveur (en UTC) : sans fuseau explicite, l'heure
+    // affichée avait 1 à 2 h de retard sur l'heure de Paris.
+    timeZone: "Europe/Paris",
   });
 }
 
