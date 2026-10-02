@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 import PushRegistration from "@/components/PushRegistration";
+import HideNativeSplash from "@/components/HideNativeSplash";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import NavigationOverlay from "@/components/NavigationOverlay";
 import BottomNav from "@/components/BottomNav";
@@ -59,6 +60,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${bebasNeue.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <HideNativeSplash />
         <PushRegistration />
         <ServiceWorkerRegistration />
         {children}
