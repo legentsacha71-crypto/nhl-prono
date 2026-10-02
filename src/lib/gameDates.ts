@@ -17,6 +17,8 @@ export type Game = {
   // la ligue (voir src/lib/magnus.ts). La date/heure est alors une
   // estimation.
   isProvisional?: boolean;
+  // Côté Magnus : match en cours sans score en direct (voir magnus.ts).
+  scoreUnavailable?: boolean;
 };
 
 // Construire un Intl.DateTimeFormat coûte bien plus cher que de s'en servir :

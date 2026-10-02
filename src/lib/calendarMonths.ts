@@ -80,7 +80,9 @@ function toCalendarGame(game: Game): CalendarGame {
     label:
       status === "scheduled"
         ? `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`
-        : `${game.homeTeam.score ?? 0} - ${game.awayTeam.score ?? 0}`,
+        : status === "live" && game.scoreUnavailable
+          ? "En cours"
+          : `${game.homeTeam.score ?? 0} - ${game.awayTeam.score ?? 0}`,
     provisional: Boolean(game.isProvisional),
   };
 }

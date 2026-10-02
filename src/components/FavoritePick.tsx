@@ -175,7 +175,7 @@ export default function FavoritePick({
           >
             {won ? `+${earned}` : "0"}
           </p>
-          <p className="mt-1 text-[10px] tracking-wide text-neutral-500 uppercase">
+          <p className="mt-1 text-[10px] leading-tight text-neutral-500">
             {won ? "pts gagnés" : "pt"}
           </p>
         </div>
@@ -186,21 +186,23 @@ export default function FavoritePick({
         <p className="font-display text-2xl leading-none text-sky-400">
           +{selected.points}
         </p>
-        <p className="mt-1 text-[10px] tracking-wide text-neutral-500 uppercase">
-          pts si gagné
+        <p className="mt-1 text-[10px] leading-tight text-neutral-500">
+          pts si
+          <br />
+          gagné
         </p>
       </div>
     );
   })();
 
   const pickRow = selected && (
-    <div className="flex w-full items-center gap-3">
-      <OptionBadge option={selected} size={44} />
+    <div className="flex w-full items-center gap-2.5">
+      <OptionBadge option={selected} size={40} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold text-neutral-100">
+        <p className="line-clamp-2 leading-tight font-semibold text-neutral-100">
           {selected.label}
         </p>
-        <p className="truncate text-xs text-neutral-500">
+        <p className="mt-0.5 truncate text-xs text-neutral-500">
           {mode === "resolved" && winnerLabel
             ? `Vainqueur : ${winnerLabel}`
             : formatProbability(selected.probability)}

@@ -33,7 +33,18 @@ export type MagnusGame = {
   // correspond à aucun match réel côté API (voir toStaticGame ci-dessous),
   // il deviendrait orphelin dès que l'API confirme la vraie rencontre.
   isProvisional?: boolean;
+  // Vrai pour un match commencé que la ligue n'a pas passé "en cours" : son
+  // score affiché par l'API reste un 0-0 de remplissage, à ne pas montrer.
+  scoreUnavailable?: boolean;
 };
+
+// La ligue ne passe pas tous ses matchs "en cours" (etat "E") : le
+// 2026-10-02, seul Nice–Rouen l'était sur les 6 matchs de la soirée, les
+// autres restaient à null jusqu'à leur résultat. Un match dont le coup
+// d'envoi est passé et qui n'est pas terminé est donc considéré en cours,
+// dans la limite de cette durée (au-delà, la ligue a simplement oublié de
+// le clore).
+const ASSUMED_LIVE_MS = 5 * 60 * 60 * 1000;
 
 // Voir le commentaire sur `etat` dans magnusApi.ts : "T" = terminé, "E" = en
 // cours, tout le reste (généralement null) = pas encore commencé.
@@ -53,10 +64,20 @@ function toGame(m: AssignedMagnusApiMatch): MagnusGame {
   const homeAbbrev = normalizeMagnusAbbrev(m.receveur.abreviation);
   const awayAbbrev = normalizeMagnusAbbrev(m.visiteur.abreviation);
 
+  const startTimeUTC = parisLocalToUTC(m.date_rencontre);
+  let gameState = toGameState(m.etat);
+  let scoreUnavailable = false;
+  const sinceStart = Date.now() - new Date(startTimeUTC).getTime();
+  if (gameState === "FUT" && sinceStart >= 0 && sinceStart < ASSUMED_LIVE_MS) {
+    gameState = "LIVE";
+    scoreUnavailable = true;
+  }
+
   return {
     id: m.id,
-    startTimeUTC: parisLocalToUTC(m.date_rencontre),
-    gameState: toGameState(m.etat),
+    startTimeUTC,
+    gameState,
+    scoreUnavailable,
     awayTeam: {
       abbrev: awayAbbrev,
       name: getMagnusDisplayName(

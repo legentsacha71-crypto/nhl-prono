@@ -257,12 +257,18 @@ function MagnusSchedule({
                               </div>
                             </div>
 
-                            {isLive(game) && (
-                              <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
-                                {game.homeTeam.score ?? 0} -{" "}
-                                {game.awayTeam.score ?? 0}
-                              </p>
-                            )}
+                            {isLive(game) &&
+                              (game.scoreUnavailable ? (
+                                <p className="mt-3 text-center text-xs text-neutral-500">
+                                  Match en cours · score en direct non fourni
+                                  par la ligue
+                                </p>
+                              ) : (
+                                <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
+                                  {game.homeTeam.score ?? 0} -{" "}
+                                  {game.awayTeam.score ?? 0}
+                                </p>
+                              ))}
 
                             {game.isProvisional ? (
                               <p className="mt-3 text-center text-[11px] text-neutral-600">
