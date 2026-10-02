@@ -17,6 +17,22 @@ type Props = {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 const SAVE_DELAY_MS = 700;
+
+// Pavé numérique pur sur mobile (iOS affiche sinon un clavier avec lettres
+// et ponctuation pour type="number") : champ texte + inputMode "numeric" +
+// pattern chiffres, et on ne garde que les chiffres saisis (2 maximum).
+const SCORE_INPUT_PROPS = {
+  type: "text",
+  inputMode: "numeric",
+  pattern: "[0-9]*",
+  maxLength: 2,
+  autoComplete: "off",
+  enterKeyHint: "done",
+} as const;
+
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "").slice(0, 2);
+}
 const RETRY_DELAY_MS = 1500;
 
 // Plus de bouton "Valider" : chaque score tapé est sauvegardé automatiquement
@@ -163,14 +179,13 @@ export default function PredictionForm({
           </label>
           <input
             id={`home-${gameId}`}
-            type="number"
-            min={0}
-            max={MAX_PREDICTED_SCORE}
+            {...SCORE_INPUT_PROPS}
             disabled={locked}
             value={homeScore}
             onChange={(e) => {
-              setHomeScore(e.target.value);
-              scheduleSave(awayScore, e.target.value);
+              const value = digitsOnly(e.target.value);
+              setHomeScore(value);
+              scheduleSave(awayScore, value);
             }}
             className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
           />
@@ -185,14 +200,13 @@ export default function PredictionForm({
           </label>
           <input
             id={`away-${gameId}`}
-            type="number"
-            min={0}
-            max={MAX_PREDICTED_SCORE}
+            {...SCORE_INPUT_PROPS}
             disabled={locked}
             value={awayScore}
             onChange={(e) => {
-              setAwayScore(e.target.value);
-              scheduleSave(e.target.value, homeScore);
+              const value = digitsOnly(e.target.value);
+              setAwayScore(value);
+              scheduleSave(value, homeScore);
             }}
             className="w-16 rounded-md border border-neutral-700 bg-neutral-950 p-2 text-center text-neutral-100 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
           />
