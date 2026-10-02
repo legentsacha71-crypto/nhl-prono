@@ -6,11 +6,8 @@ import { getRanking } from "@/lib/ranking";
 import { getGameResult } from "@/lib/gameResults";
 import { isMagnusGameId } from "@/lib/competition";
 import { getTeamName } from "@/lib/nhlTeams";
-import {
-  STANLEY_CUP_CANDIDATES,
-  getStanleyCupPoints,
-} from "@/lib/nhlStanleyCup";
-import { TOP_SCORER_CANDIDATES, getTopScorerPoints } from "@/lib/nhlScorers";
+import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
+import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import { getRingForPoints, getNextRingTier } from "@/lib/profileRings";
 import RingInfoBadge from "@/components/RingInfoBadge";
 import {
@@ -26,8 +23,8 @@ import {
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
-import StanleyCupPicker from "@/components/StanleyCupPicker";
-import TopScorerPicker from "@/components/TopScorerPicker";
+import FavoritePick, { type FavoriteOption } from "@/components/FavoritePick";
+import { Lock } from "lucide-react";
 import SubmitButton from "@/components/SubmitButton";
 import DeleteAccountForm from "@/components/DeleteAccountForm";
 import AvatarUploadForm from "@/components/AvatarUploadForm";
@@ -49,7 +46,7 @@ function formatLockCountdown(lockAt: string): string {
     month: "long",
     timeZone: "Europe/Paris",
   });
-  return `${days} jour${days > 1 ? "s" : ""} (${dateLabel})`;
+  return `Modifiable jusqu'au ${dateLabel} (J-${days})`;
 }
 
 export default async function ProfilPage() {
@@ -177,6 +174,24 @@ export default async function ProfilPage() {
 
   const isTopScorerLocked =
     !topScorerSeason || new Date(topScorerSeason.lock_at) <= new Date();
+
+  const stanleyCupOptions: FavoriteOption[] = STANLEY_CUP_CANDIDATES.map(
+    (c) => ({
+      id: c.abbrev,
+      label: getTeamName(c.abbrev),
+      points: c.points,
+      probability: c.probability,
+      teamAbbrev: c.abbrev,
+    }),
+  );
+  const topScorerOptions: FavoriteOption[] = TOP_SCORER_CANDIDATES.map(
+    (c) => ({
+      id: c.name,
+      label: c.name,
+      points: c.points,
+      probability: c.probability,
+    }),
+  );
 
   const lockEntries: { label: string; lockAt: string }[] = [];
   if (season && !season.winner_team && !isLocked) {
@@ -418,124 +433,75 @@ export default async function ProfilPage() {
                 )}
               </ProfileSection>
 
-              <ProfileSection
-                title="⭐ Mes favoris"
-                right={
-                  lockGroups.size > 0 ? (
-                    <div className="text-right text-[11px] text-neutral-500">
-                      {[...lockGroups.entries()].map(([lockAt, labels]) => (
-                        <p key={lockAt}>
-                          🔒 {labels.join(" & ")} :{" "}
-                          {formatLockCountdown(lockAt)}
-                        </p>
-                      ))}
-                    </div>
-                  ) : undefined
-                }
-              >
+              <ProfileSection title="⭐ Mes favoris">
+                {lockGroups.size > 0 && (
+                  <div className="mb-3 space-y-1">
+                    {[...lockGroups.entries()].map(([lockAt, labels]) => (
+                      <p
+                        key={lockAt}
+                        className="flex items-center gap-1.5 text-xs text-neutral-400"
+                      >
+                        <Lock size={12} className="shrink-0" aria-hidden="true" />
+                        {lockGroups.size > 1 ? `${labels.join(" & ")} : ` : ""}
+                        {formatLockCountdown(lockAt)}
+                      </p>
+                    ))}
+                    <p className="text-xs text-neutral-500">
+                      Plus ton choix est outsider, plus il rapporte de points
+                      en fin de saison.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-3">
-                  <div className="rounded-xl bg-neutral-950/40 p-3">
-                    <p className="mb-2 text-sm font-medium text-neutral-300">
-                      Vainqueur de la coupe Stanley
+                  {!season ? (
+                    <p className="rounded-xl bg-neutral-950/40 p-3 text-sm text-neutral-500">
+                      Coupe Stanley : pas encore configurée pour cette saison.
                     </p>
+                  ) : (
+                    <FavoritePick
+                      kind="team"
+                      title="Vainqueur de la coupe Stanley"
+                      options={stanleyCupOptions}
+                      pickId={myPick?.team_abbrev ?? null}
+                      mode={
+                        season.winner_team
+                          ? "resolved"
+                          : isLocked
+                            ? "locked"
+                            : "open"
+                      }
+                      submitPick={submitStanleyCupPick}
+                      earned={myPick?.points ?? 0}
+                      winnerLabel={
+                        season.winner_team
+                          ? getTeamName(season.winner_team)
+                          : undefined
+                      }
+                    />
+                  )}
 
-                    {!season ? (
-                      <p className="text-sm text-neutral-500">
-                        Pas encore configuré pour cette saison.
-                      </p>
-                    ) : season.winner_team ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-300">
-                          {myPick
-                            ? `Ton pick : ${getTeamName(myPick.team_abbrev)}`
-                            : "Tu n'avais pas fait de pick."}
-                        </span>
-                        <span className="font-medium text-sky-400">
-                          {myPick?.points ?? 0} pts
-                        </span>
-                      </div>
-                    ) : isLocked ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-300">
-                          {myPick
-                            ? `Ton pick (verrouillé) : ${getTeamName(myPick.team_abbrev)}`
-                            : "Verrouillé, tu n'as pas fait de pick."}
-                        </span>
-                        <span className="text-neutral-500">
-                          {myPick
-                            ? `${getStanleyCupPoints(myPick.team_abbrev) ?? 0} pts si bon`
-                            : "En attente du résultat"}
-                        </span>
-                      </div>
-                    ) : (
-                      <StanleyCupPicker
-                        options={STANLEY_CUP_CANDIDATES.map((c) => ({
-                          abbrev: c.abbrev,
-                          label: getTeamName(c.abbrev),
-                          points: c.points,
-                          probability: c.probability,
-                        }))}
-                        initialTeam={myPick?.team_abbrev ?? null}
-                        submitPick={submitStanleyCupPick}
-                      />
-                    )}
-                    {season && !season.winner_team && (
-                      <p className="mt-2 text-xs text-neutral-500">
-                        Les points varient selon l&apos;équipe choisie : plus
-                        elle est outsider, plus tu gagnes de points si elle
-                        gagne la coupe.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="rounded-xl bg-neutral-950/40 p-3">
-                    <p className="mb-2 text-sm font-medium text-neutral-300">
-                      Meilleur buteur de la saison
+                  {!topScorerSeason ? (
+                    <p className="rounded-xl bg-neutral-950/40 p-3 text-sm text-neutral-500">
+                      Meilleur buteur : pas encore configuré pour cette saison.
                     </p>
-
-                    {!topScorerSeason ? (
-                      <p className="text-sm text-neutral-500">
-                        Pas encore configuré pour cette saison.
-                      </p>
-                    ) : topScorerSeason.winner_player ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-300">
-                          {myTopScorerPick
-                            ? `Ton pick : ${myTopScorerPick.player_name}`
-                            : "Tu n'avais pas fait de pick."}
-                        </span>
-                        <span className="font-medium text-sky-400">
-                          {myTopScorerPick?.points ?? 0} pts
-                        </span>
-                      </div>
-                    ) : isTopScorerLocked ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-300">
-                          {myTopScorerPick
-                            ? `Ton pick (verrouillé) : ${myTopScorerPick.player_name}`
-                            : "Verrouillé, tu n'as pas fait de pick."}
-                        </span>
-                        <span className="text-neutral-500">
-                          {myTopScorerPick
-                            ? `${getTopScorerPoints(myTopScorerPick.player_name) ?? 0} pts si bon`
-                            : "En attente du résultat"}
-                        </span>
-                      </div>
-                    ) : (
-                      <TopScorerPicker
-                        players={TOP_SCORER_CANDIDATES}
-                        initialPlayer={myTopScorerPick?.player_name ?? null}
-                        submitPick={submitTopScorerPick}
-                      />
-                    )}
-                    {topScorerSeason && !topScorerSeason.winner_player && (
-                      <p className="mt-2 text-xs text-neutral-500">
-                        Les points varient selon le joueur choisi : plus il
-                        est outsider, plus tu gagnes de points s&apos;il
-                        devient meilleur buteur.
-                      </p>
-                    )}
-                  </div>
+                  ) : (
+                    <FavoritePick
+                      kind="player"
+                      title="Meilleur buteur de la saison"
+                      options={topScorerOptions}
+                      pickId={myTopScorerPick?.player_name ?? null}
+                      mode={
+                        topScorerSeason.winner_player
+                          ? "resolved"
+                          : isTopScorerLocked
+                            ? "locked"
+                            : "open"
+                      }
+                      submitPick={submitTopScorerPick}
+                      earned={myTopScorerPick?.points ?? 0}
+                      winnerLabel={topScorerSeason.winner_player ?? undefined}
+                    />
+                  )}
                 </div>
               </ProfileSection>
 

@@ -15,6 +15,9 @@ import { getUnreadCount } from "@/lib/unreadCount";
 import ProfileTabs from "@/components/ProfileTabs";
 import PlayerStatsSummary from "@/components/PlayerStatsSummary";
 import ProfileSection from "@/components/ProfileSection";
+import FavoritePick from "@/components/FavoritePick";
+import { STANLEY_CUP_CANDIDATES } from "@/lib/nhlStanleyCup";
+import { TOP_SCORER_CANDIDATES } from "@/lib/nhlScorers";
 import RecentPredictions, {
   latestPlayed,
   toRecentPrediction,
@@ -264,36 +267,41 @@ export default async function PlayerProfilePage({
               {(stanleyCupResolved || topScorerResolved) && (
                 <ProfileSection title="⭐ Favoris">
                   <div className="space-y-3">
-                    {stanleyCupResolved && theirPick && (
-                      <div className="rounded-xl bg-neutral-950/40 p-3">
-                        <p className="mb-2 text-sm font-medium text-neutral-300">
-                          Vainqueur de la coupe Stanley
-                        </p>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-neutral-300">
-                            Pick : {getTeamName(theirPick.team_abbrev)}
-                          </span>
-                          <span className="font-medium text-sky-400">
-                            {theirPick.points ?? 0} pts
-                          </span>
-                        </div>
-                      </div>
+                    {stanleyCupResolved && theirPick && season?.winner_team && (
+                      <FavoritePick
+                        kind="team"
+                        title="Vainqueur de la coupe Stanley"
+                        options={STANLEY_CUP_CANDIDATES.map((c) => ({
+                          id: c.abbrev,
+                          label: getTeamName(c.abbrev),
+                          points: c.points,
+                          probability: c.probability,
+                          teamAbbrev: c.abbrev,
+                        }))}
+                        pickId={theirPick.team_abbrev}
+                        mode="resolved"
+                        earned={theirPick.points ?? 0}
+                        winnerLabel={getTeamName(season.winner_team)}
+                      />
                     )}
-                    {topScorerResolved && theirTopScorerPick && (
-                      <div className="rounded-xl bg-neutral-950/40 p-3">
-                        <p className="mb-2 text-sm font-medium text-neutral-300">
-                          Meilleur buteur de la saison
-                        </p>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-neutral-300">
-                            Pick : {theirTopScorerPick.player_name}
-                          </span>
-                          <span className="font-medium text-sky-400">
-                            {theirTopScorerPick.points ?? 0} pts
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {topScorerResolved &&
+                      theirTopScorerPick &&
+                      topScorerSeason?.winner_player && (
+                        <FavoritePick
+                          kind="player"
+                          title="Meilleur buteur de la saison"
+                          options={TOP_SCORER_CANDIDATES.map((c) => ({
+                            id: c.name,
+                            label: c.name,
+                            points: c.points,
+                            probability: c.probability,
+                          }))}
+                          pickId={theirTopScorerPick.player_name}
+                          mode="resolved"
+                          earned={theirTopScorerPick.points ?? 0}
+                          winnerLabel={topScorerSeason.winner_player}
+                        />
+                      )}
                   </div>
                 </ProfileSection>
               )}
