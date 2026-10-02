@@ -11,6 +11,10 @@ import {
   setPendingHref,
   subscribePendingHref,
 } from "@/lib/navigationPending";
+import {
+  getTextEntryFocus,
+  subscribeTextEntryFocus,
+} from "@/lib/textEntryFocus";
 
 const items = [
   { href: "/", label: "Accueil", Icon: House },
@@ -38,6 +42,13 @@ export default function BottomNav() {
     getPendingHref,
     () => null,
   );
+  // Clavier ouvert (saisie d'un score, d'un message...) : la barre s'efface
+  // pour ne pas flotter au-dessus du clavier, voir textEntryFocus.ts.
+  const typing = useSyncExternalStore(
+    subscribeTextEntryFocus,
+    getTextEntryFocus,
+    () => false,
+  );
 
   if (isPublicPath(pathname)) return null;
 
@@ -52,7 +63,10 @@ export default function BottomNav() {
   // retour en haut au clic, comme dans une appli mobile.
   return (
     <nav
-      className="nav-liquid fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)]"
+      aria-hidden={typing || undefined}
+      className={`nav-liquid fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] ${
+        typing ? "pointer-events-none translate-y-full opacity-0" : ""
+      }`}
       style={{ "--nav-i": Math.max(current, 0) } as CSSProperties}
     >
       <div
