@@ -1,13 +1,6 @@
 import { headers } from "next/headers";
-import {
-  getUpcomingGames,
-  getSeasonSchedule,
-  getRegularSeasonStartDate,
-} from "@/lib/nhl";
-import {
-  getUpcomingGames as getMagnusUpcomingGames,
-  getSeasonSchedule as getMagnusSeasonSchedule,
-} from "@/lib/magnus";
+import { getUpcomingGames, getRegularSeasonStartDate } from "@/lib/nhl";
+import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
 import {
   getTeamStats,
   getLeagueAverageGoals,
@@ -30,67 +23,17 @@ import TeamBadge from "@/components/TeamBadge";
 import SubmitButton from "@/components/SubmitButton";
 import SlidingTabs from "@/components/SlidingTabs";
 import LeagueSwitch from "@/components/LeagueSwitch";
-import CalendarMonths, {
-  type CalendarGame,
-  type CalendarMonth,
-} from "@/components/CalendarMonths";
+import CalendarMonths from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
+import {
+  formatDayLabel,
+  formatTime,
+  isLive,
+  parisDateKey,
+  type Game,
+} from "@/lib/gameDates";
 
-// Forme commune à NhlGame (src/lib/nhl.ts) et MagnusGame (src/lib/magnus.ts)
-// — les deux types sont structurellement identiques par conception, donc les
-// fonctions de regroupement ci-dessous s'appliquent aux deux compétitions
-// sans dupliquer cette logique par ligue.
-type Game = {
-  id: number;
-  startTimeUTC: string;
-  gameState: string;
-  awayTeam: { abbrev: string; name: string; score?: number };
-  homeTeam: { abbrev: string; name: string; score?: number };
-  // Présent uniquement côté Magnus : vrai quand la rencontre vient du
-  // calendrier statique de secours plutôt que d'être confirmée par l'API de
-  // la ligue (voir src/lib/magnus.ts). La date/heure est alors une
-  // estimation.
-  isProvisional?: boolean;
-};
-
-// Construire un Intl.DateTimeFormat coûte bien plus cher que de s'en servir :
-// toLocaleTimeString() en recrée un à chaque appel, soit plus de 1 600 par
-// visite de la page (un par match du calendrier). On les crée une seule fois.
-const DAY_LABEL_FORMAT = new Intl.DateTimeFormat("fr-FR", {
-  weekday: "short",
-  day: "2-digit",
-  month: "short",
-  timeZone: "Europe/Paris",
-});
-const TIME_FORMAT = new Intl.DateTimeFormat("fr-FR", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Europe/Paris",
-});
-const MONTH_LABEL_FORMAT = new Intl.DateTimeFormat("fr-FR", {
-  month: "long",
-  year: "numeric",
-  timeZone: "Europe/Paris",
-});
-// Date AAAA-MM-JJ à Paris, pour regrouper par jour et par mois. Le serveur
-// tourne en UTC : sans ça, un match NHL à 1h30 heure de Paris (23h30 UTC la
-// veille) atterrissait dans la journée précédente.
-const PARIS_DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Europe/Paris",
-});
 const localTimeFormats = new Map<string, Intl.DateTimeFormat>();
-
-function parisDateKey(iso: string) {
-  return PARIS_DATE_KEY_FORMAT.format(new Date(iso));
-}
-
-function formatDayLabel(iso: string) {
-  return DAY_LABEL_FORMAT.format(new Date(iso));
-}
-
-function formatTime(iso: string) {
-  return TIME_FORMAT.format(new Date(iso));
-}
 
 function formatLocalTime(iso: string, homeAbbrev: string): string | null {
   const timeZone = TEAM_TIMEZONES[homeAbbrev];
@@ -113,17 +56,6 @@ function formatLocalTime(iso: string, homeAbbrev: string): string | null {
 function isStartingSoon(iso: string): boolean {
   const diffMs = new Date(iso).getTime() - Date.now();
   return diffMs > 0 && diffMs < 2 * 60 * 60 * 1000;
-}
-
-// "CRIT" (NHL uniquement) = fin de match serrée, toujours en cours. Magnus
-// ne connaît que "LIVE". Voir toGameState dans magnus.ts et le filtre de
-// getUpcomingGames dans nhl.ts / magnus.ts pour la même logique côté données.
-function isLive(game: Game): boolean {
-  return game.gameState === "LIVE" || game.gameState === "CRIT";
-}
-
-function isFinished(game: Game): boolean {
-  return game.gameState === "OFF";
 }
 
 // Barre d'accent en dégradé aux couleurs des deux équipes, affichée en haut
@@ -206,97 +138,6 @@ function groupByDay(games: Game[]) {
   return [...groups.values()];
 }
 
-function formatMonthLabel(iso: string) {
-  const label = MONTH_LABEL_FORMAT.format(new Date(iso));
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-// Regroupe par mois (chacun affiché dans un <details> repliable, vu le
-// volume de matchs sur une saison complète), puis par jour à l'intérieur.
-// `hasUpcoming` sert à ouvrir automatiquement le premier mois contenant un
-// match pas encore joué, pour atterrir directement sur "maintenant".
-function groupByMonth(games: Game[]) {
-  const now = Date.now();
-  const months = new Map<
-    string,
-    {
-      label: string;
-      hasUpcoming: boolean;
-      days: Map<string, { label: string; games: Game[] }>;
-    }
-  >();
-
-  for (const game of games) {
-    const date = new Date(game.startTimeUTC);
-    const dayKey = parisDateKey(game.startTimeUTC);
-    const monthKey = dayKey.slice(0, 7);
-    if (!months.has(monthKey)) {
-      months.set(monthKey, {
-        label: formatMonthLabel(game.startTimeUTC),
-        hasUpcoming: false,
-        days: new Map(),
-      });
-    }
-    const month = months.get(monthKey)!;
-    if (date.getTime() > now) {
-      month.hasUpcoming = true;
-    }
-
-    if (!month.days.has(dayKey)) {
-      month.days.set(dayKey, {
-        label: formatDayLabel(game.startTimeUTC),
-        games: [],
-      });
-    }
-    month.days.get(dayKey)!.games.push(game);
-  }
-
-  return [...months.values()].map((month) => ({
-    label: month.label,
-    hasUpcoming: month.hasUpcoming,
-    days: [...month.days.values()],
-  }));
-}
-
-function toCalendarGame(game: Game): CalendarGame {
-  // Le score Ligue Magnus est déjà rempli (à 0-0) pour les matchs pas
-  // encore commencés : se fier à sa seule présence classerait à tort tout
-  // le calendrier à venir comme "terminé". `gameState` est la source fiable.
-  const status = isFinished(game)
-    ? "final"
-    : isLive(game)
-      ? "live"
-      : "scheduled";
-  return {
-    id: game.id,
-    awayAbbrev: game.awayTeam.abbrev,
-    awayName: game.awayTeam.name,
-    homeAbbrev: game.homeTeam.abbrev,
-    homeName: game.homeTeam.name,
-    status,
-    label:
-      status === "scheduled"
-        ? `${formatTime(game.startTimeUTC)}${game.isProvisional ? " ?" : ""}`
-        : `${game.homeTeam.score ?? 0} - ${game.awayTeam.score ?? 0}`,
-    provisional: Boolean(game.isProvisional),
-  };
-}
-
-// Données compactes pour CalendarMonths (composant client) : seul le mois
-// "en cours" est ouvert, les autres ne construisent leurs lignes qu'au clic.
-function toCalendarMonths(games: Game[]): CalendarMonth[] {
-  const groups = groupByMonth(games);
-  const firstUpcomingIndex = groups.findIndex((g) => g.hasUpcoming);
-  return groups.map((group, index) => ({
-    label: group.label,
-    open: index === firstUpcomingIndex,
-    days: group.days.map((day) => ({
-      label: day.label,
-      games: day.games.map(toCalendarGame),
-    })),
-  }));
-}
-
 // Vrais matchs Ligue Magnus (calendrier complet + matchs à venir). Le
 // pronostic (PredictionForm + submitPrediction) est branché ici exactement
 // comme côté NHL : submitPrediction est déjà agnostique de la compétition
@@ -307,7 +148,6 @@ function toCalendarMonths(games: Game[]): CalendarMonth[] {
 // MagnusGame.isProvisional dans magnus.ts.
 function MagnusSchedule({
   upcomingGames,
-  seasonGames,
   predictionByGameId,
   isPremium,
   hidePremiumUpsell,
@@ -315,7 +155,6 @@ function MagnusSchedule({
   leagueAvgGoals,
 }: {
   upcomingGames: Game[];
-  seasonGames: Game[];
   predictionByGameId: Map<
     number,
     { away_score: number; home_score: number; boosted: boolean }
@@ -326,7 +165,6 @@ function MagnusSchedule({
   leagueAvgGoals: number;
 }) {
   const dayGroups = groupByDay(upcomingGames);
-  const calendarMonths = toCalendarMonths(seasonGames);
 
   return (
     <SlidingTabs
@@ -537,13 +375,7 @@ function MagnusSchedule({
           ),
           content: (
             <div className="space-y-4">
-              {seasonGames.length === 0 && (
-                <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-                  Le calendrier de la saison n&apos;est pas encore publié.
-                </p>
-              )}
-
-              <CalendarMonths months={calendarMonths} league="magnus" />
+              <CalendarMonths league="magnus" />
             </div>
           ),
         },
@@ -574,28 +406,44 @@ export default async function MatchesPage() {
   // utilisable, et les aperçus de points (getWinPointsPreview) s'effacent
   // proprement plutôt que de planter (Number.isFinite garde déjà contre un
   // Map vide, voir plus haut).
+  //
+  // Les calendriers complets de la saison (onglet "Calendrier") ne sont plus
+  // chargés ici : CalendarMonths les demande à /api/calendar/[league] quand
+  // on ouvre l'onglet (plus de 1 900 matchs, la moitié du poids de la page).
+  //
+  // La session et le statut premium ne dépendent pas des matchs : on les
+  // lance en même temps que les sources NHL / Ligue Magnus plutôt qu'après.
+  const supabasePromise = createClient();
+  const userPromise = getCurrentUser();
+  const profilePromise = (async () => {
+    const [supabase, user] = await Promise.all([supabasePromise, userPromise]);
+    if (!user) return null;
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_premium")
+      .eq("id", user.id)
+      .single();
+    return data;
+  })();
   const [
     games,
     teamStats,
-    seasonGames,
     magnusGames,
-    magnusSeasonGames,
     magnusStats,
     nhlSeasonStartDate,
+    supabase,
+    user,
   ] = await Promise.all([
     getUpcomingGames().catch(() => []),
     getTeamStats().catch(() => new Map<string, TeamStats>()),
-    getSeasonSchedule().catch(() => []),
     getMagnusUpcomingGames().catch(() => []),
-    getMagnusSeasonSchedule().catch(() => []),
     getMagnusTeamStats().catch(() => new Map<string, TeamStats>()),
     getRegularSeasonStartDate().catch(() => null),
+    supabasePromise,
+    userPromise,
   ]);
   const leagueAvgGoals = getLeagueAverageGoals(teamStats);
   const magnusLeagueAvgGoals = getMagnusLeagueAverageGoals(magnusStats);
-
-  const supabase = await createClient();
-  const user = await getCurrentUser();
 
   // Les deux compétitions partagent la même table `predictions` (les plages
   // d'id NHL et Ligue Magnus ne se recoupent jamais, voir
@@ -605,9 +453,7 @@ export default async function MatchesPage() {
     ...games.map((g) => g.id),
     ...magnusGames.map((g) => g.id),
   ];
-  // Les pronostics et le statut premium dépendent tous les deux de
-  // l'utilisateur mais pas l'un de l'autre : on les lance en parallèle.
-  const [{ data: predictions }, { data: profile }] = await Promise.all([
+  const [{ data: predictions }, profile] = await Promise.all([
     gameIds.length > 0 && user
       ? supabase
           .from("predictions")
@@ -615,13 +461,7 @@ export default async function MatchesPage() {
           .eq("user_id", user.id)
           .in("game_id", gameIds)
       : Promise.resolve({ data: [] }),
-    user
-      ? supabase
-          .from("profiles")
-          .select("is_premium")
-          .eq("id", user.id)
-          .single()
-      : Promise.resolve({ data: null }),
+    profilePromise,
   ]);
 
   const predictionByGameId = new Map(
@@ -638,7 +478,6 @@ export default async function MatchesPage() {
     /Android/.test(userAgent) && /; wv\)/.test(userAgent);
 
   const dayGroups = groupByDay(games);
-  const calendarMonths = toCalendarMonths(seasonGames);
 
   // getRegularSeasonStartDate() ne renvoie une date que tant que la saison
   // régulière n'a pas commencé (voir son commentaire dans nhl.ts) — utile
@@ -675,7 +514,6 @@ export default async function MatchesPage() {
           magnusContent={
             <MagnusSchedule
               upcomingGames={magnusGames}
-              seasonGames={magnusSeasonGames}
               predictionByGameId={predictionByGameId}
               isPremium={isPremium}
               hidePremiumUpsell={hidePremiumUpsell}
@@ -885,14 +723,7 @@ export default async function MatchesPage() {
           ),
                   content: (
                     <div className="space-y-4">
-                      {seasonGames.length === 0 && (
-                        <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-                          Le calendrier de la saison n&apos;est pas encore
-                          publié.
-                        </p>
-                      )}
-
-                      <CalendarMonths months={calendarMonths} league="nhl" />
+                      <CalendarMonths league="nhl" />
                     </div>
                   ),
                 },

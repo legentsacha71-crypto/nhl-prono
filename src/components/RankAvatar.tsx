@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getRingForPoints } from "@/lib/profileRings";
 
 // Petite pastille avatar réutilisée dans les classements (général et par
@@ -25,12 +26,11 @@ export default function RankAvatar({
   const innerSize = ring ? Math.round(size * 0.857) : size;
 
   const avatar = avatarUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={avatarUrl}
       alt=""
-      loading="lazy"
-      decoding="async"
+      width={innerSize}
+      height={innerSize}
       style={{ width: innerSize, height: innerSize }}
       className="shrink-0 rounded-full border border-neutral-700 object-cover"
     />
@@ -54,10 +54,11 @@ export default function RankAvatar({
       <div className="absolute inset-0 flex items-center justify-center">
         {avatar}
       </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={ring.image}
         alt=""
+        width={size}
+        height={size}
         className="pointer-events-none absolute inset-0 h-full w-full object-contain"
       />
     </div>

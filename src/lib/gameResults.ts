@@ -9,8 +9,11 @@ export type { GameResult };
 // la plage d'id du match (voir isMagnusGameId). Utilisé partout où on
 // affiche ou note un pronostic passé sans savoir a priori de quelle
 // compétition il vient (pages profil, cron /api/grade-games...).
-export function getGameResult(gameId: number): Promise<GameResult> {
+export function getGameResult(
+  gameId: number,
+  options?: { settled?: boolean },
+): Promise<GameResult> {
   return isMagnusGameId(gameId)
     ? getMagnusGameResult(gameId)
-    : getNhlGameResult(gameId);
+    : getNhlGameResult(gameId, options);
 }

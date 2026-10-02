@@ -15,18 +15,13 @@ export default async function LeagueDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: league } = await supabase
-    .from("leagues")
-    .select("id, name, code")
-    .eq("id", id)
-    .single();
+  // La ligue et ses membres ne dépendent que de l'id : en parallèle.
+  const [{ data: league }, { data: members }] = await Promise.all([
+    supabase.from("leagues").select("id, name, code").eq("id", id).single(),
+    supabase.from("league_members").select("user_id").eq("league_id", id),
+  ]);
 
   if (!league) notFound();
-
-  const { data: members } = await supabase
-    .from("league_members")
-    .select("user_id")
-    .eq("league_id", id);
 
   const memberIds = (members ?? []).map((m) => m.user_id as string);
   const ranking = await getRanking(supabase, memberIds);

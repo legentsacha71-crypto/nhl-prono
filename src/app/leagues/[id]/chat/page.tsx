@@ -31,29 +31,32 @@ export default async function LeagueChatPage({
 
   if (!user) redirect("/login");
 
-  const { data: league } = await supabase
-    .from("leagues")
-    .select("id, name")
-    .eq("id", id)
-    .single();
+  // Les trois requêtes ne dépendent que de l'id de la ligue et du joueur :
+  // en parallèle plutôt qu'en série. Les messages ne sont affichés que si le
+  // joueur est bien membre (vérifié juste après).
+  const [{ data: league }, { data: membership }, { data: latest }] =
+    await Promise.all([
+      supabase.from("leagues").select("id, name").eq("id", id).single(),
+      supabase
+        .from("league_members")
+        .select("user_id")
+        .eq("league_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      // Les 50 messages les plus récents (tri décroissant puis remis dans
+      // l'ordre chronologique) : un tri croissant limité à 50 aurait figé le
+      // fil sur les 50 premiers messages de la ligue.
+      supabase
+        .from("league_messages")
+        .select("id, body, created_at, user_id, profiles(username)")
+        .eq("league_id", id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
 
-  if (!league) notFound();
+  if (!league || !membership) notFound();
 
-  const { data: membership } = await supabase
-    .from("league_members")
-    .select("user_id")
-    .eq("league_id", id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!membership) notFound();
-
-  const { data: messages } = await supabase
-    .from("league_messages")
-    .select("id, body, created_at, user_id, profiles(username)")
-    .eq("league_id", id)
-    .order("created_at", { ascending: true })
-    .limit(50);
+  const messages = [...(latest ?? [])].reverse();
 
   type Message = {
     id: string;

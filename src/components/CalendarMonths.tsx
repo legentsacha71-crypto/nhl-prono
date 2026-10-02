@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TeamBadge from "@/components/TeamBadge";
 
 export type CalendarGame = {
@@ -117,18 +117,82 @@ function MonthDetails({
   );
 }
 
+type LoadState =
+  | { status: "idle" | "loading" | "error" }
+  | { status: "ready"; months: CalendarMonth[] };
+
+const NOTICE =
+  "rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400";
+
+// Le calendrier complet (plus de 1 300 matchs NHL) n'est plus envoyé avec la
+// page Matchs : il est demandé à /api/calendar/[league] la première fois que
+// l'onglet "Calendrier" devient visible (l'onglet inactif de SlidingTabs est
+// rogné par son conteneur overflow-hidden, donc invisible pour
+// l'IntersectionObserver tant qu'on n'y a pas glissé).
 export default function CalendarMonths({
-  months,
   league,
 }: {
-  months: CalendarMonth[];
   league: "nhl" | "magnus";
 }) {
+  const [state, setState] = useState<LoadState>({ status: "idle" });
+  const [attempt, setAttempt] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    let cancelled = false;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      observer.disconnect();
+      setState({ status: "loading" });
+      fetch(`/api/calendar/${league}`)
+        .then((res) => {
+          if (!res.ok) throw new Error(String(res.status));
+          return res.json() as Promise<CalendarMonth[]>;
+        })
+        .then((months) => {
+          if (!cancelled) setState({ status: "ready", months });
+        })
+        .catch(() => {
+          if (!cancelled) setState({ status: "error" });
+        });
+    });
+    observer.observe(el);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [league, attempt]);
+
   return (
-    <>
-      {months.map((month) => (
-        <MonthDetails key={month.label} month={month} league={league} />
-      ))}
-    </>
+    <div ref={rootRef} className="space-y-4">
+      {(state.status === "idle" || state.status === "loading") && (
+        <p className={NOTICE}>Chargement du calendrier…</p>
+      )}
+      {state.status === "error" && (
+        <p className={NOTICE}>
+          Le calendrier n&apos;a pas pu être chargé.{" "}
+          <button
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+            className="font-medium text-sky-400"
+          >
+            Réessayer
+          </button>
+        </p>
+      )}
+      {state.status === "ready" && state.months.length === 0 && (
+        <p className={NOTICE}>
+          Le calendrier de la saison n&apos;est pas encore publié.
+        </p>
+      )}
+      {state.status === "ready" &&
+        state.months.map((month) => (
+          <MonthDetails key={month.label} month={month} league={league} />
+        ))}
+    </div>
   );
 }

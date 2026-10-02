@@ -151,7 +151,11 @@ export default async function PlayerProfilePage({
   const recentItems = await Promise.all(
     recent.map(async (p) => {
       try {
-        return toRecentPrediction(p, await getGameResult(p.game_id));
+        return toRecentPrediction(
+          p,
+          // Pronostics déjà notés : matchs terminés, score lisible en cache.
+          await getGameResult(p.game_id, { settled: true }),
+        );
       } catch {
         return toRecentPrediction(p, null);
       }
@@ -186,10 +190,12 @@ export default async function PlayerProfilePage({
             <div className="relative h-28 w-28">
               <div className="absolute inset-0 flex items-center justify-center">
                 {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt={username}
+                    width={96}
+                    height={96}
+                    loading="eager"
                     className="h-24 w-24 rounded-full border border-neutral-700 object-cover shadow-lg shadow-black/30"
                   />
                 ) : (
@@ -198,10 +204,12 @@ export default async function PlayerProfilePage({
                   </div>
                 )}
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={ring.image}
                 alt={`Palier ${ring.label}`}
+                width={112}
+                height={112}
+                loading="eager"
                 className="pointer-events-none absolute inset-0 z-10 h-28 w-28 object-contain"
               />
             </div>

@@ -29,10 +29,17 @@ export type GameResult = {
 // Le score final NHL inclut les buts de prolongation / tirs de barrage.
 // On reconstruit le score après les 60 minutes réglementaires (period type "REG")
 // à partir du détail des buts, car c'est ce score-là que l'appli fait pronostiquer.
-export async function getGameResult(gameId: number): Promise<GameResult> {
+//
+// `settled` : le match est déjà noté chez nous (pages profil), donc terminé —
+// son score ne bouge plus et peut être lu depuis le cache. La notation
+// (grade-games) lit toujours la version fraîche.
+export async function getGameResult(
+  gameId: number,
+  { settled = false }: { settled?: boolean } = {},
+): Promise<GameResult> {
   const res = await nhlFetch(
     `gamecenter/${gameId}/landing`,
-    { cache: "no-store" },
+    settled ? { next: { revalidate: 86400 } } : { cache: "no-store" },
   );
 
   if (!res.ok) {
