@@ -9,6 +9,8 @@ export const config = {
   matcher: [
     // manifest.webmanifest et sw.js sont récupérés par le navigateur sans
     // cookie de session : ils ne doivent pas être redirigés vers /login.
-    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // api/calendar sert des calendriers publics mis en cache par le CDN :
+    // la session ne doit ni y être lue ni rafraîchie (pas de Set-Cookie).
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|api/calendar|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
