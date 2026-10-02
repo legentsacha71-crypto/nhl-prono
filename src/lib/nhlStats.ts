@@ -1,4 +1,5 @@
 import { blendSeasons, type RawTeamStats } from "./teamStatsBlend";
+import { nhlFetch } from "./nhlFetch";
 
 export type TeamStats = {
   abbrev: string;
@@ -24,7 +25,7 @@ type NhlSeasonsResponse = {
 
 // `date` : "now" ou une date AAAA-MM-JJ (classement à ce jour-là).
 async function fetchStandings(date: string): Promise<NhlStandingsTeam[]> {
-  const res = await fetch(`https://api-web.nhle.com/v1/standings/${date}`, {
+  const res = await nhlFetch(`standings/${date}`, {
     next: { revalidate: 3600 },
   });
 
@@ -58,7 +59,7 @@ function toRawStats(teams: NhlStandingsTeam[]): Map<string, RawTeamStats> {
 async function getPriorSeasonStandings(
   seasonId: number,
 ): Promise<NhlStandingsTeam[]> {
-  const res = await fetch("https://api-web.nhle.com/v1/standings-season", {
+  const res = await nhlFetch("standings-season", {
     next: { revalidate: 86400 },
   });
   if (!res.ok) {

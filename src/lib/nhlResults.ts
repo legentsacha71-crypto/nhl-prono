@@ -1,3 +1,4 @@
+import { nhlFetch } from "./nhlFetch";
 type NhlGoal = {
   awayScore: number;
   homeScore: number;
@@ -29,8 +30,8 @@ export type GameResult = {
 // On reconstruit le score après les 60 minutes réglementaires (period type "REG")
 // à partir du détail des buts, car c'est ce score-là que l'appli fait pronostiquer.
 export async function getGameResult(gameId: number): Promise<GameResult> {
-  const res = await fetch(
-    `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`,
+  const res = await nhlFetch(
+    `gamecenter/${gameId}/landing`,
     { cache: "no-store" },
   );
 

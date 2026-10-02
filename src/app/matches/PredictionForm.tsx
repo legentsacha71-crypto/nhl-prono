@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { submitPrediction } from "./actions";
 import { MAX_PREDICTED_SCORE } from "@/lib/predictionRules";
 
@@ -16,6 +17,7 @@ type Props = {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 const SAVE_DELAY_MS = 700;
+const RETRY_DELAY_MS = 1500;
 
 // Plus de bouton "Valider" : chaque score tapé est sauvegardé automatiquement
 // après une courte pause (debounce), directement via la Server Action —
@@ -42,6 +44,9 @@ export default function PredictionForm({
     () => Date.now() >= new Date(startTimeUTC).getTime(),
   );
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Numéro de la dernière sauvegarde lancée : un second essai ne doit pas
+  // réécrire un score plus ancien par-dessus un score tapé entre-temps.
+  const saveSeq = useRef(0);
 
   useEffect(() => {
     if (locked) return;
@@ -86,16 +91,35 @@ export default function PredictionForm({
     }
 
     saveTimeout.current = setTimeout(async () => {
+      const seq = ++saveSeq.current;
       setStatus("saving");
+      const formData = new FormData();
+      formData.set("gameId", String(gameId));
+      formData.set("startTimeUTC", startTimeUTC);
+      formData.set("awayScore", nextAway);
+      formData.set("homeScore", nextHome);
       try {
-        const formData = new FormData();
-        formData.set("gameId", String(gameId));
-        formData.set("startTimeUTC", startTimeUTC);
-        formData.set("awayScore", nextAway);
-        formData.set("homeScore", nextHome);
         await submitPrediction(formData);
-        setStatus("saved");
+        if (seq === saveSeq.current) setStatus("saved");
+        return;
+      } catch (err) {
+        // Appli restée ouverte pendant une mise en ligne : le serveur ne
+        // connaît plus cette version de l'action et refusera chaque score.
+        // Recharger la page récupère la nouvelle version.
+        if (unstable_isUnrecognizedActionError(err)) {
+          window.location.reload();
+          return;
+        }
+      }
+      // Coupure réseau passagère (fréquente sur mobile) : un second essai
+      // avant d'afficher "Erreur", sauf si un score plus récent a été tapé.
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      if (seq !== saveSeq.current) return;
+      try {
+        await submitPrediction(formData);
+        if (seq === saveSeq.current) setStatus("saved");
       } catch {
+        if (seq !== saveSeq.current) return;
         setStatus("error");
         if (Date.now() >= new Date(startTimeUTC).getTime()) {
           setLocked(true);

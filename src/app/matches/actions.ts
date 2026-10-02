@@ -4,8 +4,23 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getWeekKey } from "@/lib/week";
 import { isMagnusGameId } from "@/lib/competition";
-import { getOfficialStartTime } from "@/lib/gameStart";
+import { getOfficialStart } from "@/lib/gameStart";
 import { MAX_PREDICTED_SCORE } from "@/lib/predictionRules";
+
+// Heure de coup d'envoi qui sert au verrou : l'heure officielle (voir
+// getOfficialStart), pas celle du formulaire, modifiable par le joueur. Si
+// l'API NHL / Ligue Magnus ne répond pas, on se rabat sur l'heure du
+// formulaire plutôt que de bloquer tous les pronostics ("Erreur") le temps
+// de la panne. Renvoie null si la source dit que le match est verrouillé.
+async function lockedStartTime(
+  gameId: number,
+  formData: FormData,
+): Promise<string | null> {
+  const official = await getOfficialStart(gameId);
+  if (official.status === "open") return official.startTimeUTC;
+  if (official.status === "closed") return null;
+  return (formData.get("startTimeUTC") as string | null) ?? null;
+}
 
 export async function submitPrediction(formData: FormData) {
   const gameId = Number(formData.get("gameId"));
@@ -23,10 +38,7 @@ export async function submitPrediction(formData: FormData) {
     throw new Error("Scores invalides.");
   }
 
-  // Le verrou se base sur l'heure officielle du match, pas sur celle
-  // envoyée par le formulaire (modifiable par le joueur) — voir
-  // getOfficialStartTime.
-  const startTimeUTC = await getOfficialStartTime(gameId);
+  const startTimeUTC = await lockedStartTime(gameId, formData);
   if (!startTimeUTC || new Date(startTimeUTC).getTime() <= Date.now()) {
     throw new Error("Ce match a déjà commencé, le pronostic est verrouillé.");
   }
@@ -73,8 +85,7 @@ export async function submitPrediction(formData: FormData) {
 export async function toggleBoost(formData: FormData) {
   const gameId = Number(formData.get("gameId"));
 
-  // Même verrou que submitPrediction : heure officielle, pas celle du formulaire.
-  const startTimeUTC = await getOfficialStartTime(gameId);
+  const startTimeUTC = await lockedStartTime(gameId, formData);
   if (!startTimeUTC || new Date(startTimeUTC).getTime() <= Date.now()) {
     throw new Error("Ce match a déjà commencé, impossible de le booster.");
   }

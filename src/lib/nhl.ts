@@ -1,3 +1,4 @@
+import { nhlFetch } from "./nhlFetch";
 export type NhlGame = {
   id: number;
   startTimeUTC: string;
@@ -63,7 +64,7 @@ function isPredictable(g: NhlApiGame, now: number): boolean {
 }
 
 export async function getUpcomingGames(): Promise<NhlGame[]> {
-  const res = await fetch("https://api-web.nhle.com/v1/schedule/now", {
+  const res = await nhlFetch("schedule/now", {
     next: { revalidate: 60 },
   });
 
@@ -93,8 +94,8 @@ export async function getUpcomingGames(): Promise<NhlGame[]> {
     data.regularSeasonStartDate &&
     new Date(data.regularSeasonStartDate).getTime() > now
   ) {
-    const openingRes = await fetch(
-      `https://api-web.nhle.com/v1/schedule/${data.regularSeasonStartDate}`,
+    const openingRes = await nhlFetch(
+      `schedule/${data.regularSeasonStartDate}`,
       { next: { revalidate: 60 } },
     );
     if (!openingRes.ok) return [];
@@ -112,7 +113,7 @@ export async function getUpcomingGames(): Promise<NhlGame[]> {
 // renvoie encore la date de la saison précédente (donc déjà passée) :
 // dans ce cas on retourne null plutôt qu'un compte à rebours cassé.
 export async function getRegularSeasonStartDate(): Promise<string | null> {
-  const res = await fetch("https://api-web.nhle.com/v1/schedule/now", {
+  const res = await nhlFetch("schedule/now", {
     next: { revalidate: 3600 },
   });
 
@@ -136,7 +137,7 @@ export async function getRegularSeasonStartDate(): Promise<string | null> {
 // nous-mêmes toutes les dates de début de semaine entre le début et la fin
 // de saison régulière, puis on lance tous les appels en parallèle.
 export async function getSeasonSchedule(): Promise<NhlGame[]> {
-  const res = await fetch("https://api-web.nhle.com/v1/schedule/now", {
+  const res = await nhlFetch("schedule/now", {
     next: { revalidate: 3600 },
   });
 
@@ -160,8 +161,8 @@ export async function getSeasonSchedule(): Promise<NhlGame[]> {
 
   const weeks = await Promise.all(
     weekStartDates.map(async (date) => {
-      const weekRes = await fetch(
-        `https://api-web.nhle.com/v1/schedule/${date}`,
+      const weekRes = await nhlFetch(
+        `schedule/${date}`,
         { next: { revalidate: 3600 } },
       );
       if (!weekRes.ok) return [];
