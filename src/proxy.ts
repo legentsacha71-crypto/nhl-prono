@@ -9,8 +9,9 @@ export const config = {
   matcher: [
     // manifest.webmanifest et sw.js sont récupérés par le navigateur sans
     // cookie de session : ils ne doivent pas être redirigés vers /login.
-    // api/calendar sert des calendriers publics mis en cache par le CDN :
+    // api/calendar et api/live servent des données publiques (calendriers,
+    // scores en direct) mises en cache par le CDN :
     // la session ne doit ni y être lue ni rafraîchie (pas de Set-Cookie).
-    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|api/calendar|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|api/calendar|api/live|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

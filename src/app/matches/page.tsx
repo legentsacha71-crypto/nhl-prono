@@ -25,6 +25,7 @@ import SlidingTabs from "@/components/SlidingTabs";
 import LeagueSwitch from "@/components/LeagueSwitch";
 import CalendarMonths from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
+import LiveScore from "@/components/LiveScore";
 import {
   formatDayLabel,
   formatTime,
@@ -257,18 +258,14 @@ function MagnusSchedule({
                               </div>
                             </div>
 
-                            {isLive(game) &&
-                              (game.scoreUnavailable ? (
-                                <p className="mt-3 text-center text-xs text-neutral-500">
-                                  Match en cours · score en direct non fourni
-                                  par la ligue
-                                </p>
-                              ) : (
-                                <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
-                                  {game.homeTeam.score ?? 0} -{" "}
-                                  {game.awayTeam.score ?? 0}
-                                </p>
-                              ))}
+                            {isLive(game) && (
+                              <LiveScore
+                                gameId={game.id}
+                                initialHome={game.homeTeam.score ?? 0}
+                                initialAway={game.awayTeam.score ?? 0}
+                                scoreUnavailable={game.scoreUnavailable}
+                              />
+                            )}
 
                             {game.isProvisional ? (
                               <p className="mt-3 text-center text-[11px] text-neutral-600">
@@ -620,10 +617,11 @@ export default async function MatchesPage() {
                                     </div>
 
                                     {isLive(game) && (
-                                      <p className="mt-3 text-center font-display text-2xl tracking-wide text-red-400">
-                                        {game.homeTeam.score ?? 0} -{" "}
-                                        {game.awayTeam.score ?? 0}
-                                      </p>
+                                      <LiveScore
+                                        gameId={game.id}
+                                        initialHome={game.homeTeam.score ?? 0}
+                                        initialAway={game.awayTeam.score ?? 0}
+                                      />
                                     )}
 
                                     {winPoints && !isLive(game) && (
