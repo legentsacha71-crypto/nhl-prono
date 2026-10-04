@@ -2,8 +2,10 @@ import {
   getAllSeasonMatches,
   getCurrentCompetitionId,
   isMatchAssigned,
+  parisLocalToUTC,
   regulationScore,
 } from "./magnusApi";
+import { getFlashscoreMagnusRegulation } from "./flashscore";
 import { normalizeMagnusAbbrev } from "./magnusTeams";
 import type { GameResult } from "./nhlResults";
 
@@ -30,17 +32,37 @@ export async function getGameResult(gameId: number): Promise<GameResult> {
 
   const matches = await getAllSeasonMatches(competitionId, 60);
   const match = matches.find((m) => m.id === gameId);
-  if (!match || !isMatchAssigned(match) || match.etat !== "T") {
-    return NOT_FOUND_RESULT;
+  if (!match || !isMatchAssigned(match)) return NOT_FOUND_RESULT;
+
+  const homeAbbrev = normalizeMagnusAbbrev(match.receveur.abreviation);
+  const awayAbbrev = normalizeMagnusAbbrev(match.visiteur.abreviation);
+
+  if (match.etat === "T") {
+    const { homeScore, awayScore } = regulationScore(match);
+    return {
+      isFinal: true,
+      awayAbbrev,
+      homeAbbrev,
+      regulationAwayScore: awayScore,
+      regulationHomeScore: homeScore,
+    };
   }
 
-  const { homeScore, awayScore } = regulationScore(match);
+  // Résultat pas encore validé par la ligue (elle tarde parfois de plus
+  // d'une heure) : score après 60 min d'après Flashscore si le match y est
+  // terminé, voir flashscore.ts. Toute erreur = on attend la ligue.
+  const fs = await getFlashscoreMagnusRegulation(
+    homeAbbrev,
+    awayAbbrev,
+    parisLocalToUTC(match.date_rencontre),
+  ).catch(() => null);
+  if (!fs) return NOT_FOUND_RESULT;
 
   return {
     isFinal: true,
-    awayAbbrev: normalizeMagnusAbbrev(match.visiteur.abreviation),
-    homeAbbrev: normalizeMagnusAbbrev(match.receveur.abreviation),
-    regulationAwayScore: awayScore,
-    regulationHomeScore: homeScore,
+    awayAbbrev,
+    homeAbbrev,
+    regulationAwayScore: fs.away,
+    regulationHomeScore: fs.home,
   };
 }

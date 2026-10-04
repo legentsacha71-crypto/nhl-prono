@@ -1,7 +1,6 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { isMagnusGameId } from "@/lib/competition";
 import {
   getLiveScores,
   getServerLiveScores,
@@ -52,11 +51,7 @@ export default function LiveScore({
       </p>
       {(finished || live?.detail) && (
         <p className="mt-0.5 text-[11px] text-neutral-500">
-          {finished
-            ? isMagnusGameId(gameId)
-              ? "Terminé · points dès que la ligue valide le résultat"
-              : "Terminé · points calculés sous 5 min"
-            : live?.detail}
+          {finished ? "Terminé · points calculés sous 5 min" : live?.detail}
         </p>
       )}
     </div>
