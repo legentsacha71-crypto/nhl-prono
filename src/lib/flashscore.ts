@@ -151,6 +151,12 @@ export function getFlashscoreMagnusGames(): Promise<FlashscoreGame[]> {
   return fetchMagnusGames(0, { cache: "no-store" });
 }
 
+// Même liste gardée 60 s en cache, pour les pages (liste "À venir",
+// calendrier) : pas d'appel à Flashscore à chaque visite.
+export function getFlashscoreMagnusGamesCached(): Promise<FlashscoreGame[]> {
+  return fetchMagnusGames(0, { next: { revalidate: 60 } });
+}
+
 const PARIS_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" });
 const DAY_MS = 24 * 60 * 60 * 1000;
 

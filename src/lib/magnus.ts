@@ -15,6 +15,7 @@ import {
   getMagnusTeamName,
   normalizeMagnusAbbrev,
 } from "./magnusTeams";
+import { getFlashscoreMagnusGamesCached } from "./flashscore";
 
 // Même forme que NhlGame (voir nhl.ts) pour rester compatible avec les
 // composants existants (TeamBadge, PredictionForm, le regroupement par
@@ -71,6 +72,11 @@ function toGame(m: AssignedMagnusApiMatch): MagnusGame {
   if (gameState === "FUT" && sinceStart >= 0 && sinceStart < ASSUMED_LIVE_MS) {
     gameState = "LIVE";
     scoreUnavailable = true;
+  } else if (gameState === "LIVE" && sinceStart >= ASSUMED_LIVE_MS) {
+    // La ligue tarde aussi à clore les matchs : le 2026-10-04, Chamonix–Nice
+    // y était encore "en cours" plus de 3 h 30 après le coup d'envoi. Au-delà
+    // de cette durée, le match est forcément fini.
+    gameState = "OFF";
   }
 
   return {
@@ -171,6 +177,34 @@ function mergeWithStatic(
   return [...apiGames, ...staticGames];
 }
 
+// Un match que Flashscore donne terminé l'est aussi pour l'appli, avec son
+// score final, même si la ligue ne l'a pas encore clos (elle peut tarder
+// plus d'une heure). Sans réponse de Flashscore, rien ne change.
+async function withFlashscoreResults(games: MagnusGame[]): Promise<MagnusGame[]> {
+  const finished = (await getFlashscoreMagnusGamesCached().catch(() => [])).filter(
+    (g) => g.state === "OFF" && g.home !== null && g.away !== null,
+  );
+  if (finished.length === 0) return games;
+  return games.map((game) => {
+    if (game.isProvisional || game.gameState === "OFF") return game;
+    const start = new Date(game.startTimeUTC).getTime();
+    const fs = finished.find(
+      (g) =>
+        g.homeAbbrev === game.homeTeam.abbrev &&
+        g.awayAbbrev === game.awayTeam.abbrev &&
+        Math.abs(g.startTimeMs - start) < 3 * 60 * 60 * 1000,
+    );
+    if (!fs) return game;
+    return {
+      ...game,
+      gameState: "OFF",
+      scoreUnavailable: false,
+      homeTeam: { ...game.homeTeam, score: fs.home ?? undefined },
+      awayTeam: { ...game.awayTeam, score: fs.away ?? undefined },
+    };
+  });
+}
+
 export async function getUpcomingGames(): Promise<MagnusGame[]> {
   const competitionId = await getCurrentCompetitionId();
   if (!competitionId) return [];
@@ -182,7 +216,8 @@ export async function getUpcomingGames(): Promise<MagnusGame[]> {
   // Un match "en cours" (LIVE) reste affiché quelle que soit l'heure locale
   // (sa durée réelle est imprévisible) ; seul "terminé" (OFF) en sort. Un
   // match pas encore commencé continue de suivre l'heure de coup d'envoi.
-  return mergeWithStatic(assigned.map(toGame), assigned, competitionId)
+  const games = await withFlashscoreResults(assigned.map(toGame));
+  return mergeWithStatic(games, assigned, competitionId)
     .filter(
       (g) =>
         g.gameState !== "OFF" &&
@@ -212,7 +247,8 @@ export async function getSeasonSchedule(): Promise<MagnusGame[]> {
   // 2026-2027 en attendant que l'API confirme ces rencontres elle-même.
   const assigned = matches.filter(isMatchAssigned);
 
-  return mergeWithStatic(assigned.map(toGame), assigned, competitionId).sort(
+  const games = await withFlashscoreResults(assigned.map(toGame));
+  return mergeWithStatic(games, assigned, competitionId).sort(
     (a, b) =>
       new Date(a.startTimeUTC).getTime() - new Date(b.startTimeUTC).getTime(),
   );
