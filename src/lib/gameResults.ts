@@ -14,6 +14,6 @@ export function getGameResult(
   options?: { settled?: boolean },
 ): Promise<GameResult> {
   return isMagnusGameId(gameId)
-    ? getMagnusGameResult(gameId)
+    ? getMagnusGameResult(gameId, options)
     : getNhlGameResult(gameId, options);
 }

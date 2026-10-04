@@ -26,7 +26,10 @@ const NOT_FOUND_RESULT: GameResult = {
 // match par id" : on récupère donc tout le calendrier de la saison en
 // cours (déjà mis en cache 60s par getAllSeasonMatches) et on cherche
 // dedans, comme le fait déjà magnus.ts pour le calendrier affiché.
-export async function getGameResult(gameId: number): Promise<GameResult> {
+export async function getGameResult(
+  gameId: number,
+  { settled = false }: { settled?: boolean } = {},
+): Promise<GameResult> {
   const competitionId = await getCurrentCompetitionId();
   if (!competitionId) return NOT_FOUND_RESULT;
 
@@ -55,6 +58,7 @@ export async function getGameResult(gameId: number): Promise<GameResult> {
     homeAbbrev,
     awayAbbrev,
     parisLocalToUTC(match.date_rencontre),
+    { settled },
   ).catch(() => null);
   if (!fs) return NOT_FOUND_RESULT;
 

@@ -1,10 +1,13 @@
 import type { LiveScores } from "./liveTypes";
 
 // Scores en direct partagés par toutes les cartes LiveScore de la page :
-// une seule requête à /api/live toutes les 15 s, uniquement pendant qu'au
+// une seule requête à /api/live toutes les 30 s, uniquement pendant qu'au
 // moins une carte de match en cours est affichée et que l'onglet est
 // visible (pas de requêtes en arrière-plan, appli fermée ou écran éteint).
-const POLL_MS = 15_000;
+// 30 s : les sources (NHL, Flashscore) ne bougent pas plus vite, et chaque
+// joueur connecté compte dans le quota de requêtes de Vercel (le 04/10,
+// jusqu'à 800 requêtes par minute avec un rythme de 15 s).
+const POLL_MS = 30_000;
 
 let scores: LiveScores = {};
 let timer: ReturnType<typeof setInterval> | null = null;

@@ -15,9 +15,9 @@ import {
 
 // Scores en direct des matchs du jour (NHL + Ligue Magnus, via Flashscore
 // pour la Ligue Magnus quand c'est possible, voir flashscore.ts), interrogés par
-// l'onglet Matchs toutes les 15 s pendant qu'un match est en cours. Les
+// l'onglet Matchs toutes les 30 s pendant qu'un match est en cours. Les
 // sources sont lues sans cache ; c'est la réponse de cette route qui est
-// gardée 15 s par le CDN de Vercel, pour que les API NHL / Ligue Magnus ne
+// gardée 20 s par le CDN de Vercel, pour que les API NHL / Ligue Magnus ne
 // soient pas appelées plus de quelques fois par minute quel que soit le
 // nombre de joueurs connectés. Données publiques : route exclue du proxy de
 // session (voir src/proxy.ts).
@@ -124,7 +124,7 @@ export async function GET() {
   const body: Record<string, LiveGame> = { ...nhl, ...magnus };
   return NextResponse.json(body, {
     headers: {
-      "Cache-Control": "public, max-age=0, s-maxage=15, stale-while-revalidate=15",
+      "Cache-Control": "public, max-age=0, s-maxage=20, stale-while-revalidate=20",
     },
   });
 }

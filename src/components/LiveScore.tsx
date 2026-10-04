@@ -1,37 +1,31 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import type { LiveGame } from "@/lib/liveTypes";
 import {
   getLiveScores,
   getServerLiveScores,
   subscribeLiveScores,
 } from "@/lib/liveScoresStore";
 
-// Score d'un match en cours sur sa carte (onglet Matchs), mis à jour toutes
-// les 15 s sans recharger la page (voir liveScoresStore.ts). Le score rendu
-// par le serveur sert de valeur de départ, remplacé dès la première réponse.
-export default function LiveScore({
-  gameId,
-  initialHome,
-  initialAway,
-  scoreUnavailable = false,
-}: {
+type LiveScoreProps = {
   gameId: number;
   initialHome: number;
   initialAway: number;
   scoreUnavailable?: boolean;
+};
+
+function ScoreView({
+  home,
+  away,
+  finished,
+  detail,
+}: {
+  home: number | null;
+  away: number | null;
+  finished: boolean;
+  detail?: string;
 }) {
-  const scores = useSyncExternalStore(
-    subscribeLiveScores,
-    getLiveScores,
-    getServerLiveScores,
-  );
-  const live = scores[gameId];
-
-  const finished = live?.state === "OFF";
-  const home = live ? live.home : scoreUnavailable ? null : initialHome;
-  const away = live ? live.away : scoreUnavailable ? null : initialAway;
-
   if (home === null || away === null) {
     return (
       <p className="mt-3 text-center text-xs text-neutral-500">
@@ -49,11 +43,52 @@ export default function LiveScore({
       >
         {home} - {away}
       </p>
-      {(finished || live?.detail) && (
+      {(finished || detail) && (
         <p className="mt-0.5 text-[11px] text-neutral-500">
-          {finished ? "Terminé · points calculés sous 5 min" : live?.detail}
+          {finished ? "Terminé · points calculés sous 5 min" : detail}
         </p>
       )}
     </div>
   );
+}
+
+function LiveTicker({
+  gameId,
+  initialHome,
+  initialAway,
+  scoreUnavailable = false,
+  onFinal,
+}: LiveScoreProps & { onFinal: (game: LiveGame) => void }) {
+  const scores = useSyncExternalStore(
+    subscribeLiveScores,
+    getLiveScores,
+    getServerLiveScores,
+  );
+  const live = scores[gameId];
+
+  useEffect(() => {
+    if (live?.state === "OFF") onFinal(live);
+  }, [live, onFinal]);
+
+  return (
+    <ScoreView
+      home={live ? live.home : scoreUnavailable ? null : initialHome}
+      away={live ? live.away : scoreUnavailable ? null : initialAway}
+      finished={false}
+      detail={live?.detail}
+    />
+  );
+}
+
+// Score d'un match en cours sur sa carte (onglet Matchs), mis à jour toutes
+// les 30 s sans recharger la page (voir liveScoresStore.ts). Le score rendu
+// par le serveur sert de valeur de départ. Une fois le match terminé, la
+// carte se fige et cesse d'interroger /api/live : quand tous les matchs de
+// la page sont finis, plus aucune requête ne part.
+export default function LiveScore(props: LiveScoreProps) {
+  const [final, setFinal] = useState<LiveGame | null>(null);
+  if (final) {
+    return <ScoreView home={final.home} away={final.away} finished />;
+  }
+  return <LiveTicker {...props} onFinal={setFinal} />;
 }

@@ -155,12 +155,14 @@ const PARIS_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" })
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Score après 60 min d'un match terminé d'après Flashscore, ou null si le
-// match n'y est pas (encore) terminé ou introuvable. Cache de 60 s : la
-// notation interroge plusieurs matchs du même jour à chaque passage.
+// match n'y est pas (encore) terminé ou introuvable. `settled` (affichage
+// d'un prono déjà noté, pages profil) : lecture en cache ; sinon (notation)
+// lecture fraîche, une seule fois par match non validé toutes les 5 min.
 export async function getFlashscoreMagnusRegulation(
   homeAbbrev: string,
   awayAbbrev: string,
   startTimeUTC: string,
+  { settled = false }: { settled?: boolean } = {},
 ): Promise<{ home: number; away: number } | null> {
   const start = new Date(startTimeUTC);
   const dayOffset = Math.round(
@@ -169,7 +171,10 @@ export async function getFlashscoreMagnusRegulation(
   );
   if (dayOffset > 0 || dayOffset < -6) return null;
 
-  const games = await fetchMagnusGames(dayOffset, { next: { revalidate: 60 } });
+  const games = await fetchMagnusGames(
+    dayOffset,
+    settled ? { next: { revalidate: 3600 } } : { cache: "no-store" },
+  );
   const game = games.find(
     (g) =>
       g.homeAbbrev === homeAbbrev &&
