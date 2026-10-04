@@ -7,8 +7,14 @@ import {
   parisLocalToUTC,
 } from "@/lib/magnusApi";
 import type { LiveGame, LiveScores } from "@/lib/liveTypes";
+import { normalizeMagnusAbbrev } from "@/lib/magnusTeams";
+import {
+  getFlashscoreMagnusGames,
+  type FlashscoreGame,
+} from "@/lib/flashscore";
 
-// Scores en direct des matchs du jour (NHL + Ligue Magnus), interrogés par
+// Scores en direct des matchs du jour (NHL + Ligue Magnus, via Flashscore
+// pour la Ligue Magnus quand c'est possible, voir flashscore.ts), interrogés par
 // l'onglet Matchs toutes les 15 s pendant qu'un match est en cours. Les
 // sources sont lues sans cache ; c'est la réponse de cette route qui est
 // gardée 15 s par le CDN de Vercel, pour que les API NHL / Ligue Magnus ne
@@ -63,14 +69,39 @@ const MAGNUS_RECENT_MS = 8 * 60 * 60 * 1000;
 async function magnusLive(): Promise<LiveScores> {
   const competitionId = await getCurrentCompetitionId();
   if (!competitionId) return {};
-  const matches = await getAllSeasonMatches(competitionId, 0);
+  const [matches, flashscore] = await Promise.all([
+    getAllSeasonMatches(competitionId, 0),
+    getFlashscoreMagnusGames().catch(() => [] as FlashscoreGame[]),
+  ]);
   const now = Date.now();
   const out: LiveScores = {};
 
   for (const m of matches) {
     if (!isMatchAssigned(m)) continue;
-    const since = now - new Date(parisLocalToUTC(m.date_rencontre)).getTime();
+    const startMs = new Date(parisLocalToUTC(m.date_rencontre)).getTime();
+    const since = now - startMs;
     if (since < 0 || since > MAGNUS_RECENT_MS) continue;
+
+    // Flashscore d'abord (souvent bien plus à jour que le site de la ligue),
+    // repli sur la source officielle si le match n'y est pas trouvé.
+    const homeAbbrev = normalizeMagnusAbbrev(m.receveur.abreviation);
+    const awayAbbrev = normalizeMagnusAbbrev(m.visiteur.abreviation);
+    const fs = flashscore.find(
+      (g) =>
+        g.homeAbbrev === homeAbbrev &&
+        g.awayAbbrev === awayAbbrev &&
+        Math.abs(g.startTimeMs - startMs) < 3 * 60 * 60 * 1000,
+    );
+    if (fs && fs.state !== "SCHEDULED" && fs.home !== null && fs.away !== null) {
+      out[m.id] = {
+        state: fs.state,
+        home: fs.home,
+        away: fs.away,
+        detail: fs.detail,
+      };
+      continue;
+    }
+
     const home = m.score.find((s) => s.equipe_id === m.receveur.id)?.score ?? 0;
     const away = m.score.find((s) => s.equipe_id === m.visiteur.id)?.score ?? 0;
     if (m.etat === "T") {
