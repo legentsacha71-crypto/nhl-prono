@@ -70,12 +70,16 @@ function basePointsFor(probability: number): number {
   return Math.min(Math.round(BASE_POINTS_CONSTANT / probability), MAX_BASE_POINTS);
 }
 
+// Bonus triplé le 2026-10-06 à la demande de l'utilisateur (avant : 5 / 10 /
+// 30 / 60 / 100, soit +25 pts en moyenne pour un score exact contre 58 pts
+// pour un bon vainqueur). Seuls les matchs notés après ce changement en
+// profitent : les scores exacts déjà notés gardent l'ancien bonus.
 function exactScoreBonus(probability: number): number {
-  if (probability < 0.005) return 100;
-  if (probability < 0.02) return 60;
-  if (probability < 0.05) return 30;
-  if (probability < 0.1) return 10;
-  return 5;
+  if (probability < 0.005) return 300;
+  if (probability < 0.02) return 180;
+  if (probability < 0.05) return 90;
+  if (probability < 0.1) return 30;
+  return 15;
 }
 
 // Aperçu des points gagnables en pariant sur le bon vainqueur, affiché avant
