@@ -28,11 +28,12 @@ import CalendarMonths from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
 import LiveScore from "@/components/LiveScore";
 import TeamForm from "@/components/TeamForm";
-import StandingsTable, { type LiveGame } from "@/components/StandingsTable";
+import StandingsPanel, { type LiveGame } from "@/components/StandingsTable";
 import {
   getMagnusStandings,
   getNhlStandings,
-  type StandingsGroup,
+  type NhlStandings,
+  type StandingsBlock,
 } from "@/lib/standings";
 import {
   getMagnusTeamForm,
@@ -203,7 +204,7 @@ function MagnusSchedule({
   teamStats: Map<string, TeamStats>;
   leagueAvgGoals: number;
   teamForm: TeamFormMap;
-  standings: StandingsGroup[];
+  standings: StandingsBlock[];
 }) {
   const dayGroups = groupByDay(upcomingGames);
 
@@ -442,10 +443,11 @@ function MagnusSchedule({
           key: "classement",
           label: "Classement",
           content: (
-            <StandingsTable
-              groups={standings}
+            <StandingsPanel
               league="magnus"
+              views={[{ key: "global", label: "Global", blocks: standings }]}
               live={liveByTeam(upcomingGames)}
+              form={teamForm}
             />
           ),
         },
@@ -515,8 +517,8 @@ export default async function MatchesPage() {
     getRegularSeasonStartDate().catch(() => null),
     getNhlTeamForm().catch((): TeamFormMap => new Map()),
     getMagnusTeamForm().catch((): TeamFormMap => new Map()),
-    getNhlStandings().catch((): StandingsGroup[] => []),
-    getMagnusStandings().catch((): StandingsGroup[] => []),
+    getNhlStandings().catch((): NhlStandings | null => null),
+    getMagnusStandings().catch((): StandingsBlock[] => []),
     supabasePromise,
     userPromise,
   ]);
@@ -832,10 +834,19 @@ export default async function MatchesPage() {
                   key: "classement",
                   label: "Classement",
                   content: (
-                    <StandingsTable
-                      groups={nhlStandings}
+                    <StandingsPanel
                       league="nhl"
+                      views={
+                        nhlStandings
+                          ? [
+                              { key: "global", label: "Global", blocks: nhlStandings.global },
+                              { key: "home", label: "Domicile", blocks: nhlStandings.home, formFilter: "home" },
+                              { key: "road", label: "Extérieur", blocks: nhlStandings.road, formFilter: "road" },
+                            ]
+                          : []
+                      }
                       live={liveByTeam(games)}
+                      form={nhlForm}
                     />
                   ),
                 },

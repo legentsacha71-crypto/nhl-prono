@@ -1,6 +1,9 @@
 import Link from "next/link";
 import TeamBadge from "@/components/TeamBadge";
-import type { StandingZone, StandingsGroup } from "@/lib/standings";
+import TeamForm from "@/components/TeamForm";
+import StandingsViews from "@/components/StandingsViews";
+import type { StandingRow, StandingZone, StandingsBlock } from "@/lib/standings";
+import type { FormGame, TeamFormMap } from "@/lib/teamForm";
 
 // Score d'un match en cours pour une équipe du classement (null tant que le
 // score n'est pas connu, voir scoreUnavailable côté Magnus).
@@ -10,157 +13,134 @@ export type LiveGame = {
   opponentScore: number | null;
 };
 
-const COLUMNS = {
-  nhl: [
-    ["MJ", "Matchs joués"],
-    ["V", "Victoires"],
-    ["D", "Défaites"],
-    ["DP", "Défaites en prolongation ou aux tirs au but"],
-  ],
-  magnus: [
-    ["MJ", "Matchs joués"],
-    ["V", "Victoires"],
-    ["VP", "Victoires en prolongation ou aux tirs au but"],
-    ["DP", "Défaites en prolongation ou aux tirs au but"],
-    ["D", "Défaites"],
-  ],
-} as const;
+// Une vue du classement (Global, Domicile, Extérieur) : ses tableaux et les
+// matchs à garder pour la colonne "Forme".
+export type StandingsView = {
+  key: string;
+  label: string;
+  blocks: StandingsBlock[];
+  formFilter?: "home" | "road";
+};
 
-// Couleur de chaque zone du classement, en dégradé depuis la gauche de la
-// ligne, avec un liseré plein sur le bord.
 const ZONE_RGB: Record<StandingZone, { rgb: string; solid: string }> = {
   playoffs: { rgb: "16,185,129", solid: "#10b981" },
-  wildcard: { rgb: "56,189,248", solid: "#38bdf8" },
   playdown: { rgb: "239,68,68", solid: "#ef4444" },
 };
 
 const ZONE_LABEL: Record<StandingZone, string> = {
-  playoffs: "Playoffs",
-  wildcard: "Wild card",
+  playoffs: "Qualification playoffs",
   playdown: "Poule de maintien",
 };
 
-function zoneBackground(zone: StandingZone, strength: number): string {
+// Colonnes comme sur Flashscore. Sur téléphone elles ne tiennent pas toutes :
+// le rang et l'équipe restent fixes à gauche, les points à droite, et le
+// reste défile horizontalement.
+const STAT_COLUMNS: { label: string; title: string; value: (r: StandingRow) => string | number }[] = [
+  { label: "MJ", title: "Matchs joués", value: (r) => r.gamesPlayed },
+  { label: "V", title: "Victoires", value: (r) => r.wins },
+  { label: "VP", title: "Victoires en prolongation ou aux tirs au but", value: (r) => r.otWins },
+  { label: "DP", title: "Défaites en prolongation ou aux tirs au but", value: (r) => r.otLosses },
+  { label: "D", title: "Défaites", value: (r) => r.losses },
+  { label: "B", title: "Buts marqués : buts encaissés", value: (r) => `${r.goalsFor}:${r.goalsAgainst}` },
+];
+
+const TEMPLATE = "2rem 7.5rem repeat(5, 1.9rem) 3.3rem 4.6rem 2.6rem";
+const MIN_WIDTH = "29.5rem";
+const CELL_BG = "#171717"; // neutral-900, fond des colonnes fixes
+
+function zoneTint(zone: StandingZone | undefined, from: number, to: number): string | undefined {
+  if (!zone) return undefined;
   const { rgb } = ZONE_RGB[zone];
-  return `linear-gradient(90deg, rgba(${rgb},${0.24 * strength}) 0%, rgba(${rgb},${0.08 * strength}) 55%, rgba(${rgb},0) 100%)`;
+  return `linear-gradient(90deg, rgba(${rgb},${from}) 0%, rgba(${rgb},${to}) 100%)`;
 }
 
-export default function StandingsTable({
-  groups,
+function formFor(
+  games: FormGame[] | undefined,
+  filter: StandingsView["formFilter"],
+): FormGame[] | undefined {
+  if (!games || !filter) return games;
+  return games.filter((g) => (filter === "home" ? g.home : !g.home));
+}
+
+function Table({
+  title,
+  rows,
   league,
   live,
+  form,
+  formFilter,
 }: {
-  groups: StandingsGroup[];
+  title: string;
+  rows: StandingRow[];
   league: "nhl" | "magnus";
   live: Map<string, LiveGame>;
+  form: TeamFormMap;
+  formFilter: StandingsView["formFilter"];
 }) {
-  if (groups.length === 0) {
-    return (
-      <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
-        Classement indisponible pour le moment. Réessaie dans quelques minutes.
-      </p>
-    );
-  }
-
-  const columns = COLUMNS[league];
-  const template = `1.75rem minmax(0,1fr) repeat(${columns.length},1.75rem) 2.5rem`;
-  const zones = (["playoffs", "wildcard", "playdown"] as const).filter((zone) =>
-    groups.some((g) =>
-      g.sections.some((section) => section.rows.some((r) => r.zone === zone)),
-    ),
-  );
-
   return (
-    <div className="space-y-4">
-      <p className="flex flex-wrap items-center justify-center gap-x-2 text-[11px] text-neutral-500">
-        <span>Mis à jour en direct</span>
-        {live.size > 0 && (
-          <span className="inline-flex items-center gap-1">
-            ·
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
-            </span>
-            en train de jouer
-          </span>
-        )}
-      </p>
-
-      {zones.length > 0 && (
-        <p className="-mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-neutral-500">
-          {zones.map((zone) => (
-            <span key={zone} className="inline-flex items-center gap-1.5">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ background: ZONE_RGB[zone].solid }}
-              />
-              {ZONE_LABEL[zone]}
-            </span>
-          ))}
-        </p>
-      )}
-
-      {groups.map((group) => (
-        <section key={group.title} className="space-y-2">
-          <h3 className="text-sm font-medium text-neutral-400">{group.title}</h3>
-          <div
-            role="table"
-            aria-label={group.title}
-            className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 text-xs tabular-nums"
-          >
+    <section className="space-y-2">
+      <h3 className="text-sm font-medium text-neutral-300">{title}</h3>
+      <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
+        <div data-no-swipe className="overflow-x-auto overscroll-x-contain">
+          <div role="table" aria-label={title} className="text-xs tabular-nums" style={{ minWidth: MIN_WIDTH }}>
             <div
               role="row"
-              className="grid items-center py-2 text-[10px] uppercase tracking-wide text-neutral-500"
-              style={{ gridTemplateColumns: template }}
+              className="grid items-center text-[10px] uppercase tracking-wide text-neutral-500"
+              style={{ gridTemplateColumns: TEMPLATE }}
             >
-              <span role="columnheader" className="pl-2.5">#</span>
-              <span role="columnheader">Équipe</span>
-              {columns.map(([label, title]) => (
-                <span key={label} role="columnheader" title={title} className="text-center">
-                  {label}
+              <span role="columnheader" className="sticky left-0 z-10 py-2 pl-2.5" style={{ background: CELL_BG }}>
+                #
+              </span>
+              <span role="columnheader" className="sticky left-8 z-10 py-2" style={{ background: CELL_BG }}>
+                Équipe
+              </span>
+              {STAT_COLUMNS.map((c) => (
+                <span key={c.label} role="columnheader" title={c.title} className="py-2 text-center">
+                  {c.label}
                 </span>
               ))}
-              <span role="columnheader" className="pr-2 text-right">Pts</span>
+              <span role="columnheader" className="py-2 text-center">
+                Forme
+              </span>
+              <span
+                role="columnheader"
+                className="sticky right-0 z-10 py-2 pr-2 text-right shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.6)]"
+                style={{ background: CELL_BG }}
+              >
+                Pts
+              </span>
             </div>
-            {group.sections.map((section) => [
-              section.label && (
-                <div
-                  key={`label-${section.label}`}
-                  role="row"
-                  className="border-t border-neutral-800 bg-neutral-950/60 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500"
-                >
-                  <span role="cell">{section.label}</span>
-                </div>
-              ),
-              ...section.rows.map((row) => {
+
+            {rows.map((row) => {
               const game = live.get(row.abbrev);
-              const values =
-                league === "nhl"
-                  ? [row.gamesPlayed, row.wins, row.losses, row.otLosses]
-                  : [row.gamesPlayed, row.wins, row.otWins ?? 0, row.otLosses, row.losses];
               return (
                 <div
                   key={row.abbrev}
                   role="row"
-                  className="grid items-center border-t border-neutral-800 py-1.5"
-                  style={{
-                    gridTemplateColumns: template,
-                    ...(row.zone
-                      ? {
-                          background: zoneBackground(row.zone, 1),
-                          boxShadow: `inset 3px 0 0 ${ZONE_RGB[row.zone].solid}`,
-                        }
-                      : {}),
-                  }}
+                  className="grid items-center border-t border-neutral-800"
+                  style={{ gridTemplateColumns: TEMPLATE, background: zoneTint(row.zone, 0.12, 0) }}
                 >
-                  <span role="cell" className="pl-2.5 text-neutral-500">
+                  <span
+                    role="cell"
+                    className="sticky left-0 z-10 flex h-full items-center pl-2.5 text-neutral-500"
+                    style={{
+                      background: row.zone ? `${zoneTint(row.zone, 0.26, 0.2)}, ${CELL_BG}` : CELL_BG,
+                      boxShadow: row.zone ? `inset 3px 0 0 ${ZONE_RGB[row.zone].solid}` : undefined,
+                    }}
+                  >
                     {row.rank}
                   </span>
-                  <span role="cell" className="min-w-0">
+                  <span
+                    role="cell"
+                    className="sticky left-8 z-10 flex h-full min-w-0 items-center py-1.5"
+                    style={{
+                      background: row.zone ? `${zoneTint(row.zone, 0.2, 0.12)}, ${CELL_BG}` : CELL_BG,
+                    }}
+                  >
                     <Link
                       href={`/matches/equipe/${league}/${row.abbrev}`}
                       prefetch={false}
-                      className="flex items-center gap-2 transition-opacity active:opacity-70"
+                      className="flex min-w-0 items-center gap-2 pr-1 transition-opacity active:opacity-70"
                     >
                       <TeamBadge abbrev={row.abbrev} name={row.name} size={24} league={league} />
                       <span className="min-w-0">
@@ -171,28 +151,120 @@ export default function StandingsTable({
                           <span className="flex items-center gap-1 text-[10px] text-red-400">
                             <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-500" />
                             {game.teamScore !== null && game.opponentScore !== null
-                              ? `${game.teamScore}-${game.opponentScore} vs ${game.opponent}`
-                              : `en direct vs ${game.opponent}`}
+                              ? `${game.teamScore}-${game.opponentScore}`
+                              : "en direct"}
                           </span>
                         )}
                       </span>
                     </Link>
                   </span>
-                  {values.map((value, i) => (
-                    <span key={columns[i][0]} role="cell" className="text-center text-neutral-400">
-                      {value}
+                  {STAT_COLUMNS.map((c) => (
+                    <span key={c.label} role="cell" className="text-center text-neutral-400">
+                      {c.value(row)}
                     </span>
                   ))}
-                  <span role="cell" className="pr-2 text-right text-sm font-bold text-sky-400">
+                  <span role="cell" className="flex justify-center">
+                    <TeamForm games={formFor(form.get(row.abbrev), formFilter)} />
+                  </span>
+                  <span
+                    role="cell"
+                    className="sticky right-0 z-10 flex h-full items-center justify-end pr-2 text-sm font-bold text-sky-400 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.6)]"
+                    style={{ background: CELL_BG }}
+                  >
                     {row.points}
                   </span>
                 </div>
               );
-              }),
-            ])}
+            })}
           </div>
-        </section>
-      ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function StandingsPanel({
+  league,
+  views,
+  live,
+  form,
+}: {
+  league: "nhl" | "magnus";
+  views: StandingsView[];
+  live: Map<string, LiveGame>;
+  form: TeamFormMap;
+}) {
+  const hasData = views.some((v) => v.blocks.some((b) => b.tables.length > 0));
+  if (!hasData) {
+    return (
+      <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
+        Classement indisponible pour le moment. Réessaie dans quelques minutes.
+      </p>
+    );
+  }
+
+  const zones = (["playoffs", "playdown"] as const).filter((zone) =>
+    views.some((v) => v.blocks.some((b) => b.tables.some((t) => t.rows.some((r) => r.zone === zone)))),
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5 text-[11px] text-neutral-500">
+        <p className="flex flex-wrap items-center justify-center gap-x-2">
+          <span>Mis à jour en direct</span>
+          {live.size > 0 && (
+            <span className="inline-flex items-center gap-1">
+              ·
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+              </span>
+              en train de jouer
+            </span>
+          )}
+        </p>
+        {zones.length > 0 && (
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            {zones.map((zone) => (
+              <span key={zone} className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: ZONE_RGB[zone].solid }} />
+                {ZONE_LABEL[zone]}
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
+
+      <StandingsViews
+        views={views.map((view) => ({
+          key: view.key,
+          label: view.label,
+          content: (
+            <div className="space-y-6">
+              {view.blocks.map((block, i) => (
+                <div key={block.heading ?? i} className="space-y-4">
+                  {block.heading && (
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                      {block.heading}
+                    </p>
+                  )}
+                  {block.tables.map((table) => (
+                    <Table
+                      key={table.title}
+                      title={table.title}
+                      rows={table.rows}
+                      league={league}
+                      live={live}
+                      form={form}
+                      formFilter={view.formFilter}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          ),
+        }))}
+      />
     </div>
   );
 }

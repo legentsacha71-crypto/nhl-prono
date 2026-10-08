@@ -28,6 +28,9 @@ export type FormGame = {
 export type TeamFormMap = Map<string, FormGame[]>;
 
 export const FORM_LENGTH = 5;
+// Matchs gardés par équipe : assez pour retrouver les 5 derniers à domicile
+// ou à l'extérieur (filtres du classement). L'affichage n'en montre que 5.
+const FORM_HISTORY = 15;
 
 function addGame(
   form: TeamFormMap,
@@ -49,7 +52,7 @@ function keepLast(form: TeamFormMap): TeamFormMap {
       (a, b) =>
         new Date(a.startTimeUTC).getTime() - new Date(b.startTimeUTC).getTime(),
     );
-    form.set(team, games.slice(-FORM_LENGTH));
+    form.set(team, games.slice(-FORM_HISTORY));
   }
   return form;
 }

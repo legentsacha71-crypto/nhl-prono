@@ -39,8 +39,13 @@ export default function SlidingTabs({
     let startX = 0;
     let startY = 0;
     let axis: "x" | "y" | null = null;
+    let ignore = false;
 
     function onStart(e: TouchEvent) {
+      // Un tableau qui défile horizontalement (classement) garde son geste :
+      // sans ça, le faire défiler changeait d'onglet.
+      ignore = e.target instanceof Element && e.target.closest("[data-no-swipe]") !== null;
+      if (ignore) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       axis = null;
@@ -48,6 +53,7 @@ export default function SlidingTabs({
     }
 
     function onMove(e: TouchEvent) {
+      if (ignore) return;
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
 
@@ -72,6 +78,10 @@ export default function SlidingTabs({
     }
 
     function onEnd() {
+      if (ignore) {
+        ignore = false;
+        return;
+      }
       setIsDragging(false);
       setDragPercent((current) => {
         const threshold = (100 / count) * 0.24; // ~ un quart du panneau
