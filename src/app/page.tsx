@@ -13,6 +13,7 @@ import SeasonCountdown from "@/components/SeasonCountdown";
 import Logo from "@/components/Logo";
 import RulesCard from "@/components/RulesCard";
 import AndroidCallout from "@/components/AndroidCallout";
+import SocialLinks from "@/components/SocialLinks";
 import SubmitButton from "@/components/SubmitButton";
 
 export default async function Home() {
@@ -142,6 +143,8 @@ export default async function Home() {
       )}
 
       <RulesCard />
+
+      <SocialLinks />
 
       <div className="grid w-full max-w-md grid-cols-2 gap-3">
         <Link
