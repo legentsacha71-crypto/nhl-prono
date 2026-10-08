@@ -5,8 +5,14 @@ import { getMagnusTeamName, normalizeMagnusAbbrev } from "./magnusTeams";
 // Classements affichés dans l'onglet "Classement" de la page Matchs. Les deux
 // ligues sont relues toutes les minutes : un match terminé y apparaît dès
 // que la ligue l'a validé.
+// Zone du classement à ce jour : qualifié pour les séries (NHL : 3 premiers
+// de division), wild card NHL (2 meilleurs suivants de la conférence), ou
+// poule de maintien Ligue Magnus (9e à 12e).
+export type StandingZone = "playoffs" | "wildcard" | "playdown";
+
 export type StandingRow = {
   rank: number;
+  zone?: StandingZone;
   abbrev: string;
   name: string;
   shortName: string; // "Rangers", "Chamonix"… pour la colonne équipe
@@ -27,6 +33,9 @@ type NhlStandingsTeam = {
   teamCommonName: { default: string };
   conferenceName: string;
   conferenceSequence: number;
+  divisionSequence: number;
+  wildcardSequence: number; // 0 pour les 3 premiers de division
+
   gamesPlayed: number;
   wins: number;
   losses: number;
@@ -50,8 +59,14 @@ export async function getNhlStandings(): Promise<StandingsGroup[]> {
     rows: data.standings
       .filter((t) => t.conferenceName === name)
       .sort((a, b) => a.conferenceSequence - b.conferenceSequence)
-      .map((t) => ({
+      .map((t): StandingRow => ({
         rank: t.conferenceSequence,
+        zone:
+          t.divisionSequence <= 3
+            ? "playoffs"
+            : t.wildcardSequence >= 1 && t.wildcardSequence <= 2
+              ? "wildcard"
+              : undefined,
         abbrev: t.teamAbbrev.default,
         name: t.teamName.default,
         shortName: t.teamCommonName.default,
@@ -82,6 +97,10 @@ type MagnusPosition = {
 
 // Classement de la saison régulière, tel que publié par la ligue (3 pts la
 // victoire, 2 en prolongation / tirs au but, 1 pour la défaite après 60 min).
+// Formule 2026-2027 : les 8 premiers vont en playoffs, les 9e à 12e en
+// poule de maintien.
+const MAGNUS_PLAYOFF_SPOTS = 8;
+
 export async function getMagnusStandings(): Promise<StandingsGroup[]> {
   const competitionId = await getCurrentCompetitionId();
   if (!competitionId) return [];
@@ -107,10 +126,11 @@ export async function getMagnusStandings(): Promise<StandingsGroup[]> {
       title: "Saison régulière",
       rows: [...positions]
         .sort((a, b) => a.position - b.position)
-        .map((p) => {
+        .map((p): StandingRow => {
           const abbrev = normalizeMagnusAbbrev(p.equipe.abreviation);
           return {
             rank: p.position,
+            zone: p.position <= MAGNUS_PLAYOFF_SPOTS ? "playoffs" : "playdown",
             abbrev,
             name: getMagnusTeamName(abbrev),
             shortName: getMagnusTeamName(abbrev),
