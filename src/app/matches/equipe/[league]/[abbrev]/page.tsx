@@ -2,21 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import TeamBadge from "@/components/TeamBadge";
-import TeamForm from "@/components/TeamForm";
+import TeamForm, { dotKind, dotStyle } from "@/components/TeamForm";
 import { getUnreadCount } from "@/lib/unreadCount";
 import { NHL_TEAMS, getTeamName } from "@/lib/nhlTeams";
 import { MAGNUS_TEAMS, getMagnusTeamName } from "@/lib/magnusTeams";
 import { formatDayLabel } from "@/lib/gameDates";
 import { getTeamResults, type FormGame } from "@/lib/teamForm";
 
-const RESULT_STYLE: Record<FormGame["result"], { dot: string; text: string }> = {
-  W: { dot: "bg-emerald-500", text: "text-emerald-400" },
-  L: { dot: "bg-red-500", text: "text-red-400" },
-  D: { dot: "bg-amber-400", text: "text-amber-300" },
-};
-
 // Libellé du résultat final, prolongation / tirs au but compris ; la
-// pastille, elle, suit le score après 60 min comme les pronostics.
+// pastille est moitié jaune pour un match décidé après 60 min.
 function resultLabel(game: FormGame): string {
   const won = game.teamScore > game.opponentScore;
   const base = won ? "Victoire" : "Défaite";
@@ -47,7 +41,9 @@ export default async function TeamPage({
   const results = await getTeamResults(league, abbrev).catch(() => null);
   const games = results ? [...results].reverse() : [];
 
-  const count = (r: FormGame["result"]) => games.filter((g) => g.result === r).length;
+  const wins = games.filter((g) => g.teamScore > g.opponentScore).length;
+  const losses = games.length - wins;
+  const afterRegulation = games.filter((g) => g.decidedIn !== "REG").length;
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
@@ -63,15 +59,19 @@ export default async function TeamPage({
             <>
               <TeamForm games={results ?? []} />
               <p className="text-sm text-neutral-300">
-                <span className="text-emerald-400">{count("W")} V</span>
-                {" · "}
-                <span className="text-red-400">{count("L")} D</span>
-                {" · "}
-                <span className="text-amber-300">
-                  {count("D")} égalité{count("D") > 1 ? "s" : ""}
+                <span className="text-emerald-400">
+                  {wins} victoire{wins > 1 ? "s" : ""}
                 </span>
-                <span className="text-neutral-500"> après 60 min</span>
+                {" · "}
+                <span className="text-red-400">
+                  {losses} défaite{losses > 1 ? "s" : ""}
+                </span>
               </p>
+              {afterRegulation > 0 && (
+                <p className="text-xs text-amber-300/80">
+                  dont {afterRegulation} en prolongation ou aux tirs au but
+                </p>
+              )}
             </>
           )}
         </div>
@@ -88,14 +88,15 @@ export default async function TeamPage({
         ) : (
           <ul className="space-y-2">
             {games.map((game) => {
-              const style = RESULT_STYLE[game.result];
+              const won = game.teamScore > game.opponentScore;
               return (
                 <li
                   key={game.startTimeUTC}
                   className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-3"
                 >
                   <span
-                    className={`h-3 w-3 shrink-0 rounded-full ${style.dot}`}
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={dotStyle(dotKind(game))}
                     aria-hidden="true"
                   />
                   <TeamBadge
@@ -117,7 +118,9 @@ export default async function TeamPage({
                     <p className="text-base font-bold tabular-nums text-neutral-50">
                       {game.teamScore}-{game.opponentScore}
                     </p>
-                    <p className={`text-[11px] ${style.text}`}>
+                    <p
+                      className={`text-[11px] ${won ? "text-emerald-400" : "text-red-400"}`}
+                    >
                       {resultLabel(game)}
                     </p>
                   </div>

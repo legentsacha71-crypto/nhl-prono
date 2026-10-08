@@ -28,6 +28,12 @@ import CalendarMonths from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
 import LiveScore from "@/components/LiveScore";
 import TeamForm, { TeamFormLegend } from "@/components/TeamForm";
+import StandingsTable, { type LiveGame } from "@/components/StandingsTable";
+import {
+  getMagnusStandings,
+  getNhlStandings,
+  type StandingsGroup,
+} from "@/lib/standings";
 import {
   getMagnusTeamForm,
   getNhlTeamForm,
@@ -131,6 +137,29 @@ function getWinPointsPreview(
   return preview;
 }
 
+// Matchs en cours, par équipe, pour signaler dans le classement les équipes
+// en train de jouer (avec le score quand il est connu).
+function liveByTeam(games: Game[]): Map<string, LiveGame> {
+  const live = new Map<string, LiveGame>();
+  for (const game of games) {
+    if (!isLive(game)) continue;
+    const known = !game.scoreUnavailable;
+    const home = known ? (game.homeTeam.score ?? null) : null;
+    const away = known ? (game.awayTeam.score ?? null) : null;
+    live.set(game.homeTeam.abbrev, {
+      opponent: game.awayTeam.abbrev,
+      teamScore: home,
+      opponentScore: away,
+    });
+    live.set(game.awayTeam.abbrev, {
+      opponent: game.homeTeam.abbrev,
+      teamScore: away,
+      opponentScore: home,
+    });
+  }
+  return live;
+}
+
 function groupByDay(games: Game[]) {
   const groups = new Map<string, { label: string; games: Game[] }>();
   for (const game of games) {
@@ -162,6 +191,7 @@ function MagnusSchedule({
   teamStats,
   leagueAvgGoals,
   teamForm,
+  standings,
 }: {
   upcomingGames: Game[];
   predictionByGameId: Map<
@@ -173,6 +203,7 @@ function MagnusSchedule({
   teamStats: Map<string, TeamStats>;
   leagueAvgGoals: number;
   teamForm: TeamFormMap;
+  standings: StandingsGroup[];
 }) {
   const dayGroups = groupByDay(upcomingGames);
 
@@ -411,6 +442,17 @@ function MagnusSchedule({
             </div>
           ),
         },
+        {
+          key: "classement",
+          label: "Classement",
+          content: (
+            <StandingsTable
+              groups={standings}
+              league="magnus"
+              live={liveByTeam(upcomingGames)}
+            />
+          ),
+        },
       ]}
     />
   );
@@ -465,6 +507,8 @@ export default async function MatchesPage() {
     nhlSeasonStartDate,
     nhlForm,
     magnusForm,
+    nhlStandings,
+    magnusStandings,
     supabase,
     user,
   ] = await Promise.all([
@@ -475,6 +519,8 @@ export default async function MatchesPage() {
     getRegularSeasonStartDate().catch(() => null),
     getNhlTeamForm().catch((): TeamFormMap => new Map()),
     getMagnusTeamForm().catch((): TeamFormMap => new Map()),
+    getNhlStandings().catch((): StandingsGroup[] => []),
+    getMagnusStandings().catch((): StandingsGroup[] => []),
     supabasePromise,
     userPromise,
   ]);
@@ -556,6 +602,7 @@ export default async function MatchesPage() {
               teamStats={magnusStats}
               leagueAvgGoals={magnusLeagueAvgGoals}
               teamForm={magnusForm}
+              standings={magnusStandings}
             />
           }
           nhlContent={
@@ -787,6 +834,17 @@ export default async function MatchesPage() {
                     <div className="space-y-4">
                       <CalendarMonths league="nhl" />
                     </div>
+                  ),
+                },
+                {
+                  key: "classement",
+                  label: "Classement",
+                  content: (
+                    <StandingsTable
+                      groups={nhlStandings}
+                      league="nhl"
+                      live={liveByTeam(games)}
+                    />
                   ),
                 },
               ]}

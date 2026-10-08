@@ -9,7 +9,7 @@ export type SlidingTabItem = {
 };
 
 /**
- * Bascule générique entre deux onglets avec un rendu "coulissant" : les deux
+ * Bascule générique entre plusieurs onglets avec un rendu "coulissant" : les
  * panneaux sont déjà rendus côté serveur (passés en props), on ne fait que
  * les translater horizontalement — pas de rechargement / état de chargement
  * entre les deux. Navigation par appui direct sur un onglet OU par swipe
@@ -19,8 +19,9 @@ export type SlidingTabItem = {
 export default function SlidingTabs({
   tabs,
 }: {
-  tabs: readonly [SlidingTabItem, SlidingTabItem];
+  tabs: readonly SlidingTabItem[];
 }) {
+  const count = tabs.length;
   const [active, setActive] = useState(0);
   const [dragPercent, setDragPercent] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -63,20 +64,21 @@ export default function SlidingTabs({
       // Résistance quand on essaie de swiper au-delà du premier/dernier onglet.
       let resisted = dx;
       if (activeRef.current === 0 && dx > 0) resisted = dx / 3;
-      if (activeRef.current === 1 && dx < 0) resisted = dx / 3;
+      if (activeRef.current === count - 1 && dx < 0) resisted = dx / 3;
 
+      // Le déplacement est exprimé en % de la piste (count panneaux de large).
       const width = el?.offsetWidth || 1;
-      setDragPercent((resisted / width) * 50);
+      setDragPercent((resisted / width) * (100 / count));
     }
 
     function onEnd() {
       setIsDragging(false);
       setDragPercent((current) => {
-        const threshold = 12; // ~ un quart du panneau
-        if (current < -threshold && activeRef.current === 0) {
-          setActive(1);
-        } else if (current > threshold && activeRef.current === 1) {
-          setActive(0);
+        const threshold = (100 / count) * 0.24; // ~ un quart du panneau
+        if (current < -threshold && activeRef.current < count - 1) {
+          setActive(activeRef.current + 1);
+        } else if (current > threshold && activeRef.current > 0) {
+          setActive(activeRef.current - 1);
         }
         return 0;
       });
@@ -94,9 +96,9 @@ export default function SlidingTabs({
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", onEnd);
     };
-  }, []);
+  }, [count]);
 
-  const baseTranslate = active === 0 ? 0 : -50;
+  const baseTranslate = -active * (100 / count);
   const translate = baseTranslate + dragPercent;
 
   return (
@@ -125,8 +127,9 @@ export default function SlidingTabs({
 
       <div ref={containerRef} className="mt-4 overflow-hidden">
         <div
-          className="flex w-[200%] items-start"
+          className="flex items-start"
           style={{
+            width: `${count * 100}%`,
             transform: `translateX(${translate}%)`,
             transition: isDragging
               ? "none"
@@ -136,7 +139,10 @@ export default function SlidingTabs({
           {tabs.map((tab, index) => (
             <div
               key={tab.key}
-              className={`w-1/2 shrink-0 ${index === 0 ? "pr-1" : "pl-1"}`}
+              className={`shrink-0 ${
+                index === 0 ? "pr-1" : index === count - 1 ? "pl-1" : "px-1"
+              }`}
+              style={{ width: `${100 / count}%` }}
               aria-hidden={active !== index}
             >
               {tab.content}

@@ -1,23 +1,49 @@
-import { FORM_LENGTH, type FormGame, type FormResult } from "@/lib/teamForm";
+import type { CSSProperties } from "react";
+import { FORM_LENGTH, type FormGame } from "@/lib/teamForm";
 
-const COLOR: Record<FormResult, string> = {
-  W: "bg-emerald-500",
-  L: "bg-red-500",
-  D: "bg-amber-400",
+const GREEN = "#10b981"; // emerald-500
+const RED = "#ef4444"; // red-500
+const YELLOW = "#fbbf24"; // amber-400
+
+// Victoire / défaite dans le temps réglementaire : pastille pleine. Match
+// décidé en prolongation ou aux tirs au but (égalité après 60 min, comme
+// pour les pronostics) : moitié verte ou rouge selon le vainqueur, moitié
+// jaune, coupée en biais comme les badges d'équipe (TeamBadge).
+type DotKind = "W" | "L" | "OTW" | "OTL";
+
+export function dotKind(game: FormGame): DotKind {
+  if (game.result === "W") return "W";
+  if (game.result === "L") return "L";
+  return game.teamScore > game.opponentScore ? "OTW" : "OTL";
+}
+
+const DOT_BACKGROUND: Record<DotKind, string> = {
+  W: GREEN,
+  L: RED,
+  OTW: `linear-gradient(135deg, ${GREEN} 50%, ${YELLOW} 50%)`,
+  OTL: `linear-gradient(135deg, ${RED} 50%, ${YELLOW} 50%)`,
 };
 
-const LABEL: Record<FormResult, string> = {
+const LABEL: Record<DotKind, string> = {
   W: "Victoire",
   L: "Défaite",
-  D: "Égalité après 60 min",
+  OTW: "Victoire en prolongation",
+  OTL: "Défaite en prolongation",
 };
+
+export function dotStyle(kind: DotKind): CSSProperties {
+  return { background: DOT_BACKGROUND[kind] };
+}
 
 function describe(game: FormGame): string {
   const score = `${game.teamScore}-${game.opponentScore}`;
-  if (game.result !== "D") return `${LABEL[game.result]} ${score} contre ${game.opponent}`;
-  const won = game.teamScore > game.opponentScore;
+  const kind = dotKind(game);
+  if (kind === "W" || kind === "L") {
+    return `${LABEL[kind]} ${score} contre ${game.opponent}`;
+  }
+  const won = kind === "OTW" ? "Victoire" : "Défaite";
   const how = game.decidedIn === "SO" ? "aux tirs au but" : "en prolongation";
-  return `${LABEL.D} : ${won ? "victoire" : "défaite"} ${score} ${how} contre ${game.opponent}`;
+  return `${won} ${score} ${how} contre ${game.opponent}`;
 }
 
 // Les 5 derniers matchs d'une équipe, du plus ancien (à gauche) au plus
@@ -33,7 +59,7 @@ export default function TeamForm({ games }: { games?: FormGame[] }) {
       className="flex items-center gap-1"
       role="img"
       aria-label={`${recent.length} derniers matchs, du plus ancien au plus récent : ${recent
-        .map((g) => LABEL[g.result])
+        .map((g) => LABEL[dotKind(g)])
         .join(", ")}`}
     >
       {Array.from({ length: missing }, (_, i) => (
@@ -46,7 +72,8 @@ export default function TeamForm({ games }: { games?: FormGame[] }) {
         <span
           key={game.startTimeUTC}
           title={describe(game)}
-          className={`h-2.5 w-2.5 rounded-full ${COLOR[game.result]}`}
+          className="h-2.5 w-2.5 rounded-full"
+          style={dotStyle(dotKind(game))}
         />
       ))}
     </div>
@@ -58,10 +85,10 @@ export function TeamFormLegend() {
   return (
     <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-neutral-500">
       <span>5 derniers matchs :</span>
-      {(["W", "L", "D"] as const).map((r) => (
-        <span key={r} className="inline-flex items-center gap-1">
-          <span className={`h-2 w-2 rounded-full ${COLOR[r]}`} />
-          {LABEL[r]}
+      {(["W", "L", "OTW", "OTL"] as const).map((kind) => (
+        <span key={kind} className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full" style={dotStyle(kind)} />
+          {kind === "OTW" ? "Victoire prol." : kind === "OTL" ? "Défaite prol." : LABEL[kind]}
         </span>
       ))}
     </p>
