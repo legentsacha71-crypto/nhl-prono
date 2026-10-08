@@ -3,6 +3,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
 import { sendPushToUser } from "@/lib/push";
+import { reminderMessage, tonightGames as pickTonightGames } from "@/lib/matchDayReminder";
 
 // Appelé par le cron Supabase à 11h00 et 12h00 UTC (voir
 // supabase/cron_jobs.sql) : selon l'heure d'été ou d'hiver, un seul des deux
@@ -33,19 +34,13 @@ function parisNow(): { hour: number; minute: number; dateKey: string } {
   };
 }
 
-function parisDateKey(iso: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(
-    new Date(iso),
-  );
-}
-
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
-  const { hour, minute, dateKey } = parisNow();
+  const { hour, minute } = parisNow();
   if (hour !== TARGET_HOUR || minute >= WINDOW_MINUTES) {
     return NextResponse.json({ skipped: true, reason: "hors fenêtre 13h" });
   }
@@ -55,11 +50,10 @@ export async function GET(request: NextRequest) {
     getMagnusUpcomingGames(),
   ]);
 
-  // Matchs qui se jouent ce soir : même jour calendaire que "maintenant",
-  // heure de Paris.
-  const tonightGames = [...nhlGames, ...magnusGames].filter(
-    (g) => parisDateKey(g.startTimeUTC) === dateKey,
-  );
+  // Matchs de ce soir et de la nuit NHL qui suit (voir tonightGames). Avant,
+  // seuls les matchs du même jour calendaire comptaient : la nuit NHL (1 h du
+  // matin, donc le lendemain) était oubliée.
+  const tonightGames = pickTonightGames([...nhlGames, ...magnusGames]);
 
   if (tonightGames.length === 0) {
     return NextResponse.json({
@@ -71,29 +65,32 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const gameIds = tonightGames.map((g) => g.id);
 
-  // On ne relance pas les joueurs qui ont déjà pronostiqué au moins un
-  // match de ce soir — le rappel sert à ne pas oublier, pas à harceler
-  // quelqu'un qui a déjà commencé.
-  const [{ data: tokenRows }, { data: predictionRows }] = await Promise.all([
-    supabase.from("device_push_tokens").select("user_id"),
-    supabase.from("predictions").select("user_id").in("game_id", gameIds),
-  ]);
+  // On relance chaque joueur qui a encore au moins un match de ce soir à
+  // pronostiquer ; celui qui a déjà tout rempli n'est pas dérangé.
+  const { data: tokenRows } = await supabase
+    .from("device_push_tokens")
+    .select("user_id");
+  const candidates = [...new Set((tokenRows ?? []).map((r) => r.user_id))];
+  if (candidates.length === 0) {
+    return NextResponse.json({ games: tonightGames.length, notified: 0 });
+  }
+  const { data: predictionRows } = await supabase
+    .from("predictions")
+    .select("user_id")
+    .in("game_id", gameIds)
+    .in("user_id", candidates);
 
-  const alreadyPredicted = new Set(
-    (predictionRows ?? []).map((r) => r.user_id),
-  );
-  const candidates = new Set((tokenRows ?? []).map((r) => r.user_id));
-  const targets = [...candidates].filter(
-    (userId) => !alreadyPredicted.has(userId),
-  );
+  const predictedCount = new Map<string, number>();
+  for (const row of predictionRows ?? []) {
+    predictedCount.set(row.user_id, (predictedCount.get(row.user_id) ?? 0) + 1);
+  }
 
   let notified = 0;
-  for (const userId of targets) {
+  for (const userId of candidates) {
+    const remaining = tonightGames.length - (predictedCount.get(userId) ?? 0);
+    if (remaining <= 0) continue;
     try {
-      await sendPushToUser(userId, {
-        title: "🏒 Matchs ce soir",
-        body: "N'oublie pas tes matchs de ce soir 👀 !",
-      });
+      await sendPushToUser(userId, reminderMessage(tonightGames, remaining));
       notified++;
     } catch (err) {
       console.error(`Échec du rappel quotidien pour user ${userId}:`, err);
