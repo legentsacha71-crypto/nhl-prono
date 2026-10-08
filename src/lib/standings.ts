@@ -1,5 +1,9 @@
 import { nhlFetch } from "./nhlFetch";
-import { findRegularSeasonPhase, getCurrentCompetitionId, getPhases } from "./magnusApi";
+import {
+  findRegularSeasonPhase,
+  getCurrentCompetitionId,
+  getPhases,
+} from "./magnusApi";
 import { getMagnusTeamName, normalizeMagnusAbbrev } from "./magnusTeams";
 
 // Classements affichés dans l'onglet "Classement" de la page Matchs. Les deux
@@ -25,7 +29,10 @@ export type StandingRow = {
   goalDiff: number;
 };
 
-export type StandingsGroup = { title: string; rows: StandingRow[] };
+// Un tableau par groupe (conférence NHL, saison régulière Magnus), découpé en
+// sections : divisions puis wild cards côté NHL, une seule section côté Magnus.
+export type StandingsSection = { label?: string; rows: StandingRow[] };
+export type StandingsGroup = { title: string; sections: StandingsSection[] };
 
 type NhlStandingsTeam = {
   teamAbbrev: { default: string };
@@ -33,6 +40,7 @@ type NhlStandingsTeam = {
   teamCommonName: { default: string };
   conferenceName: string;
   conferenceSequence: number;
+  divisionName: string;
   divisionSequence: number;
   wildcardSequence: number; // 0 pour les 3 premiers de division
 
@@ -49,35 +57,89 @@ const NHL_CONFERENCES: { name: string; title: string }[] = [
   { name: "Western", title: "Conférence de l'Ouest" },
 ];
 
+const NHL_DIVISIONS: Record<string, string> = {
+  Atlantic: "Division Atlantique",
+  Metropolitan: "Division Métropolitaine",
+  Central: "Division Centrale",
+  Pacific: "Division Pacifique",
+};
+
+// Les 3 premiers de chaque division sont qualifiés, puis les 2 meilleurs
+// des autres équipes de la conférence (wild cards).
+const NHL_DIVISION_SPOTS = 3;
+const NHL_WILDCARD_SPOTS = 2;
+
+function toNhlRow(t: NhlStandingsTeam, rank: number): StandingRow {
+  return {
+    rank,
+    zone:
+      t.divisionSequence <= NHL_DIVISION_SPOTS
+        ? "playoffs"
+        : t.wildcardSequence >= 1 && t.wildcardSequence <= NHL_WILDCARD_SPOTS
+        ? "wildcard"
+        : undefined,
+    abbrev: t.teamAbbrev.default,
+    name: t.teamName.default,
+    shortName: t.teamCommonName.default,
+    gamesPlayed: t.gamesPlayed,
+    wins: t.wins,
+    otLosses: t.otLosses,
+    losses: t.losses,
+    points: t.points,
+    goalDiff: t.goalDifferential,
+  };
+}
+
+// Présentation "wild card" comme sur NHL.com : pour chaque conférence, le
+// top 3 de chaque division (la division du leader de la conférence en
+// premier), puis toutes les autres équipes dans l'ordre de la course aux
+// wild cards. Trié par points de conférence, un 3e de division peut se
+// retrouver derrière une wild card, ce qui laissait croire à une erreur.
 export async function getNhlStandings(): Promise<StandingsGroup[]> {
   const res = await nhlFetch("standings/now", { next: { revalidate: 60 } });
   if (!res.ok) throw new Error(`Erreur API NHL (standings): ${res.status}`);
   const data: { standings: NhlStandingsTeam[] } = await res.json();
 
-  return NHL_CONFERENCES.map(({ name, title }) => ({
-    title,
-    rows: data.standings
-      .filter((t) => t.conferenceName === name)
-      .sort((a, b) => a.conferenceSequence - b.conferenceSequence)
-      .map((t): StandingRow => ({
-        rank: t.conferenceSequence,
-        zone:
-          t.divisionSequence <= 3
-            ? "playoffs"
-            : t.wildcardSequence >= 1 && t.wildcardSequence <= 2
-              ? "wildcard"
-              : undefined,
-        abbrev: t.teamAbbrev.default,
-        name: t.teamName.default,
-        shortName: t.teamCommonName.default,
-        gamesPlayed: t.gamesPlayed,
-        wins: t.wins,
-        otLosses: t.otLosses,
-        losses: t.losses,
-        points: t.points,
-        goalDiff: t.goalDifferential,
-      })),
-  })).filter((group) => group.rows.length > 0);
+  return NHL_CONFERENCES.map(({ name, title }) => {
+    const teams = data.standings.filter((t) => t.conferenceName === name);
+    const divisions = [...new Set(teams.map((t) => t.divisionName))].sort(
+      (a, b) => {
+        const leader = (division: string) =>
+          Math.min(
+            ...teams
+              .filter((t) => t.divisionName === division)
+              .map((t) => t.conferenceSequence)
+          );
+        return leader(a) - leader(b);
+      }
+    );
+
+    const divisionSections = divisions.map((division) => ({
+      label: NHL_DIVISIONS[division] ?? division,
+      rows: teams
+        .filter(
+          (t) =>
+            t.divisionName === division &&
+            t.divisionSequence <= NHL_DIVISION_SPOTS
+        )
+        .sort((a, b) => a.divisionSequence - b.divisionSequence)
+        .map((t) => toNhlRow(t, t.divisionSequence)),
+    }));
+    const wildcardSection = {
+      label: "Wild card",
+      rows: teams
+        .filter((t) => t.divisionSequence > NHL_DIVISION_SPOTS)
+        .sort((a, b) => a.wildcardSequence - b.wildcardSequence)
+        .map((t) => toNhlRow(t, t.wildcardSequence)),
+    };
+
+    return {
+      title,
+      sections: [...divisionSections, wildcardSection].filter(
+        (section) => section.rows.length > 0
+      ),
+    };
+  }).filter((group) => group.sections.length > 0);
 }
 
 const MAGNUS_AJAX_URL = "https://liguemagnus.com/wp-admin/admin-ajax.php";
@@ -116,33 +178,40 @@ export async function getMagnusStandings(): Promise<StandingsGroup[]> {
     }),
     next: { revalidate: 60 },
   });
-  if (!res.ok) throw new Error(`Erreur API Ligue Magnus (classement): ${res.status}`);
+  if (!res.ok)
+    throw new Error(`Erreur API Ligue Magnus (classement): ${res.status}`);
   const json = await res.json();
-  if (!json.success) throw new Error("Erreur API Ligue Magnus (classement): réponse en échec");
+  if (!json.success)
+    throw new Error("Erreur API Ligue Magnus (classement): réponse en échec");
   const positions: MagnusPosition[] = json.data.data.positions;
 
   return [
     {
       title: "Saison régulière",
-      rows: [...positions]
-        .sort((a, b) => a.position - b.position)
-        .map((p): StandingRow => {
-          const abbrev = normalizeMagnusAbbrev(p.equipe.abreviation);
-          return {
-            rank: p.position,
-            zone: p.position <= MAGNUS_PLAYOFF_SPOTS ? "playoffs" : "playdown",
-            abbrev,
-            name: getMagnusTeamName(abbrev),
-            shortName: getMagnusTeamName(abbrev),
-            gamesPlayed: p.nombre_rencontres_joues,
-            wins: p.nombre_victoire,
-            otWins: p.nombre_vprl,
-            otLosses: p.nombre_dprl,
-            losses: p.nombre_defaite,
-            points: p.nombre_point,
-            goalDiff: p.nombre_but_marque - p.nombre_but_concede,
-          };
-        }),
+      sections: [
+        {
+          rows: [...positions]
+            .sort((a, b) => a.position - b.position)
+            .map((p): StandingRow => {
+              const abbrev = normalizeMagnusAbbrev(p.equipe.abreviation);
+              return {
+                rank: p.position,
+                zone:
+                  p.position <= MAGNUS_PLAYOFF_SPOTS ? "playoffs" : "playdown",
+                abbrev,
+                name: getMagnusTeamName(abbrev),
+                shortName: getMagnusTeamName(abbrev),
+                gamesPlayed: p.nombre_rencontres_joues,
+                wins: p.nombre_victoire,
+                otWins: p.nombre_vprl,
+                otLosses: p.nombre_dprl,
+                losses: p.nombre_defaite,
+                points: p.nombre_point,
+                goalDiff: p.nombre_but_marque - p.nombre_but_concede,
+              };
+            }),
+        },
+      ],
     },
   ];
 }

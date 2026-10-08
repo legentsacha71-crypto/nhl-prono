@@ -65,7 +65,9 @@ export default function StandingsTable({
   const columns = COLUMNS[league];
   const template = `1.75rem minmax(0,1fr) repeat(${columns.length},1.75rem) 2.5rem`;
   const zones = (["playoffs", "wildcard", "playdown"] as const).filter((zone) =>
-    groups.some((g) => g.rows.some((r) => r.zone === zone)),
+    groups.some((g) =>
+      g.sections.some((section) => section.rows.some((r) => r.zone === zone)),
+    ),
   );
 
   return (
@@ -120,7 +122,17 @@ export default function StandingsTable({
               ))}
               <span role="columnheader" className="pr-2 text-right">Pts</span>
             </div>
-            {group.rows.map((row) => {
+            {group.sections.map((section) => [
+              section.label && (
+                <div
+                  key={`label-${section.label}`}
+                  role="row"
+                  className="border-t border-neutral-800 bg-neutral-950/60 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500"
+                >
+                  <span role="cell">{section.label}</span>
+                </div>
+              ),
+              ...section.rows.map((row) => {
               const game = live.get(row.abbrev);
               const values =
                 league === "nhl"
@@ -176,7 +188,8 @@ export default function StandingsTable({
                   </span>
                 </div>
               );
-            })}
+              }),
+            ])}
           </div>
         </section>
       ))}
