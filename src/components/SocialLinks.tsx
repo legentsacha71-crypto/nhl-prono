@@ -19,15 +19,25 @@ function TikTokIcon() {
   );
 }
 
+const INSTAGRAM_ICON_CLASS =
+  "bg-[linear-gradient(45deg,#f58529_0%,#dd2a7b_50%,#8134af_100%)] text-white";
+
 const ACCOUNTS = [
+  {
+    network: "Instagram",
+    account: "La Nuit Hockey",
+    handle: "@lanuithockey",
+    href: "https://www.instagram.com/lanuithockey/",
+    icon: <InstagramIcon />,
+    iconClass: INSTAGRAM_ICON_CLASS,
+  },
   {
     network: "Instagram",
     account: "La Nuit NHL",
     handle: "@lanuitnhl",
     href: "https://www.instagram.com/lanuitnhl/",
     icon: <InstagramIcon />,
-    iconClass:
-      "bg-[linear-gradient(45deg,#f58529_0%,#dd2a7b_50%,#8134af_100%)] text-white",
+    iconClass: INSTAGRAM_ICON_CLASS,
   },
   {
     network: "TikTok",
@@ -45,7 +55,7 @@ export default function SocialLinks() {
       <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
         Suis-nous
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         {ACCOUNTS.map((a) => (
           <a
             key={a.href}
@@ -53,16 +63,16 @@ export default function SocialLinks() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`${a.account} sur ${a.network} (${a.handle})`}
-            className="flex items-center gap-2.5 rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 transition-all duration-150 hover:border-neutral-700 active:scale-[0.97]"
+            className="flex min-w-0 flex-col items-center gap-1.5 rounded-xl border border-neutral-800 bg-neutral-950 px-1.5 py-3 text-center transition-all duration-150 hover:border-neutral-700 active:scale-[0.97]"
           >
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${a.iconClass}`}>
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${a.iconClass}`}>
               {a.icon}
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-neutral-200">
-                {a.network}
-              </span>
-              <span className="block truncate text-xs text-neutral-500">{a.handle}</span>
+            <span className="flex min-h-[2.5em] w-full items-center justify-center text-xs font-medium leading-tight text-neutral-200">
+              {a.account}
+            </span>
+            <span className="w-full truncate text-[11px] text-neutral-500">
+              {a.handle}
             </span>
           </a>
         ))}
