@@ -79,18 +79,3 @@ export default function TeamForm({ games }: { games?: FormGame[] }) {
     </div>
   );
 }
-
-// Légende affichée une fois en haut de la liste "À venir".
-export function TeamFormLegend() {
-  return (
-    <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-neutral-500">
-      <span>5 derniers matchs :</span>
-      {(["W", "L", "OTW", "OTL"] as const).map((kind) => (
-        <span key={kind} className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full" style={dotStyle(kind)} />
-          {kind === "OTW" ? "Victoire prol." : kind === "OTL" ? "Défaite prol." : LABEL[kind]}
-        </span>
-      ))}
-    </p>
-  );
-}

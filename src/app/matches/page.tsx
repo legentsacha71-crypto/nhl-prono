@@ -27,7 +27,7 @@ import LeagueSwitch from "@/components/LeagueSwitch";
 import CalendarMonths from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
 import LiveScore from "@/components/LiveScore";
-import TeamForm, { TeamFormLegend } from "@/components/TeamForm";
+import TeamForm from "@/components/TeamForm";
 import StandingsTable, { type LiveGame } from "@/components/StandingsTable";
 import {
   getMagnusStandings,
@@ -220,10 +220,6 @@ function MagnusSchedule({
                   Pas de matchs à venir pour le moment. La saison Ligue Magnus
                   reprend en septembre.
                 </p>
-              )}
-
-              {upcomingGames.length > 0 && teamForm.size > 0 && (
-                <TeamFormLegend />
               )}
 
               {dayGroups.map((group) => (
@@ -617,10 +613,6 @@ export default async function MatchesPage() {
                         <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
                           {nhlNoGamesMessage}
                         </p>
-                      )}
-
-                      {games.length > 0 && nhlForm.size > 0 && (
-                        <TeamFormLegend />
                       )}
 
                       {dayGroups.map((group) => (

@@ -126,10 +126,6 @@ export default function StandingsTable({
           </div>
         </section>
       ))}
-
-      <p className="text-center text-[11px] leading-relaxed text-neutral-600">
-        {columns.map(([label, title]) => `${label} : ${title.toLowerCase()}`).join(" · ")}
-      </p>
     </div>
   );
 }
