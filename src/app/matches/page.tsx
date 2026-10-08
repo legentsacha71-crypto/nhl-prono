@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { getUpcomingGames, getRegularSeasonStartDate } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
@@ -26,6 +27,12 @@ import LeagueSwitch from "@/components/LeagueSwitch";
 import CalendarMonths from "@/components/CalendarMonths";
 import PredictionForm from "./PredictionForm";
 import LiveScore from "@/components/LiveScore";
+import TeamForm, { TeamFormLegend } from "@/components/TeamForm";
+import {
+  getMagnusTeamForm,
+  getNhlTeamForm,
+  type TeamFormMap,
+} from "@/lib/teamForm";
 import {
   formatDayLabel,
   formatTime,
@@ -154,6 +161,7 @@ function MagnusSchedule({
   hidePremiumUpsell,
   teamStats,
   leagueAvgGoals,
+  teamForm,
 }: {
   upcomingGames: Game[];
   predictionByGameId: Map<
@@ -164,6 +172,7 @@ function MagnusSchedule({
   hidePremiumUpsell: boolean;
   teamStats: Map<string, TeamStats>;
   leagueAvgGoals: number;
+  teamForm: TeamFormMap;
 }) {
   const dayGroups = groupByDay(upcomingGames);
 
@@ -180,6 +189,10 @@ function MagnusSchedule({
                   Pas de matchs à venir pour le moment. La saison Ligue Magnus
                   reprend en septembre.
                 </p>
+              )}
+
+              {upcomingGames.length > 0 && teamForm.size > 0 && (
+                <TeamFormLegend />
               )}
 
               {dayGroups.map((group) => (
@@ -233,29 +246,45 @@ function MagnusSchedule({
                               )}
                             </div>
                             <div className="flex items-center justify-between gap-1">
-                              <div className="flex flex-1 flex-col items-center gap-1.5">
+                              <Link
+                                href={`/matches/equipe/magnus/${game.homeTeam.abbrev}`}
+                                prefetch={false}
+                                aria-label={`Voir les derniers matchs de ${game.homeTeam.name}`}
+                                className="flex flex-1 flex-col items-center gap-1.5 rounded-lg transition-opacity active:opacity-70"
+                              >
                                 <TeamBadge
                                   abbrev={game.homeTeam.abbrev}
                                   name={game.homeTeam.name}
                                   size={40}
                                   league="magnus"
                                 />
+                                <TeamForm
+                                  games={teamForm.get(game.homeTeam.abbrev)}
+                                />
                                 <span className="text-sm font-medium text-neutral-200">
                                   {game.homeTeam.name}
                                 </span>
-                              </div>
+                              </Link>
                               <VsBadge />
-                              <div className="flex flex-1 flex-col items-center gap-1.5">
+                              <Link
+                                href={`/matches/equipe/magnus/${game.awayTeam.abbrev}`}
+                                prefetch={false}
+                                aria-label={`Voir les derniers matchs de ${game.awayTeam.name}`}
+                                className="flex flex-1 flex-col items-center gap-1.5 rounded-lg transition-opacity active:opacity-70"
+                              >
                                 <TeamBadge
                                   abbrev={game.awayTeam.abbrev}
                                   name={game.awayTeam.name}
                                   size={40}
                                   league="magnus"
                                 />
+                                <TeamForm
+                                  games={teamForm.get(game.awayTeam.abbrev)}
+                                />
                                 <span className="text-sm font-medium text-neutral-200">
                                   {game.awayTeam.name}
                                 </span>
-                              </div>
+                              </Link>
                             </div>
 
                             {isLive(game) && (
@@ -434,6 +463,8 @@ export default async function MatchesPage() {
     magnusGames,
     magnusStats,
     nhlSeasonStartDate,
+    nhlForm,
+    magnusForm,
     supabase,
     user,
   ] = await Promise.all([
@@ -442,6 +473,8 @@ export default async function MatchesPage() {
     getMagnusUpcomingGames().catch(() => []),
     getMagnusTeamStats().catch(() => new Map<string, TeamStats>()),
     getRegularSeasonStartDate().catch(() => null),
+    getNhlTeamForm().catch((): TeamFormMap => new Map()),
+    getMagnusTeamForm().catch((): TeamFormMap => new Map()),
     supabasePromise,
     userPromise,
   ]);
@@ -522,6 +555,7 @@ export default async function MatchesPage() {
               hidePremiumUpsell={hidePremiumUpsell}
               teamStats={magnusStats}
               leagueAvgGoals={magnusLeagueAvgGoals}
+              teamForm={magnusForm}
             />
           }
           nhlContent={
@@ -536,6 +570,10 @@ export default async function MatchesPage() {
                         <p className="rounded-md border border-neutral-800 bg-neutral-900 p-4 text-center text-sm text-neutral-400">
                           {nhlNoGamesMessage}
                         </p>
+                      )}
+
+                      {games.length > 0 && nhlForm.size > 0 && (
+                        <TeamFormLegend />
                       )}
 
                       {dayGroups.map((group) => (
@@ -593,27 +631,47 @@ export default async function MatchesPage() {
                                       )}
                                     </div>
                                     <div className="flex items-center justify-between gap-1">
-                                      <div className="flex flex-1 flex-col items-center gap-1.5">
+                                      <Link
+                                        href={`/matches/equipe/nhl/${game.homeTeam.abbrev}`}
+                                        prefetch={false}
+                                        aria-label={`Voir les derniers matchs de ${game.homeTeam.name}`}
+                                        className="flex flex-1 flex-col items-center gap-1.5 rounded-lg transition-opacity active:opacity-70"
+                                      >
                                         <TeamBadge
                                           abbrev={game.homeTeam.abbrev}
                                           name={game.homeTeam.name}
                                           size={40}
                                         />
+                                        <TeamForm
+                                          games={nhlForm.get(
+                                            game.homeTeam.abbrev,
+                                          )}
+                                        />
                                         <span className="text-sm font-medium text-neutral-200">
                                           {game.homeTeam.name}
                                         </span>
-                                      </div>
+                                      </Link>
                                       <VsBadge />
-                                      <div className="flex flex-1 flex-col items-center gap-1.5">
+                                      <Link
+                                        href={`/matches/equipe/nhl/${game.awayTeam.abbrev}`}
+                                        prefetch={false}
+                                        aria-label={`Voir les derniers matchs de ${game.awayTeam.name}`}
+                                        className="flex flex-1 flex-col items-center gap-1.5 rounded-lg transition-opacity active:opacity-70"
+                                      >
                                         <TeamBadge
                                           abbrev={game.awayTeam.abbrev}
                                           name={game.awayTeam.name}
                                           size={40}
                                         />
+                                        <TeamForm
+                                          games={nhlForm.get(
+                                            game.awayTeam.abbrev,
+                                          )}
+                                        />
                                         <span className="text-sm font-medium text-neutral-200">
                                           {game.awayTeam.name}
                                         </span>
-                                      </div>
+                                      </Link>
                                     </div>
 
                                     {isLive(game) && (
