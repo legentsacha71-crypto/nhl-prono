@@ -76,7 +76,7 @@ const COLUMNS =
 const TWO_WORD_NICKNAMES = ["Blue Jackets", "Red Wings", "Maple Leafs", "Golden Knights"];
 
 // "Boston Bruins" -> "Bruins" : le nom complet est tronqué sur mobile.
-export function shortNhlName(name: string) {
+function shortNhlName(name: string) {
   return (
     TWO_WORD_NICKNAMES.find((nickname) => name.endsWith(nickname)) ??
     name.split(" ").pop() ??
@@ -121,7 +121,7 @@ const STATUS = {
 // boost x2 ("45 + 10 bonus", "(45 + 10) × 2", "45 × 2"). Rien pour un simple
 // bon vainqueur sans boost (total = base), ni pour les anciens pronos dont
 // le détail n'a pas été enregistré.
-export function pointsBreakdown(
+function pointsBreakdown(
   item: Pick<RecentPrediction, "points" | "basePoints" | "bonusPoints" | "boosted">,
 ): string | null {
   const { basePoints, bonusPoints } = item;

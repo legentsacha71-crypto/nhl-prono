@@ -7,21 +7,22 @@ import TopBar from "@/components/TopBar";
 import FriendRequestActions from "@/components/FriendRequestActions";
 import {
   ActivityRow,
+  LiveRow,
   NightRecap,
-  PendingList,
-  ResultCard,
+  ResultRow,
+  RowCard,
   SectionLabel,
 } from "@/components/NotificationFeed";
 import { getGameResult } from "@/lib/gameResults";
 import { isMagnusGameId } from "@/lib/competition";
 import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
-import { getRanking } from "@/lib/ranking";
 import { isLive, type Game } from "@/lib/gameDates";
 import {
   matchupKey,
+  nightAgeInDays,
   nightKey,
-  nightLabel,
+  nightTitle,
   pointsNotificationKey,
   toActivityItem,
   type League,
@@ -29,28 +30,28 @@ import {
   type ResultItem,
 } from "@/lib/notificationFeed";
 
-// Nombre de cartes de résultat affichées (une requête de score par match,
-// en cache une fois le match noté) et de pronos à venir listés.
-const RESULT_CARDS = 15;
-const PENDING_ROWS = 6;
+// Nombre de résultats affichés (une requête de score par match, en cache
+// une fois le match noté).
+const RESULT_ROWS = 15;
 // Pronos terminés mais pas encore notés : leur score est relu en direct.
 const AWAITING_LOOKUPS = 6;
+// Au-delà d'une journée sans note, le match a sans doute été reporté.
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+// Le récap de la dernière nuit n'est affiché que s'il est récent.
+const RECAP_MAX_AGE_DAYS = 3;
 
 type PredictionRow = {
   game_id: number;
   away_score: number;
   home_score: number;
   points: number | null;
-  base_points: number | null;
-  bonus_points: number | null;
   is_exact_score: boolean | null;
   boosted: boolean | null;
   game_start_time: string | null;
 };
 
 const PREDICTION_COLUMNS =
-  "game_id, away_score, home_score, points, base_points, bonus_points, is_exact_score, boosted, game_start_time";
+  "game_id, away_score, home_score, points, is_exact_score, boosted, game_start_time";
 
 function leagueOf(gameId: number): League {
   return isMagnusGameId(gameId) ? "magnus" : "nhl";
@@ -74,8 +75,6 @@ async function toResultItem(
       predictedHome: p.home_score,
       predictedAway: p.away_score,
       points: p.points ?? 0,
-      basePoints: p.base_points,
-      bonusPoints: p.bonus_points,
       isExactScore: Boolean(p.is_exact_score),
       boosted: Boolean(p.boosted),
       isNew: newMatchups.has(matchupKey(result.homeAbbrev, result.awayAbbrev)),
@@ -85,8 +84,7 @@ async function toResultItem(
   }
 }
 
-function pendingFromGame(p: PredictionRow, game: Game, league: League): PendingItem {
-  const live = isLive(game);
+function liveFromGame(p: PredictionRow, game: Game, league: League): PendingItem {
   return {
     gameId: p.game_id,
     league,
@@ -95,15 +93,15 @@ function pendingFromGame(p: PredictionRow, game: Game, league: League): PendingI
     predictedHome: p.home_score,
     predictedAway: p.away_score,
     startTime: game.startTimeUTC,
-    status: live ? "live" : "upcoming",
-    homeScore: live && !game.scoreUnavailable ? (game.homeTeam.score ?? null) : null,
-    awayScore: live && !game.scoreUnavailable ? (game.awayTeam.score ?? null) : null,
+    status: "live",
+    homeScore: game.scoreUnavailable ? null : (game.homeTeam.score ?? null),
+    awayScore: game.scoreUnavailable ? null : (game.awayTeam.score ?? null),
   };
 }
 
 // Match commencé qui n'est plus dans la liste des matchs à venir : terminé
 // (en attente de notation) ou pas encore marqué comme commencé par l'API.
-async function pendingFromResult(p: PredictionRow): Promise<PendingItem | null> {
+async function liveFromResult(p: PredictionRow): Promise<PendingItem | null> {
   try {
     const result = await getGameResult(p.game_id);
     if (!result.homeAbbrev || !result.awayAbbrev) return null;
@@ -124,8 +122,6 @@ async function pendingFromResult(p: PredictionRow): Promise<PendingItem | null> 
   }
 }
 
-const STATUS_ORDER = { live: 0, awaiting: 1, upcoming: 2 } as const;
-
 export default async function NotificationsPage() {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -139,7 +135,6 @@ export default async function NotificationsPage() {
     { data: friendRequestRows },
     { data: gradedRows },
     { data: pendingRows },
-    ranking,
     nhlGames,
     magnusGames,
   ] = await Promise.all([
@@ -156,22 +151,25 @@ export default async function NotificationsPage() {
       .select("id, requester:profiles!friendships_requester_id_fkey(username)")
       .eq("addressee_id", user.id)
       .eq("status", "pending"),
-    // Assez de lignes pour couvrir toute la dernière nuit dans le récap,
-    // même si seules les RESULT_CARDS premières ont leur carte.
+    // Quelques vieux pronos n'ont pas d'heure de match : sans nullsFirst:
+    // false, Postgres les classe en tête d'un tri décroissant. Assez de
+    // lignes pour couvrir toute la dernière nuit dans le récap.
     supabase
       .from("predictions")
       .select(PREDICTION_COLUMNS)
       .eq("user_id", user.id)
       .not("points", "is", null)
-      .order("game_start_time", { ascending: false })
+      .order("game_start_time", { ascending: false, nullsFirst: false })
       .limit(40),
+    // Pronos pas encore notés dont le match a commencé.
     supabase
       .from("predictions")
       .select(PREDICTION_COLUMNS)
       .eq("user_id", user.id)
       .is("points", null)
+      .lte("game_start_time", now.toISOString())
+      .gte("game_start_time", new Date(now.getTime() - STALE_AFTER_MS).toISOString())
       .order("game_start_time", { ascending: true }),
-    getRanking(supabase).catch(() => []),
     getNhlUpcomingGames().catch((): Game[] => []),
     getMagnusUpcomingGames().catch((): Game[] => []),
   ]);
@@ -185,8 +183,8 @@ export default async function NotificationsPage() {
   const allNotifications = notifications ?? [];
   const unreadCount = allNotifications.filter((n) => !n.read_at).length;
 
-  // Les notifications de points sont remplacées par les cartes de résultat :
-  // on ne garde que les matchs à marquer "Nouveau".
+  // Les notifications de points sont remplacées par les lignes de résultat :
+  // on ne s'en sert que pour marquer les résultats pas encore vus.
   const newMatchups = new Set<string>();
   const activityNotifications: typeof allNotifications = [];
   for (const n of allNotifications) {
@@ -205,64 +203,53 @@ export default async function NotificationsPage() {
     .filter((a) => !(a.kind === "friend-request" && pendingRequesters.has(a.name ?? undefined)))
     .slice(0, 15);
 
-  // Récap de la dernière nuit jouée.
+  // Récap de la dernière nuit jouée, si elle est récente.
   const graded = (gradedRows ?? []) as PredictionRow[];
-  const lastNight = graded[0] ? nightKey(graded[0].game_start_time) : null;
-  const nightPredictions = graded.filter((p) => nightKey(p.game_start_time) === lastNight);
-  const rank = ranking.findIndex((entry) => entry.userId === user.id) + 1;
+  const lastStart = graded[0]?.game_start_time ?? null;
+  const showRecap = lastStart !== null && nightAgeInDays(lastStart, now) <= RECAP_MAX_AGE_DAYS;
+  const nightPredictions = showRecap
+    ? graded.filter((p) => nightKey(p.game_start_time) === nightKey(lastStart))
+    : [];
 
+  const startByGame = new Map(graded.map((p) => [p.game_id, p.game_start_time]));
   const results = (
-    await Promise.all(graded.slice(0, RESULT_CARDS).map((p) => toResultItem(p, newMatchups)))
+    await Promise.all(graded.slice(0, RESULT_ROWS).map((p) => toResultItem(p, newMatchups)))
   ).filter((item): item is ResultItem => item !== null);
 
-  const resultGroups: { key: string; label: string; items: ResultItem[] }[] = [];
+  const resultGroups: { key: string; title: string; items: ResultItem[] }[] = [];
   for (const item of results) {
-    const start = graded.find((p) => p.game_id === item.gameId)?.game_start_time ?? null;
+    const start = startByGame.get(item.gameId) ?? null;
     const key = nightKey(start);
     const last = resultGroups[resultGroups.length - 1];
     if (last && last.key === key) last.items.push(item);
-    else resultGroups.push({ key, label: nightLabel(start), items: [item] });
+    else resultGroups.push({ key, title: nightTitle(start, now), items: [item] });
   }
 
-  // Pronos encore en jeu : en direct, terminés en attente de points, à venir.
+  // Matchs pronostiqués en cours, ou terminés en attente de points.
   const games = new Map<number, { game: Game; league: League }>();
   for (const game of nhlGames) games.set(game.id, { game, league: "nhl" });
   for (const game of magnusGames) games.set(game.id, { game, league: "magnus" });
 
-  const pendingPredictions = (pendingRows ?? []) as PredictionRow[];
   const fromSchedule: PendingItem[] = [];
-  const started: PredictionRow[] = [];
-  let laterCount = 0;
-  for (const p of pendingPredictions) {
+  const toLookUp: PredictionRow[] = [];
+  for (const p of (pendingRows ?? []) as PredictionRow[]) {
     const entry = games.get(p.game_id);
     if (entry && entry.league === leagueOf(p.game_id)) {
-      fromSchedule.push(pendingFromGame(p, entry.game, entry.league));
-    } else if (p.game_start_time && new Date(p.game_start_time) <= now) {
-      // Au-delà d'une journée sans note, le match a sans doute été reporté :
-      // on ne l'affiche pas comme "en direct".
-      if (now.getTime() - Date.parse(p.game_start_time) < STALE_AFTER_MS) started.push(p);
+      // Encore dans le calendrier : en direct, ou coup d'envoi un peu retardé.
+      if (isLive(entry.game)) fromSchedule.push(liveFromGame(p, entry.game, entry.league));
     } else {
-      laterCount++;
+      toLookUp.push(p);
     }
   }
   const fromResults = (
-    await Promise.all(started.slice(-AWAITING_LOOKUPS).map(pendingFromResult))
+    await Promise.all(toLookUp.slice(-AWAITING_LOOKUPS).map(liveFromResult))
   ).filter((item): item is PendingItem => item !== null);
-
-  const pendingSorted = [...fromResults, ...fromSchedule].sort(
-    (a, b) =>
-      STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
-      Date.parse(a.startTime) - Date.parse(b.startTime),
+  const live = [...fromSchedule, ...fromResults].sort(
+    (a, b) => Date.parse(a.startTime) - Date.parse(b.startTime),
   );
-  const pending = pendingSorted.slice(0, PENDING_ROWS);
-  const moreCount = pendingSorted.length - pending.length + laterCount;
 
   const isEmpty =
-    results.length === 0 &&
-    pendingSorted.length === 0 &&
-    laterCount === 0 &&
-    activity.length === 0 &&
-    friendRequests.length === 0;
+    results.length === 0 && live.length === 0 && activity.length === 0 && friendRequests.length === 0;
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
@@ -276,20 +263,15 @@ export default async function NotificationsPage() {
             </h1>
             <p className="mt-1 text-sm text-neutral-400">
               {unreadCount > 0
-                ? `${unreadCount} nouvelle${unreadCount > 1 ? "s" : ""} depuis ta dernière visite`
+                ? `${unreadCount} nouvelle${unreadCount > 1 ? "s" : ""}`
                 : "Tout est à jour 👌"}
             </p>
           </div>
 
           {nightPredictions.length > 0 && (
             <NightRecap
-              label={nightLabel(nightPredictions[0].game_start_time)}
-              rank={rank}
-              results={nightPredictions.map((p) => ({
-                gameId: p.game_id,
-                isExactScore: Boolean(p.is_exact_score),
-                points: p.points ?? 0,
-              }))}
+              title={nightTitle(lastStart, now)}
+              results={nightPredictions.map((p) => ({ points: p.points ?? 0 }))}
             />
           )}
         </div>
@@ -311,19 +293,23 @@ export default async function NotificationsPage() {
           </section>
         )}
 
+        {live.length > 0 && (
+          <RowCard title="En ce moment" titleClass="text-red-400" lastColumn="">
+            {live.map((item) => (
+              <LiveRow key={item.gameId} item={item} />
+            ))}
+          </RowCard>
+        )}
+
         {resultGroups.length > 0 && (
-          <section className="space-y-4">
-            {resultGroups.map((group, i) => (
-              <div key={group.key} className="space-y-2">
-                <SectionLabel>
-                  {i === 0 ? "Résultats · " : ""}Nuit du {group.label}
-                </SectionLabel>
-                <ul className="space-y-2">
-                  {group.items.map((item) => (
-                    <ResultCard key={item.gameId} item={item} />
-                  ))}
-                </ul>
-              </div>
+          <section className="space-y-3">
+            <SectionLabel>Tes résultats</SectionLabel>
+            {resultGroups.map((group) => (
+              <RowCard key={group.key} title={group.title} titleClass="text-neutral-300" lastColumn="Points">
+                {group.items.map((item) => (
+                  <ResultRow key={item.gameId} item={item} />
+                ))}
+              </RowCard>
             ))}
             <p className="px-1 text-[11px] text-neutral-600">
               Scores après 60 minutes (sans prolongation ni tirs au but).{" "}
@@ -334,26 +320,9 @@ export default async function NotificationsPage() {
           </section>
         )}
 
-        {(pending.length > 0 || moreCount > 0) && (
-          <section className="space-y-2">
-            <SectionLabel>Tes pronos en cours</SectionLabel>
-            {pending.length > 0 ? (
-              <PendingList items={pending} moreCount={moreCount} now={now} />
-            ) : (
-              <Link
-                href="/matches"
-                prefetch={false}
-                className="block rounded-2xl border border-neutral-800 bg-neutral-900 p-3.5 text-center text-sm text-sky-400"
-              >
-                {moreCount} prono{moreCount > 1 ? "s" : ""} à venir
-              </Link>
-            )}
-          </section>
-        )}
-
         {activity.length > 0 && (
           <section className="space-y-2">
-            <SectionLabel>Activité</SectionLabel>
+            <SectionLabel>Amis et ligues</SectionLabel>
             <ul className="divide-y divide-neutral-800 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900">
               {activity.map((item) => (
                 <ActivityRow key={item.id} item={item} now={now} />

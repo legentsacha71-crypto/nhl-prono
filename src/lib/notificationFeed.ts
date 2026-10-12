@@ -1,8 +1,8 @@
-import { formatDayLabel, formatTime, parisDateKey } from "./gameDates";
+import { formatDayLabel, parisDateKey } from "./gameDates";
 
 // Données de la page Notifications (src/app/notifications/page.tsx) : les
-// résultats des pronos, les pronos encore en jeu et l'activité des amis et
-// des ligues. Les cartes elles-mêmes sont dans NotificationFeed.tsx.
+// résultats des pronos, les matchs pronostiqués en cours et l'activité des
+// amis et des ligues. L'affichage est dans NotificationFeed.tsx.
 
 export type League = "nhl" | "magnus";
 
@@ -17,14 +17,12 @@ export type ResultItem = {
   predictedHome: number;
   predictedAway: number;
   points: number;
-  basePoints: number | null;
-  bonusPoints: number | null;
   isExactScore: boolean;
   boosted: boolean;
   isNew: boolean;
 };
 
-export type PendingStatus = "live" | "awaiting" | "upcoming";
+export type PendingStatus = "live" | "awaiting";
 
 export type PendingItem = {
   gameId: number;
@@ -138,14 +136,16 @@ function daysBetween(fromKey: string, toKey: string): number {
   return Math.round((Date.parse(toKey) - Date.parse(fromKey)) / 86400000);
 }
 
-// "Ce soir · 20:30", "Cette nuit · 01:00", "Demain · 19:00", "ven. 17 oct. · 01:00".
-export function kickoffLabel(iso: string, now: Date): string {
-  const time = formatTime(iso);
-  const days = daysBetween(parisDateKey(now.toISOString()), parisDateKey(iso));
-  const hour = Number(time.slice(0, 2));
-  if (days === 0 && hour < 6) return `Cette nuit · ${time}`;
-  if (days === 0) return `${hour >= 17 ? "Ce soir" : "Aujourd'hui"} · ${time}`;
-  if (days === 1 && hour < 12) return `Cette nuit · ${time}`;
-  if (days === 1) return `Demain · ${time}`;
-  return `${formatDayLabel(iso)} · ${time}`;
+// Titre d'une nuit relatif à maintenant : "Ce soir", "Hier soir" ou la date.
+export function nightTitle(iso: string | null, now: Date): string {
+  if (!iso) return "Plus ancien";
+  const days = daysBetween(nightKey(iso), nightKey(now.toISOString()));
+  if (days === 0) return "Ce soir";
+  if (days === 1) return "Hier soir";
+  const label = nightLabel(iso);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+export function nightAgeInDays(iso: string, now: Date): number {
+  return daysBetween(nightKey(iso), nightKey(now.toISOString()));
 }

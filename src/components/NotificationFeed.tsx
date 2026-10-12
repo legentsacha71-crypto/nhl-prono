@@ -1,12 +1,9 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { Bell, Check, Flame, Target, Trophy, UserCheck, UserPlus, X } from "lucide-react";
+import { Bell, Flame, Trophy, UserCheck, UserPlus } from "lucide-react";
 import TeamBadge from "@/components/TeamBadge";
-import { pointsBreakdown, shortNhlName } from "@/components/RecentPredictions";
 import { getMagnusTeamName } from "@/lib/magnusTeams";
 import { getTeamName } from "@/lib/nhlTeams";
 import {
-  kickoffLabel,
   relativeTime,
   type ActivityItem,
   type League,
@@ -14,258 +11,163 @@ import {
   type ResultItem,
 } from "@/lib/notificationFeed";
 
-// Cartes de la page Notifications : résultat d'un prono (score final, prono
-// placé et points), pronos encore en jeu et activité des amis / ligues.
+// Affichage de la page Notifications : une ligne par match pronostiqué
+// (score, ton prono, points), le récap de la dernière nuit et l'activité
+// des amis / ligues.
 
-type Outcome = "exact" | "won" | "lost";
+// Mêmes colonnes pour toutes les lignes : match, ton prono, points/état.
+const ROW = "grid grid-cols-[minmax(0,1fr)_4rem_5rem] items-center gap-2";
 
-const OUTCOME = {
-  exact: {
-    label: "Score exact",
-    Icon: Target,
-    card: "border-amber-700/50 bg-gradient-to-br from-amber-500/15 via-neutral-900 to-neutral-900",
-    chip: "bg-amber-400/15 text-amber-300",
-    divider: "border-amber-900/40",
-    prediction: "text-amber-200",
-    points: "text-amber-300",
-    detail: "text-amber-600",
-    dot: "bg-amber-400",
-  },
-  won: {
-    label: "Bon vainqueur",
-    Icon: Check,
-    card: "border-neutral-800 bg-neutral-900 shadow-[inset_3px_0_0_#10b981]",
-    chip: "bg-emerald-400/10 text-emerald-400",
-    divider: "border-neutral-800",
-    prediction: "text-neutral-200",
-    points: "text-emerald-400",
-    detail: "text-neutral-500",
-    dot: "bg-emerald-500",
-  },
-  lost: {
-    label: "Raté",
-    Icon: X,
-    card: "border-neutral-800/70 bg-neutral-900/60 shadow-[inset_3px_0_0_#404040]",
-    chip: "bg-neutral-800 text-neutral-400",
-    divider: "border-neutral-800/70",
-    prediction: "text-neutral-500",
-    points: "text-neutral-600",
-    detail: "text-neutral-600",
-    dot: "bg-neutral-700",
-  },
-} as const;
-
-function outcomeOf(item: Pick<ResultItem, "isExactScore" | "points">): Outcome {
-  if (item.isExactScore) return "exact";
-  return item.points > 0 ? "won" : "lost";
-}
-
-// Récap de la dernière nuit jouée, dans l'en-tête de la page : total des
-// points et une pastille par prono (or = score exact, vert = bon vainqueur).
-export function NightRecap({
-  label,
-  rank,
-  results,
+function Matchup({
+  league,
+  homeAbbrev,
+  awayAbbrev,
+  homeScore,
+  awayScore,
+  scoreClass = "text-neutral-50",
 }: {
-  label: string;
-  rank: number;
-  results: Pick<ResultItem, "gameId" | "isExactScore" | "points">[];
+  league: League;
+  homeAbbrev: string;
+  awayAbbrev: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  scoreClass?: string;
 }) {
-  const points = results.reduce((sum, r) => sum + r.points, 0);
-  const wins = results.filter((r) => r.points > 0).length;
+  const name = league === "magnus" ? getMagnusTeamName : getTeamName;
   return (
-    <div className="mt-4 border-t border-sky-900/40 pt-4">
-      <div className="flex items-baseline justify-between text-[11px] uppercase tracking-[0.16em]">
-        <span className="font-semibold text-sky-300">Ta nuit · {label}</span>
-        {rank > 0 && <span className="text-neutral-500">#{rank} au général</span>}
-      </div>
-      <div className="mt-2 flex items-end justify-between gap-3">
-        <p className="font-display text-5xl leading-none tracking-wide text-sky-400 tabular-nums">
-          +{points}
-          <span className="ml-1.5 text-xl text-sky-300/80">pts</span>
-        </p>
-        <div className="text-right">
-          <div className="mb-1.5 flex flex-wrap justify-end gap-1">
-            {results.map((r) => (
-              <span key={r.gameId} className={`h-3 w-3 rounded-full ${OUTCOME[outcomeOf(r)].dot}`} />
-            ))}
-          </div>
-          <p className="text-[11px] text-neutral-400">
-            {wins} prono{wins > 1 ? "s" : ""} réussi{wins > 1 ? "s" : ""} sur {results.length}
-          </p>
-        </div>
-      </div>
+    <div className="flex items-center gap-2">
+      <TeamBadge abbrev={homeAbbrev} name={name(homeAbbrev)} size={28} league={league} />
+      <span className={`w-12 text-center font-display text-2xl leading-none tracking-wide tabular-nums ${scoreClass}`}>
+        {homeScore !== null && awayScore !== null ? `${homeScore}-${awayScore}` : "–"}
+      </span>
+      <TeamBadge abbrev={awayAbbrev} name={name(awayAbbrev)} size={28} league={league} />
     </div>
   );
 }
 
-function teamNames(abbrev: string, league: League) {
-  const full = league === "magnus" ? getMagnusTeamName(abbrev) : getTeamName(abbrev);
-  return { full, short: league === "magnus" ? full : shortNhlName(full) };
-}
-
-function TeamSide({
-  abbrev,
-  league,
-  side,
-  tone,
-  size = 30,
-}: {
-  abbrev: string;
-  league: League;
-  side: "home" | "away";
-  tone: string;
-  size?: number;
-}) {
-  const { full, short } = teamNames(abbrev, league);
+function Prediction({ home, away, className }: { home: number; away: number; className: string }) {
   return (
-    <Link
-      href={`/matches/equipe/${league}/${abbrev}`}
-      prefetch={false}
-      className={`flex min-w-0 items-center gap-2 transition-opacity active:opacity-70 ${
-        side === "away" ? "flex-row-reverse text-right" : ""
-      }`}
-    >
-      <TeamBadge abbrev={abbrev} name={full} size={size} league={league} />
-      <span className={`truncate text-[13px] ${tone}`}>{short}</span>
-    </Link>
-  );
-}
-
-function NewBadge() {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-300">
-      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-      Nouveau
+    <span className={`text-center font-display text-xl leading-none tracking-wide tabular-nums ${className}`}>
+      {home}-{away}
     </span>
   );
 }
 
-export function ResultCard({ item }: { item: ResultItem }) {
-  const style = OUTCOME[outcomeOf(item)];
-  const homeWon = item.homeScore > item.awayScore;
-  const awayWon = item.awayScore > item.homeScore;
-  const tone = (won: boolean, lost: boolean) =>
-    won ? "font-semibold text-neutral-50" : lost ? "text-neutral-400" : "text-neutral-200";
-  const breakdown = pointsBreakdown(item);
-
-  return (
-    <li className={`rounded-2xl border p-3.5 ${style.card}`}>
-      <div className="mb-2.5 flex items-center justify-between">
-        <span
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${style.chip}`}
-        >
-          <style.Icon className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-          {style.label}
-        </span>
-        {item.isNew && <NewBadge />}
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <TeamSide abbrev={item.homeAbbrev} league={item.league} side="home" tone={tone(homeWon, awayWon)} />
-        <span className="font-display text-3xl leading-none tracking-wide text-neutral-50 tabular-nums">
-          {item.homeScore} – {item.awayScore}
-        </span>
-        <TeamSide abbrev={item.awayAbbrev} league={item.league} side="away" tone={tone(awayWon, homeWon)} />
-      </div>
-
-      <div className={`mt-3 flex items-center justify-between border-t pt-2.5 ${style.divider}`}>
-        <p className="text-xs text-neutral-500">
-          Ton prono
-          <span className={`ml-2 font-display text-xl tracking-wide tabular-nums ${style.prediction}`}>
-            {item.predictedHome} – {item.predictedAway}
-          </span>
-        </p>
-        <div className="text-right">
-          <p className={`font-display text-3xl leading-none tracking-wide tabular-nums ${style.points}`}>
-            {item.boosted && item.points > 0 && (
-              <Flame className="mr-1 inline h-4 w-4 -translate-y-1 text-orange-400" aria-label="Boost x2" />
-            )}
-            {item.points > 0 ? `+${item.points}` : "0"}
-            <span className="ml-1 text-sm opacity-70">pts</span>
-          </p>
-          {breakdown && <p className={`mt-0.5 text-[11px] ${style.detail}`}>{breakdown}</p>}
-        </div>
-      </div>
-    </li>
-  );
-}
-
-function PendingStatusLabel({ item, now }: { item: PendingItem; now: Date }) {
-  if (item.status === "live") {
-    return (
-      <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-red-400">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
-        </span>
-        En direct
-      </span>
-    );
-  }
-  if (item.status === "awaiting") {
-    return <span className="text-neutral-400">Terminé · points en cours de calcul</span>;
-  }
-  return <span className="text-neutral-400">{kickoffLabel(item.startTime, now)}</span>;
-}
-
-function PendingRow({ item, now }: { item: PendingItem; now: Date }) {
-  const hasScore = item.status !== "upcoming" && item.homeScore !== null && item.awayScore !== null;
-  return (
-    <li className="px-3.5 py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <TeamSide abbrev={item.homeAbbrev} league={item.league} side="home" tone="text-neutral-200" size={26} />
-        {hasScore ? (
-          <span
-            className={`font-display text-2xl leading-none tracking-wide tabular-nums ${
-              item.status === "live" ? "text-red-400" : "text-neutral-100"
-            }`}
-          >
-            {item.homeScore} – {item.awayScore}
-          </span>
-        ) : (
-          <span className="font-display text-sm tracking-wider text-neutral-600">VS</span>
-        )}
-        <TeamSide abbrev={item.awayAbbrev} league={item.league} side="away" tone="text-neutral-200" size={26} />
-      </div>
-      <div className="mt-2 flex items-center justify-between text-[11px]">
-        <p className="text-neutral-500">
-          Ton prono
-          <span className="ml-1.5 font-display text-base tracking-wide text-sky-300 tabular-nums">
-            {item.predictedHome} – {item.predictedAway}
-          </span>
-        </p>
-        <PendingStatusLabel item={item} now={now} />
-      </div>
-    </li>
-  );
-}
-
-export function PendingList({
-  items,
-  moreCount,
-  now,
+// Carte d'une liste de lignes, avec son titre et les noms de colonnes.
+export function RowCard({
+  title,
+  titleClass = "text-neutral-400",
+  lastColumn,
+  children,
 }: {
-  items: PendingItem[];
-  moreCount: number;
-  now: Date;
+  title: ReactNode;
+  titleClass?: string;
+  lastColumn: string;
+  children: ReactNode;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900">
-      <ul className="divide-y divide-neutral-800">
-        {items.map((item) => (
-          <PendingRow key={item.gameId} item={item} now={now} />
-        ))}
-      </ul>
-      {moreCount > 0 && (
-        <Link
-          href="/matches"
-          prefetch={false}
-          className="block border-t border-neutral-800 px-3.5 py-2.5 text-center text-xs text-sky-400 transition-opacity active:opacity-70"
-        >
-          + {moreCount} autre{moreCount > 1 ? "s" : ""} prono{moreCount > 1 ? "s" : ""} à venir
-        </Link>
+      <div className={`${ROW} border-b border-neutral-800 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500`}>
+        <span className={titleClass}>{title}</span>
+        <span className="text-center">Prono</span>
+        <span className="text-right">{lastColumn}</span>
+      </div>
+      <ul className="divide-y divide-neutral-800/70">{children}</ul>
+    </div>
+  );
+}
+
+export function ResultRow({ item }: { item: ResultItem }) {
+  const exact = item.isExactScore;
+  const won = item.points > 0;
+  return (
+    <li className={`relative px-3.5 py-2.5 ${ROW} ${exact ? "bg-amber-400/[0.08]" : ""}`}>
+      {item.isNew && (
+        <span className="absolute left-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-sky-400" aria-label="Nouveau" />
       )}
+      <Matchup
+        league={item.league}
+        homeAbbrev={item.homeAbbrev}
+        awayAbbrev={item.awayAbbrev}
+        homeScore={item.homeScore}
+        awayScore={item.awayScore}
+      />
+      <Prediction
+        home={item.predictedHome}
+        away={item.predictedAway}
+        className={exact ? "text-amber-300" : won ? "text-neutral-200" : "text-neutral-500"}
+      />
+      <div className="text-right">
+        <p
+          className={`font-display text-2xl leading-none tracking-wide tabular-nums ${
+            exact ? "text-amber-300" : won ? "text-emerald-400" : "text-neutral-600"
+          }`}
+        >
+          {item.boosted && won && (
+            <Flame className="mr-0.5 inline h-3.5 w-3.5 -translate-y-0.5 text-orange-400" aria-label="Boost x2" />
+          )}
+          {won ? `+${item.points}` : "0"}
+        </p>
+        {exact && (
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">Score exact</p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+export function LiveRow({ item }: { item: PendingItem }) {
+  const live = item.status === "live";
+  return (
+    <li className={`px-3.5 py-2.5 ${ROW}`}>
+      <Matchup
+        league={item.league}
+        homeAbbrev={item.homeAbbrev}
+        awayAbbrev={item.awayAbbrev}
+        homeScore={item.homeScore}
+        awayScore={item.awayScore}
+        scoreClass={live ? "text-red-400" : "text-neutral-50"}
+      />
+      <Prediction home={item.predictedHome} away={item.predictedAway} className="text-sky-300" />
+      <span className="text-right text-[10px] font-semibold uppercase leading-tight tracking-wide">
+        {live ? (
+          <span className="inline-flex items-center gap-1.5 text-red-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+            En direct
+          </span>
+        ) : (
+          <span className="text-neutral-500">Terminé</span>
+        )}
+      </span>
+    </li>
+  );
+}
+
+// Récap de la dernière nuit jouée, dans l'en-tête de la page.
+export function NightRecap({
+  title,
+  results,
+}: {
+  title: string;
+  results: Pick<ResultItem, "points">[];
+}) {
+  const points = results.reduce((sum, r) => sum + r.points, 0);
+  const wins = results.filter((r) => r.points > 0).length;
+  return (
+    <div className="mt-4 flex items-end justify-between gap-3 border-t border-sky-900/40 pt-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">{title}</p>
+        <p className="mt-1 font-display text-5xl leading-none tracking-wide text-sky-400 tabular-nums">
+          +{points}
+          <span className="ml-1.5 text-xl text-sky-300/80">pts</span>
+        </p>
+      </div>
+      <p className="pb-1 text-right text-sm text-neutral-300">
+        <span className="font-display text-2xl tracking-wide text-neutral-50">
+          {wins}/{results.length}
+        </span>
+        <span className="block text-[11px] text-neutral-500">pronos réussis</span>
+      </p>
     </div>
   );
 }
