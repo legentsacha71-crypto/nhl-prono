@@ -48,11 +48,12 @@
 	<array>
 		<string>armv7</string>
 	</array>
+	<!-- iPhone : portrait uniquement, pour que l'appli ne pivote pas quand
+	     on la consulte allongé. L'iPad garde toutes les orientations
+	     (exigées par Apple pour le multitâche). -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
