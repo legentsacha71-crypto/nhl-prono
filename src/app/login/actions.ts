@@ -11,13 +11,20 @@ export async function login(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/");
+  // Pas encore un seul prono (souvent : première connexion après
+  // l'inscription) : écran de bienvenue qui l'amène vers les matchs.
+  const { count } = await supabase
+    .from("predictions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", data.user.id);
+
+  redirect(count === 0 ? "/bienvenue" : "/");
 }
 
 export async function signup(formData: FormData) {

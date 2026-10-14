@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { getRegularSeasonStartDate } from "@/lib/nhl";
@@ -33,6 +34,7 @@ export default async function Home() {
     { data: topScorerPick },
     seasonStartDate,
     topPicks,
+    { count: predictionCount },
   ] = await Promise.all([
     user
       ? supabase.from("profiles").select("username").eq("id", user.id).single()
@@ -60,6 +62,13 @@ export default async function Home() {
       : Promise.resolve({ data: null }),
     getRegularSeasonStartDate(),
     user ? getTopPicks(supabase, now).catch(() => null) : Promise.resolve(null),
+    // Tous les pronos, notés ou non : 0 = pas encore joué (encart ci-dessous).
+    user
+      ? supabase
+          .from("predictions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+      : Promise.resolve({ count: null }),
   ]);
 
   const nhlPoints = (predictions ?? [])
@@ -83,6 +92,23 @@ export default async function Home() {
           Content de te revoir, {profile?.username ?? user?.email}
         </p>
       </div>
+
+      {user && predictionCount === 0 && (
+        <Link
+          href="/matches"
+          prefetch={false}
+          className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-sky-500/50 bg-sky-500/15 p-4 shadow-lg shadow-sky-950/30 transition-transform active:scale-[0.98]"
+        >
+          <span className="text-3xl" aria-hidden="true">🏒</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold text-sky-100">Ton premier prono t&apos;attend</span>
+            <span className="block text-sm text-sky-200/80">
+              Choisis un match et tape ton score, c&apos;est parti !
+            </span>
+          </span>
+          <ArrowRight size={20} className="shrink-0 text-sky-300" aria-hidden="true" />
+        </Link>
+      )}
 
       {user && (
         <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 text-center shadow-xl shadow-black/30">

@@ -76,7 +76,7 @@ const COLUMNS =
 const TWO_WORD_NICKNAMES = ["Blue Jackets", "Red Wings", "Maple Leafs", "Golden Knights"];
 
 // "Boston Bruins" -> "Bruins" : le nom complet est tronqué sur mobile.
-function shortNhlName(name: string) {
+export function shortNhlName(name: string) {
   return (
     TWO_WORD_NICKNAMES.find((nickname) => name.endsWith(nickname)) ??
     name.split(" ").pop() ??

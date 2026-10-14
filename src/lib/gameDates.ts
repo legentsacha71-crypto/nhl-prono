@@ -74,3 +74,17 @@ export function isLive(game: Game): boolean {
 export function isFinished(game: Game): boolean {
   return game.gameState === "OFF";
 }
+
+// "Ce soir · 20:30", "Cette nuit · 01:00", "Demain · 19:00", "ven. 17 oct. · 01:00".
+export function kickoffLabel(iso: string, now: Date = new Date()): string {
+  const time = formatTime(iso);
+  const days = Math.round(
+    (Date.parse(parisDateKey(iso)) - Date.parse(parisDateKey(now.toISOString()))) / 86400000,
+  );
+  const hour = Number(time.slice(0, 2));
+  if (days === 0 && hour < 6) return `Cette nuit · ${time}`;
+  if (days === 0) return `${hour >= 17 ? "Ce soir" : "Aujourd'hui"} · ${time}`;
+  if (days === 1 && hour < 12) return `Cette nuit · ${time}`;
+  if (days === 1) return `Demain · ${time}`;
+  return `${formatDayLabel(iso)} · ${time}`;
+}
