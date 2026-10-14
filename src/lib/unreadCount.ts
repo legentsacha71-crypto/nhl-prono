@@ -24,3 +24,22 @@ export const getUnreadCount = cache(async (): Promise<number> => {
     return 0;
   }
 });
+
+// Demandes d'ami reçues en attente : pastille sur l'icône Mes amis de
+// TopBar. Même principe que getUnreadCount (cache, ne rejette jamais).
+export const getPendingFriendRequestCount = cache(async (): Promise<number> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return 0;
+
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("friendships")
+      .select("id", { count: "exact", head: true })
+      .eq("addressee_id", user.id)
+      .eq("status", "pending");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+});

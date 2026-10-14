@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import UnreadDot from "@/components/UnreadDot";
@@ -8,15 +9,29 @@ function rankLabel(rank: number) {
   return rank === 1 ? "1er" : `${rank}e`;
 }
 
-// Carte d'une ligue : sa place et le leader, puis le dernier message du chat.
+const COMPETITION = {
+  nhl: { logo: "/logos/nhl.png", label: "NHL" },
+  magnus: { logo: "/logos/magnus.png", label: "Magnus" },
+} as const;
+
+// Carte d'une ligue : la compétition où le joueur y joue (logo), sa place et
+// le leader, puis le dernier message du chat.
 export default function LeagueCard({ league, href, currentUserId }: { league: MyLeague; href: string; currentUserId: string }) {
-  const { memberCount, myRank, leader, lastMessage } = league;
+  const { memberCount, playerCount, myRank, leader, lastMessage } = league;
+  const competition = COMPETITION[league.competition];
+  const ranked = memberCount > 1 && myRank > 0 && playerCount > 1;
+  // Ligue toute neuve : tout le monde à 0, pas encore de leader.
+  const fresh = ranked && (leader?.points ?? 0) === 0;
   const standing =
     memberCount <= 1
       ? "Seul pour l'instant · invite tes amis"
-      : leader?.userId === currentUserId
-        ? `1er sur ${memberCount} · Tu mènes 🔥`
-        : `${rankLabel(myRank)} sur ${memberCount} · Leader : ${leader?.username ?? "?"}`;
+      : !ranked
+        ? `${memberCount} joueurs${leader ? ` · Leader : ${leader.username}` : ""}`
+        : fresh
+          ? "Tout le monde à 0, c'est parti !"
+          : leader?.userId === currentUserId
+            ? `1er sur ${playerCount} · Tu mènes 🔥`
+            : `${rankLabel(myRank)} sur ${playerCount} · Leader : ${leader?.username ?? "?"}`;
 
   return (
     <Link
@@ -26,19 +41,30 @@ export default function LeagueCard({ league, href, currentUserId }: { league: My
     >
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-display text-xl ring-1 ${
-          memberCount > 1 && myRank === 1
+          ranked && !fresh && myRank === 1
             ? "bg-amber-400/15 text-amber-300 ring-amber-400/40"
             : "bg-sky-500/10 text-sky-300 ring-sky-500/30"
         }`}
       >
-        {memberCount > 1 ? myRank : "🏒"}
+        {ranked && !fresh ? myRank : "🏒"}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate font-bold text-neutral-100">{league.name}</span>
           <UnreadDot leagueId={league.id} lastAt={lastMessage?.createdAt ?? null} />
         </span>
-        <span className="mt-0.5 block truncate text-xs text-neutral-400">{standing}</span>
+        <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-400">
+          {memberCount > 1 && (
+            <Image
+              src={competition.logo}
+              alt={competition.label}
+              width={14}
+              height={14}
+              className="h-3.5 w-3.5 shrink-0 object-contain"
+            />
+          )}
+          <span className="truncate">{standing}</span>
+        </span>
         {lastMessage && (
           <span className="mt-1 block truncate text-xs text-neutral-500">{messagePreview(lastMessage)}</span>
         )}

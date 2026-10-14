@@ -140,9 +140,28 @@ body {
 /* Dans la WebView iOS (app native), rester appuyé sur un lien affiche par
    défaut un aperçu natif avec un bouton "Ouvrir" qui bascule sur Safari —
    très déroutant pour une app censée se comporter comme une app native.
-   On désactive ce comportement sur les liens/boutons, sans toucher à la
-   sélection de texte ailleurs (scores, messages du chat, etc.). */
+   On désactive ce comportement sur les liens/boutons. */
 a,
 button {
   -webkit-touch-callout: none;
+}
+
+/* Comme dans une appli native : sur téléphone, un appui long ne sélectionne
+   pas le texte (ni menu Copier / Traduire), sauf dans les champs de saisie.
+   Sur ordinateur, la sélection reste possible. */
+@media (hover: none) and (pointer: coarse) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
 }

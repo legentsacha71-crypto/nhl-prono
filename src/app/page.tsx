@@ -15,11 +15,14 @@ import RulesCard from "@/components/RulesCard";
 import AndroidCallout from "@/components/AndroidCallout";
 import SocialLinks from "@/components/SocialLinks";
 import SubmitButton from "@/components/SubmitButton";
+import TopPicksCarousel from "@/components/TopPicksCarousel";
+import { getTopPicks } from "@/lib/topPicks";
 
 export default async function Home() {
   void getUnreadCount();
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const now = new Date();
 
   // Les points ne dépendent que de l'utilisateur : ses pronostics notés plus
   // ses picks Coupe Stanley / meilleur buteur (même total que le classement,
@@ -31,6 +34,7 @@ export default async function Home() {
     { data: stanleyCupPick },
     { data: topScorerPick },
     seasonStartDate,
+    topPicks,
   ] = await Promise.all([
     user
       ? supabase.from("profiles").select("username").eq("id", user.id).single()
@@ -57,6 +61,7 @@ export default async function Home() {
           .maybeSingle()
       : Promise.resolve({ data: null }),
     getRegularSeasonStartDate(),
+    user ? getTopPicks(supabase, now).catch(() => null) : Promise.resolve(null),
   ]);
 
   const nhlPoints = (predictions ?? [])
@@ -133,6 +138,8 @@ export default async function Home() {
           </div>
         </div>
       )}
+
+      {topPicks && <TopPicksCarousel nightStart={topPicks.nightStart} picks={topPicks.picks} now={now} />}
 
       {seasonStartDate && <SeasonCountdown targetDate={seasonStartDate} />}
 

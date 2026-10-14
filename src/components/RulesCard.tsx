@@ -19,6 +19,11 @@ const RULES = [
     title: "Mauvais vainqueur",
     text: "0 point, pas de demi-mesure.",
   },
+  {
+    icon: "⏱️",
+    title: "Temps réglementaire",
+    text: "Seul le score après 60 minutes compte : ni la prolongation, ni les tirs au but. À 2-2 après le 3e tiers, le bon prono est le nul 2-2, même si une équipe gagne ensuite.",
+  },
 ];
 
 export function RulesList() {

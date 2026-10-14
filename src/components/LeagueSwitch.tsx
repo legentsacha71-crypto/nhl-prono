@@ -8,6 +8,8 @@ type League = "nhl" | "magnus";
 type LeagueSwitchProps = {
   nhlContent: ReactNode;
   magnusContent: ReactNode;
+  // Compétition affichée à l'ouverture (NHL par défaut).
+  defaultLeague?: League;
 };
 
 /**
@@ -24,8 +26,9 @@ type LeagueSwitchProps = {
 export default function LeagueSwitch({
   nhlContent,
   magnusContent,
+  defaultLeague = "nhl",
 }: LeagueSwitchProps) {
-  const [league, setLeague] = useState<League>("nhl");
+  const [league, setLeague] = useState<League>(defaultLeague);
 
   return (
     <div className="space-y-4">

@@ -3,13 +3,19 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
-import { getMembersRankings } from "@/lib/ranking";
+import {
+  getLeagueCompetitionRankings,
+  getLeagueWeekRankings,
+  mainCompetition,
+  type Competition,
+} from "@/lib/ranking";
 import { formatWeekRange, parisWeekBounds } from "@/lib/rankingWeek";
 import { loadMessages } from "@/lib/leagueChat";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
 import RankingBoard from "@/components/RankingBoard";
 import StandingsViews from "@/components/StandingsViews";
+import LeagueSwitch from "@/components/LeagueSwitch";
 import InviteButton from "@/components/InviteButton";
 import LeagueTabs from "@/components/LeagueTabs";
 import DeleteLeagueButton from "@/components/DeleteLeagueButton";
@@ -32,7 +38,7 @@ export default async function LeagueDetailPage({
   // La ligue, ses membres et son chat ne dépendent que de l'id : en
   // parallèle. Le chat n'est lisible que par les membres (vérifié après).
   const [{ data: league }, { data: members }, messages] = await Promise.all([
-    supabase.from("leagues").select("id, name, code, owner_id").eq("id", id).single(),
+    supabase.from("leagues").select("id, name, code, owner_id, created_at").eq("id", id).single(),
     supabase.from("league_members").select("user_id").eq("league_id", id),
     loadMessages(supabase, id),
   ]);
@@ -41,10 +47,74 @@ export default async function LeagueDetailPage({
   if (!league || !memberIds.includes(user.id)) notFound();
 
   const now = new Date();
-  const { general, week } = await getMembersRankings(supabase, memberIds, now);
+  // Dans une ligue, tout le monde part de 0 le jour de sa création.
+  const since = new Date(league.created_at);
+  const [rankings, weekRankings] = await Promise.all([
+    getLeagueCompetitionRankings(supabase, memberIds, since),
+    getLeagueWeekRankings(supabase, memberIds, since, now),
+  ]);
+  const sinceLabel = new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Paris",
+  }).format(since);
   const lastOtherMessageAt =
     [...messages].reverse().find((m) => m.userId !== user.id)?.createdAt ?? null;
   const alone = memberIds.length === 1;
+  const weekLabel = formatWeekRange(parisWeekBounds(now));
+
+  // Classement d'une compétition : depuis la création / cette semaine, et
+  // à part les membres qui n'y parient pas (pas classés derniers à 0).
+  const competitionRanking = (competition: Competition) => {
+    const label = competition === "nhl" ? "NHL" : "Ligue Magnus";
+    const { ranking, notPlaying } = rankings[competition];
+    return (
+      <div className="space-y-4">
+        <StandingsViews
+          views={[
+            {
+              key: "general",
+              label: "Depuis la création",
+              content: (
+                <div className="space-y-4">
+                  <p className="text-center text-xs text-neutral-500">
+                    Points {label} des matchs joués depuis le {sinceLabel}, jour de création de la ligue
+                  </p>
+                  <RankingBoard
+                    ranking={ranking}
+                    currentUserId={user.id}
+                    emptyMessage={`Personne ne joue en ${label} dans cette ligue pour l'instant.`}
+                  />
+                </div>
+              ),
+            },
+            {
+              key: "semaine",
+              label: "Cette semaine",
+              content: (
+                <div className="space-y-4">
+                  <p className="text-center text-xs text-neutral-500">
+                    Points {label} des matchs du {weekLabel}
+                  </p>
+                  <RankingBoard
+                    ranking={weekRankings[competition]}
+                    currentUserId={user.id}
+                    emptyMessage={`Personne n'a encore marqué de points en ${label} cette semaine.`}
+                  />
+                </div>
+              ),
+            },
+          ]}
+        />
+        {notPlaying.length > 0 && (
+          <p className="px-1 text-center text-xs text-neutral-500">
+            Ne parie{notPlaying.length > 1 ? "nt" : ""} pas en {label} :{" "}
+            {notPlaying.map((entry) => (entry.userId === user.id ? "toi" : entry.username)).join(", ")}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
@@ -83,30 +153,10 @@ export default async function LeagueDetailPage({
                   Tu es seul dans cette ligue pour l&apos;instant. Appuie sur Inviter pour défier tes amis.
                 </p>
               )}
-              <StandingsViews
-                views={[
-                  {
-                    key: "general",
-                    label: "Général",
-                    content: <RankingBoard ranking={general} currentUserId={user.id} />,
-                  },
-                  {
-                    key: "semaine",
-                    label: "Cette semaine",
-                    content: (
-                      <div className="space-y-4">
-                        <p className="text-center text-xs text-neutral-500">
-                          Points des matchs du {formatWeekRange(parisWeekBounds(now))}
-                        </p>
-                        <RankingBoard
-                          ranking={week}
-                          currentUserId={user.id}
-                          emptyMessage="Personne n'a encore marqué de points cette semaine."
-                        />
-                      </div>
-                    ),
-                  },
-                ]}
+              <LeagueSwitch
+                defaultLeague={mainCompetition(rankings, user.id)}
+                nhlContent={competitionRanking("nhl")}
+                magnusContent={competitionRanking("magnus")}
               />
               {league.owner_id === user.id && (
                 <div className="pt-4">

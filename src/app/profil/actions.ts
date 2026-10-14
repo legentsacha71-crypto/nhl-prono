@@ -259,7 +259,7 @@ export async function sendFriendRequest(formData: FormData) {
   // quelle erreur inattendue (pas seulement celles qu'on anticipe) doit
   // toujours ressortir comme une vraie Error avec un message exploitable
   // côté client, plutôt que de risquer un rejet non standard qui échapperait
-  // au try/catch de AddFriendForm et ferait planter toute la page.
+  // au try/catch de FriendSearch et ferait planter toute la page.
   try {
     const { data: target } = await supabase
       .from("profiles")
@@ -339,6 +339,7 @@ export async function sendFriendRequest(formData: FormData) {
     throw new Error("Une erreur est survenue, réessaie plus tard.");
   }
 
+  revalidatePath("/amis");
   revalidatePath("/profil");
 }
 
@@ -411,10 +412,11 @@ export async function respondToFriendRequest(formData: FormData) {
     }
   }
 
-  // Accessible depuis /profil et /notifications (voir FriendRequestActions) :
+  // Accessible depuis /amis et /notifications (voir FriendRequestActions) :
   // on revalide les deux pour que la carte de demande disparaisse partout.
-  revalidatePath("/profil");
+  revalidatePath("/amis");
   revalidatePath("/notifications");
+  revalidatePath("/profil");
 }
 
 export async function removeFriend(formData: FormData) {
@@ -451,6 +453,7 @@ export async function removeFriend(formData: FormData) {
     throw new Error(deleteError.message);
   }
 
+  revalidatePath("/amis");
   revalidatePath("/profil");
 }
 

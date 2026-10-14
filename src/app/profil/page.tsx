@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
 import { getRanking } from "@/lib/ranking";
@@ -14,9 +13,6 @@ import {
   updateFavoriteTeam,
   submitStanleyCupPick,
   uploadAvatar,
-  sendFriendRequest,
-  respondToFriendRequest,
-  removeFriend,
   submitTopScorerPick,
   deleteAccount,
 } from "./actions";
@@ -25,12 +21,9 @@ import { getUnreadCount } from "@/lib/unreadCount";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import FavoritePick, { type FavoriteOption } from "@/components/FavoritePick";
 import { Lock } from "lucide-react";
-import SubmitButton from "@/components/SubmitButton";
 import DeleteAccountForm from "@/components/DeleteAccountForm";
 import AvatarUploadForm from "@/components/AvatarUploadForm";
 import ProfileTabs from "@/components/ProfileTabs";
-import AddFriendForm from "@/components/AddFriendForm";
-import FriendRequestActions from "@/components/FriendRequestActions";
 import ProfileStatsPanel from "@/components/ProfileStatsPanel";
 import ProfileSection from "@/components/ProfileSection";
 import RecentPredictions, {
@@ -78,7 +71,6 @@ export default async function ProfilPage() {
       { data: topScorerSeason },
       { data: myTopScorerPick },
     ],
-    { data: friendshipRows },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -115,12 +107,6 @@ export default async function ProfilPage() {
         .eq("user_id", user.id)
         .maybeSingle(),
     ]),
-    supabase
-      .from("friendships")
-      .select(
-        "id, status, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(username), addressee:profiles!friendships_addressee_id_fkey(username)",
-      )
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
   ]);
 
   const username = profile?.username ?? user.email ?? "Joueur";
@@ -226,44 +212,6 @@ export default async function ProfilPage() {
     }),
   );
 
-  type FriendshipRow = {
-    id: string;
-    status: string;
-    requester_id: string;
-    addressee_id: string;
-    requester: { username: string } | null;
-    addressee: { username: string } | null;
-  };
-  const friendshipRowsTyped = (friendshipRows ??
-    []) as unknown as FriendshipRow[];
-
-  const pointsByUserId = new Map(
-    ranking.map((entry) => [entry.userId, entry.totalPoints]),
-  );
-
-  const friends = friendshipRowsTyped
-    .filter((f) => f.status === "accepted")
-    .map((f) => {
-      const isRequester = f.requester_id === user.id;
-      const friendId = isRequester ? f.addressee_id : f.requester_id;
-      const friendUsername = isRequester
-        ? f.addressee?.username
-        : f.requester?.username;
-      return {
-        friendshipId: f.id,
-        friendId,
-        username: friendUsername ?? "Joueur",
-        points: pointsByUserId.get(friendId) ?? 0,
-      };
-    });
-
-  const incomingRequests = friendshipRowsTyped.filter(
-    (f) => f.status === "pending" && f.addressee_id === user.id,
-  );
-  const outgoingRequests = friendshipRowsTyped.filter(
-    (f) => f.status === "pending" && f.requester_id === user.id,
-  );
-
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
@@ -359,77 +307,6 @@ export default async function ProfilPage() {
                   </p>
                 ) : (
                   <RecentPredictions items={recentItems} />
-                )}
-              </ProfileSection>
-
-              <ProfileSection title="👥 Mes amis">
-                <AddFriendForm sendFriendRequest={sendFriendRequest} />
-
-                {incomingRequests.length > 0 && (
-                  <div className="mb-3 space-y-2">
-                    {incomingRequests.map((r) => (
-                      <div
-                        key={r.id}
-                        className="flex items-center justify-between rounded-lg border border-sky-800/70 bg-sky-950/60 p-3 text-sm shadow-sm shadow-sky-950/30"
-                      >
-                        <span className="text-sky-100">
-                          {r.requester?.username ?? "?"} veut être ton ami
-                        </span>
-                        <FriendRequestActions
-                          friendshipId={r.id}
-                          respondToFriendRequest={respondToFriendRequest}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {friends.length === 0 ? (
-                  <p className="py-3 text-center text-sm text-neutral-500">
-                    Aucun ami pour le moment.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-neutral-800/60">
-                    {friends.map((f) => (
-                      <li
-                        key={f.friendshipId}
-                        className="-mx-1 flex items-center justify-between rounded-md px-1 py-2.5 text-sm transition-colors duration-150 hover:bg-neutral-800/40"
-                      >
-                        <Link
-                          href={`/profil/${f.friendId}`}
-                          prefetch={false}
-                          className="text-neutral-200 transition-colors duration-150 hover:text-sky-400"
-                        >
-                          {f.username}
-                        </Link>
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-sky-400">
-                            {f.points} pts
-                          </span>
-                          <form action={removeFriend}>
-                            <input
-                              type="hidden"
-                              name="friendshipId"
-                              value={f.friendshipId}
-                            />
-                            <SubmitButton className="text-xs text-neutral-500 transition-all duration-150 hover:text-red-400 active:scale-[0.97]">
-                              Retirer
-                            </SubmitButton>
-                          </form>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {outgoingRequests.length > 0 && (
-                  <p className="mt-2 text-xs text-neutral-500">
-                    En attente :{" "}
-                    {outgoingRequests
-                      .map((r) => r.addressee?.username)
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
                 )}
               </ProfileSection>
 
