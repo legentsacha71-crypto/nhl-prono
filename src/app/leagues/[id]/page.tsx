@@ -1,79 +1,117 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { getRanking } from "@/lib/ranking";
+import { getCurrentUser } from "@/utils/supabase/user";
+import { getMembersRankings } from "@/lib/ranking";
+import { formatWeekRange, parisWeekBounds } from "@/lib/rankingWeek";
+import { loadMessages } from "@/lib/leagueChat";
 import TopBar from "@/components/TopBar";
 import { getUnreadCount } from "@/lib/unreadCount";
-import RankAvatar from "@/components/RankAvatar";
+import RankingBoard from "@/components/RankingBoard";
+import StandingsViews from "@/components/StandingsViews";
+import InviteButton from "@/components/InviteButton";
+import LeagueTabs from "@/components/LeagueTabs";
 
 export default async function LeagueDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   void getUnreadCount();
-  const { id } = await params;
+  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
+  const user = await getCurrentUser();
 
-  // La ligue et ses membres ne dépendent que de l'id : en parallèle.
-  const [{ data: league }, { data: members }] = await Promise.all([
+  if (!user) redirect("/login");
+
+  // La ligue, ses membres et son chat ne dépendent que de l'id : en
+  // parallèle. Le chat n'est lisible que par les membres (vérifié après).
+  const [{ data: league }, { data: members }, messages] = await Promise.all([
     supabase.from("leagues").select("id, name, code").eq("id", id).single(),
     supabase.from("league_members").select("user_id").eq("league_id", id),
+    loadMessages(supabase, id),
   ]);
 
-  if (!league) notFound();
-
   const memberIds = (members ?? []).map((m) => m.user_id as string);
-  const ranking = await getRanking(supabase, memberIds);
+  if (!league || !memberIds.includes(user.id)) notFound();
+
+  const now = new Date();
+  const { general, week } = await getMembersRankings(supabase, memberIds, now);
+  const lastOtherMessageAt =
+    [...messages].reverse().find((m) => m.userId !== user.id)?.createdAt ?? null;
+  const alone = memberIds.length === 1;
 
   return (
     <div className="min-h-screen p-6 pt-28 pb-24">
       <TopBar />
-      <div className="mx-auto w-full max-w-md space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-center text-sky-400">
-            {league.name}
-          </h1>
-          <p className="mt-1 text-center text-sm text-neutral-500">
-            Code d&apos;invitation :{" "}
-            <span className="font-mono text-neutral-300">{league.code}</span>
-          </p>
+      <div className="mx-auto w-full max-w-md space-y-4">
+        <div className="relative overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 shadow-xl shadow-black/30">
+          <Link
+            href="/leagues"
+            className="inline-flex items-center gap-0.5 text-xs font-medium text-sky-400 transition-opacity active:opacity-70"
+          >
+            <ChevronLeft size={14} aria-hidden="true" />
+            Mes ligues
+          </Link>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-black italic tracking-tight text-neutral-50">
+                {league.name}
+              </h1>
+              <p className="mt-0.5 text-sm text-neutral-400">
+                {memberIds.length} joueur{memberIds.length > 1 ? "s" : ""} · code{" "}
+                <span className="font-mono tracking-wider text-neutral-200">{league.code}</span>
+              </p>
+            </div>
+            <InviteButton name={league.name} code={league.code} />
+          </div>
         </div>
 
-        <ol className="space-y-2">
-          {ranking.map((entry, index) => (
-            <li
-              key={entry.userId}
-              className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-3"
-            >
-              <Link
-                href={`/profil/${entry.userId}`}
-                prefetch={false}
-                className="flex items-center text-neutral-200 transition-colors duration-150 hover:text-sky-400"
-              >
-                <span className="mr-2 text-sm text-neutral-500">
-                  {index + 1}
-                </span>
-                <RankAvatar
-                  avatarUrl={entry.avatarUrl}
-                  username={entry.username}
-                />
-                <span className="ml-2">{entry.username}</span>
-              </Link>
-              <span className="font-medium text-sky-400">
-                {entry.totalPoints} pts
-              </span>
-            </li>
-          ))}
-        </ol>
-
-        <p className="text-center">
-          <Link href="/leagues" className="text-sm text-sky-400">
-            Retour à mes ligues
-          </Link>
-        </p>
+        <LeagueTabs
+          initialTab={tab === "chat" ? "chat" : "classement"}
+          leagueId={league.id}
+          currentUserId={user.id}
+          initialMessages={messages}
+          lastOtherMessageAt={lastOtherMessageAt}
+          ranking={
+            <div className="space-y-4">
+              {alone && (
+                <p className="rounded-xl border border-dashed border-sky-800/60 bg-sky-950/30 p-3 text-center text-sm text-sky-200">
+                  Tu es seul dans cette ligue pour l&apos;instant. Appuie sur Inviter pour défier tes amis.
+                </p>
+              )}
+              <StandingsViews
+                views={[
+                  {
+                    key: "general",
+                    label: "Général",
+                    content: <RankingBoard ranking={general} currentUserId={user.id} />,
+                  },
+                  {
+                    key: "semaine",
+                    label: "Cette semaine",
+                    content: (
+                      <div className="space-y-4">
+                        <p className="text-center text-xs text-neutral-500">
+                          Points des matchs du {formatWeekRange(parisWeekBounds(now))}
+                        </p>
+                        <RankingBoard
+                          ranking={week}
+                          currentUserId={user.id}
+                          emptyMessage="Personne n'a encore marqué de points cette semaine."
+                        />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          }
+        />
       </div>
-
     </div>
   );
 }

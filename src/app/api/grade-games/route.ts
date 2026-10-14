@@ -16,6 +16,7 @@ import {
   calculatePointsBreakdown,
 } from "@/lib/scoring";
 import { sendPushToUser } from "@/lib/push";
+import { exactEventBody } from "@/lib/leagueChat";
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -57,6 +58,21 @@ export async function GET(request: NextRequest) {
 
   let gradedGames = 0;
   let gradedPredictions = 0;
+
+  // Ligues de chaque joueur, chargées une fois par passage : un score exact
+  // y est annoncé dans le chat (voir leagueChat.ts).
+  const leaguesByUser = new Map<string, string[]>();
+  async function userLeagueIds(userId: string): Promise<string[]> {
+    const cached = leaguesByUser.get(userId);
+    if (cached) return cached;
+    const { data } = await supabase
+      .from("league_members")
+      .select("league_id")
+      .eq("user_id", userId);
+    const ids = (data ?? []).map((row) => row.league_id as string);
+    leaguesByUser.set(userId, ids);
+    return ids;
+  }
 
   for (const gameId of gameIds) {
     try {
@@ -152,6 +168,29 @@ export async function GET(request: NextRequest) {
             title: "WOOWW SCORE EXACT 🔥",
             body: `${result.homeAbbrev} – ${result.awayAbbrev} : ${prediction.home_score}-${prediction.away_score}, ${points} points !`,
           });
+
+          // Annonce dans le chat de ses ligues — best effort aussi.
+          const leagueIds = await userLeagueIds(prediction.user_id);
+          if (leagueIds.length > 0) {
+            const body = exactEventBody({
+              gameId,
+              homeAbbrev: result.homeAbbrev,
+              awayAbbrev: result.awayAbbrev,
+              homeScore: result.regulationHomeScore,
+              awayScore: result.regulationAwayScore,
+              points,
+            });
+            const { error: chatError } = await supabase.from("league_messages").insert(
+              leagueIds.map((league_id) => ({
+                league_id,
+                user_id: prediction.user_id,
+                body,
+              })),
+            );
+            if (chatError) {
+              console.error("Annonce du score exact dans les ligues :", chatError.message);
+            }
+          }
         }
 
         gradedPredictions++;

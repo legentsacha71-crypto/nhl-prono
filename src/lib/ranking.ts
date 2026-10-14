@@ -140,3 +140,25 @@ export async function getLeagueRankingsWithWeekly(
     },
   };
 }
+
+// Classement d'une ligue, toutes compétitions confondues : général et
+// semaine en cours (seuls les joueurs ayant un prono noté dans la semaine).
+export async function getMembersRankings(
+  supabase: SupabaseClient,
+  userIds: string[],
+  now: Date = new Date()
+): Promise<{ general: RankingEntry[]; week: RankingEntry[] }> {
+  const rows = await fetchTotals(supabase, { userIds, now });
+  const total = (row: TotalsRow) =>
+    Number(row.nhl_points) + Number(row.magnus_points);
+  return {
+    general: toRanking(rows, total),
+    week: toRanking(
+      rows.filter(
+        (r) => Number(r.week_nhl_count) + Number(r.week_magnus_count) > 0
+      ),
+      (r) => Number(r.week_nhl_points) + Number(r.week_magnus_points),
+      total
+    ),
+  };
+}
