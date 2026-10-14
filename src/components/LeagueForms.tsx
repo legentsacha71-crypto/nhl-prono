@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Ticket } from "lucide-react";
 import SubmitButton from "@/components/SubmitButton";
 import { createLeague, joinLeague } from "@/app/leagues/actions";
+import { LEAGUE_NAME_MAX } from "@/lib/leagueName";
 
 // "Créer" et "Rejoindre" : deux boutons, le formulaire choisi s'ouvre en
 // dessous (au lieu de deux formulaires toujours affichés).
@@ -37,6 +38,7 @@ export default function LeagueForms({ defaultOpen = null }: { defaultOpen?: "cre
             type="text"
             placeholder="Nom de ta ligue"
             required
+            maxLength={LEAGUE_NAME_MAX}
             autoFocus
             className="min-w-0 flex-1 rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-base text-neutral-100 placeholder:text-neutral-500 focus:border-sky-500 focus:outline-none"
           />

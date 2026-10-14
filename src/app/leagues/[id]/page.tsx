@@ -12,6 +12,8 @@ import RankingBoard from "@/components/RankingBoard";
 import StandingsViews from "@/components/StandingsViews";
 import InviteButton from "@/components/InviteButton";
 import LeagueTabs from "@/components/LeagueTabs";
+import DeleteLeagueButton from "@/components/DeleteLeagueButton";
+import LeagueName from "@/components/LeagueName";
 
 export default async function LeagueDetailPage({
   params,
@@ -30,7 +32,7 @@ export default async function LeagueDetailPage({
   // La ligue, ses membres et son chat ne dépendent que de l'id : en
   // parallèle. Le chat n'est lisible que par les membres (vérifié après).
   const [{ data: league }, { data: members }, messages] = await Promise.all([
-    supabase.from("leagues").select("id, name, code").eq("id", id).single(),
+    supabase.from("leagues").select("id, name, code, owner_id").eq("id", id).single(),
     supabase.from("league_members").select("user_id").eq("league_id", id),
     loadMessages(supabase, id),
   ]);
@@ -56,16 +58,14 @@ export default async function LeagueDetailPage({
             <ChevronLeft size={14} aria-hidden="true" />
             Mes ligues
           </Link>
+          <div className="mt-2">
+            <LeagueName leagueId={league.id} name={league.name} canEdit={league.owner_id === user.id} />
+          </div>
           <div className="mt-2 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-black italic tracking-tight text-neutral-50">
-                {league.name}
-              </h1>
-              <p className="mt-0.5 text-sm text-neutral-400">
-                {memberIds.length} joueur{memberIds.length > 1 ? "s" : ""} · code{" "}
-                <span className="font-mono tracking-wider text-neutral-200">{league.code}</span>
-              </p>
-            </div>
+            <p className="text-sm text-neutral-400">
+              {memberIds.length} joueur{memberIds.length > 1 ? "s" : ""} · code{" "}
+              <span className="font-mono tracking-wider text-neutral-200">{league.code}</span>
+            </p>
             <InviteButton name={league.name} code={league.code} />
           </div>
         </div>
@@ -108,6 +108,11 @@ export default async function LeagueDetailPage({
                   },
                 ]}
               />
+              {league.owner_id === user.id && (
+                <div className="pt-4">
+                  <DeleteLeagueButton leagueId={league.id} leagueName={league.name} memberCount={memberIds.length} />
+                </div>
+              )}
             </div>
           }
         />

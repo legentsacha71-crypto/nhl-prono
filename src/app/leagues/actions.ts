@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { LEAGUE_NAME_MAX } from "@/lib/leagueName";
 
 function generateInviteCode(): string {
   // Pas de 0/O ni 1/I pour éviter les confusions à la lecture.
@@ -16,7 +17,7 @@ function generateInviteCode(): string {
 }
 
 export async function createLeague(formData: FormData) {
-  const name = (formData.get("name") as string)?.trim();
+  const name = (formData.get("name") as string)?.trim().slice(0, LEAGUE_NAME_MAX);
   if (!name) {
     redirect(`/leagues?error=${encodeURIComponent("Le nom de la ligue est requis.")}`);
   }
@@ -113,4 +114,80 @@ export async function joinLeague(formData: FormData) {
 
   revalidatePath("/leagues");
   redirect(`/leagues/${league.id}`);
+}
+
+// Suppression d'une ligue, réservée à son créateur : le chat, les membres
+// puis la ligue elle-même (pas de suppression en cascade garantie, même
+// ordre que la suppression de compte dans profil/actions.ts). Les autres
+// membres sont prévenus par une notification.
+export async function deleteLeague(formData: FormData) {
+  const leagueId = formData.get("leagueId") as string;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+  const { data: league } = await admin
+    .from("leagues")
+    .select("id, name, owner_id")
+    .eq("id", leagueId)
+    .single();
+  if (!league || league.owner_id !== user.id) {
+    throw new Error("Seul le créateur de la ligue peut la supprimer.");
+  }
+
+  const { data: members } = await admin
+    .from("league_members")
+    .select("user_id")
+    .eq("league_id", league.id)
+    .neq("user_id", user.id);
+
+  await admin.from("league_messages").delete().eq("league_id", league.id);
+  await admin.from("league_members").delete().eq("league_id", league.id);
+  const { error } = await admin.from("leagues").delete().eq("id", league.id);
+  if (error) throw new Error(error.message);
+
+  if (members && members.length > 0) {
+    await admin.from("notifications").insert(
+      members.map((m) => ({
+        user_id: m.user_id,
+        message: `La ligue "${league.name}" a été supprimée par son créateur.`,
+      })),
+    );
+  }
+
+  revalidatePath("/leagues");
+  redirect("/leagues");
+}
+
+// Renommer une ligue, réservé à son créateur. Renvoie le nom enregistré.
+export async function renameLeague(leagueId: string, rawName: string): Promise<string> {
+  const name = rawName.trim().slice(0, LEAGUE_NAME_MAX);
+  if (!name) throw new Error("Le nom de la ligue est requis.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non connecté.");
+
+  const admin = createAdminClient();
+  const { data: league } = await admin
+    .from("leagues")
+    .select("owner_id")
+    .eq("id", leagueId)
+    .single();
+  if (!league || league.owner_id !== user.id) {
+    throw new Error("Seul le créateur de la ligue peut la renommer.");
+  }
+
+  const { error } = await admin.from("leagues").update({ name }).eq("id", leagueId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/leagues");
+  revalidatePath(`/leagues/${leagueId}`);
+  return name;
 }
