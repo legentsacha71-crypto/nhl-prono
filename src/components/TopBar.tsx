@@ -1,21 +1,30 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { Bell, MessageCircle, UserPlus } from "lucide-react";
-import { getPendingFriendRequestCount, getUnreadCount } from "@/lib/unreadCount";
+import {
+  getCurrentUsername,
+  getPendingFriendRequestCount,
+  getUnreadCount,
+} from "@/lib/unreadCount";
+import HomeMenu from "@/components/HomeMenu";
+import { deleteAccount, updateUsername } from "@/app/profil/actions";
 import Logo from "@/components/Logo";
 
-// `menu` : bouton affiché à gauche du logo (le menu de l'accueil).
-export default async function TopBar({ menu }: { menu?: ReactNode } = {}) {
-  const [unreadCount, friendRequestCount] = await Promise.all([
+// Le menu (trois barres, à gauche du logo) est présent sur toutes les pages
+// dès que le joueur est connecté.
+export default async function TopBar() {
+  const [unreadCount, friendRequestCount, username] = await Promise.all([
     getUnreadCount(),
     getPendingFriendRequestCount(),
+    getCurrentUsername(),
   ]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-neutral-800 bg-neutral-900/95 shadow-[0_4px_20px_rgba(0,0,0,0.35)] backdrop-blur pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-2">
         <div className="flex items-center gap-2">
-          {menu}
+          {username && (
+            <HomeMenu username={username} updateUsername={updateUsername} deleteAccount={deleteAccount} />
+          )}
           <Link
             href="/"
             className="flex items-center gap-2 transition-opacity hover:opacity-80"

@@ -9,6 +9,9 @@ import { getCurrentUser } from "@/utils/supabase/user";
 // Ne rejette jamais : lancée sans être attendue par les pages, une erreur
 // ici serait un rejet non géré ; la pastille retombe simplement à 0.
 export const getUnreadCount = cache(async (): Promise<number> => {
+  // Les autres requêtes de TopBar partent en même temps (même raison).
+  void getPendingFriendRequestCount();
+  void getCurrentUsername();
   try {
     const user = await getCurrentUser();
     if (!user) return 0;
@@ -41,5 +44,24 @@ export const getPendingFriendRequestCount = cache(async (): Promise<number> => {
     return count ?? 0;
   } catch {
     return 0;
+  }
+});
+
+// Pseudo du joueur connecté, pour le menu de TopBar (affiché sur toutes
+// les pages). null si déconnecté ou en cas d'erreur.
+export const getCurrentUsername = cache(async (): Promise<string | null> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return null;
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+    return (data?.username as string | undefined) ?? null;
+  } catch {
+    return null;
   }
 });
