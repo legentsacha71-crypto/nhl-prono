@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lanuithockey.app",
+      "sha256_cert_fingerprints": [
+        "7B:8E:25:D0:B4:67:DE:86:18:3F:2F:24:B0:D4:C5:C0:00:99:0F:C9:ED:41:17:E4:BF:BD:AB:BC:B0:B4:20:7E",
+        "65:0B:80:55:45:B5:E9:95:4F:45:42:18:F7:7B:3A:91:DE:23:75:68:96:20:91:EE:4B:34:FA:40:7F:36:6E:E7"
+      ]
+    }
+  }
+]

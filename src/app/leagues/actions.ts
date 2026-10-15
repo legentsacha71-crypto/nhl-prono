@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { LEAGUE_NAME_MAX } from "@/lib/leagueName";
+import { joinLeagueByCode } from "@/lib/joinLeague";
 
 function generateInviteCode(): string {
   // Pas de 0/O ni 1/I pour éviter les confusions à la lecture.
@@ -63,10 +64,7 @@ export async function createLeague(formData: FormData) {
 }
 
 export async function joinLeague(formData: FormData) {
-  const code = (formData.get("code") as string)?.trim().toUpperCase();
-  if (!code) {
-    redirect(`/leagues?error=${encodeURIComponent("Le code d'invitation est requis.")}`);
-  }
+  const code = (formData.get("code") as string) ?? "";
 
   const supabase = await createClient();
   const {
@@ -74,46 +72,14 @@ export async function joinLeague(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: league, error } = await supabase
-    .from("leagues")
-    .select("id, name, owner_id")
-    .eq("code", code)
-    .single();
-
-  if (error || !league) {
-    redirect(
-      `/leagues?error=${encodeURIComponent("Aucune ligue ne correspond à ce code.")}`,
-    );
-  }
-
-  const { error: memberError } = await supabase
-    .from("league_members")
-    .insert({ league_id: league.id, user_id: user.id });
-
-  if (memberError) {
-    const message =
-      memberError.code === "23505"
-        ? "Tu es déjà membre de cette ligue."
-        : memberError.message;
+  const result = await joinLeagueByCode(supabase, user.id, code);
+  if (!result.ok || result.alreadyMember) {
+    const message = result.ok ? "Tu es déjà membre de cette ligue." : result.error;
     redirect(`/leagues?error=${encodeURIComponent(message)}`);
   }
 
-  if (league.owner_id !== user.id) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .single();
-
-    const admin = createAdminClient();
-    await admin.from("notifications").insert({
-      user_id: league.owner_id,
-      message: `${profile?.username ?? "Un joueur"} a rejoint ta ligue "${league.name}".`,
-    });
-  }
-
   revalidatePath("/leagues");
-  redirect(`/leagues/${league.id}`);
+  redirect(`/leagues/${result.leagueId}`);
 }
 
 // Suppression d'une ligue, réservée à son créateur : le chat, les membres

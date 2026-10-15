@@ -167,6 +167,7 @@ export async function GET(request: NextRequest) {
           await sendPushToUser(prediction.user_id, {
             title: "WOOWW SCORE EXACT 🔥",
             body: `${result.homeAbbrev} – ${result.awayAbbrev} : ${prediction.home_score}-${prediction.away_score}, ${points} points !`,
+            url: "/notifications",
           });
 
           // Annonce dans le chat de ses ligues — best effort aussi.

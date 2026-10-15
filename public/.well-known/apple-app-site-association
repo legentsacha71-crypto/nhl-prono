@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["493DU6YC33.com.lanuithockey.app"],
+        "components": [{ "/": "/rejoindre/*", "comment": "Liens d'invitation dans une ligue" }]
+      }
+    ]
+  }
+}

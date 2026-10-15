@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
         await sendPushToUser(userId, {
           title: "Pronostic bientôt verrouillé",
           body: `${game.homeTeam.abbrev} – ${game.awayTeam.abbrev} commence dans 1h — fais ton pronostic avant le verrouillage !`,
+          url: "/matches",
         });
         await supabase
           .from("game_reminders_sent")

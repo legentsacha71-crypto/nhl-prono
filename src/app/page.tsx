@@ -15,6 +15,7 @@ import AndroidCallout from "@/components/AndroidCallout";
 import SocialLinks from "@/components/SocialLinks";
 import SubmitButton from "@/components/SubmitButton";
 import TopPicksCarousel from "@/components/TopPicksCarousel";
+import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import { getTopPicks } from "@/lib/topPicks";
 
 export default async function Home() {
@@ -152,6 +153,9 @@ export default async function Home() {
           </div>
         </div>
       )}
+
+      {/* Joueur fidèle : moment propice pour demander une note. */}
+      {(predictions?.length ?? 0) >= 15 && <StoreReviewPrompt />}
 
       {topPicks && <TopPicksCarousel nightStart={topPicks.nightStart} picks={topPicks.picks} now={now} />}
 

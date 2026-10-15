@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     const remaining = tonightGames.length - (predictedCount.get(userId) ?? 0);
     if (remaining <= 0) continue;
     try {
-      await sendPushToUser(userId, reminderMessage(tonightGames, remaining));
+      await sendPushToUser(userId, { ...reminderMessage(tonightGames, remaining), url: "/matches" });
       notified++;
     } catch (err) {
       console.error(`Échec du rappel quotidien pour user ${userId}:`, err);

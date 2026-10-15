@@ -19,6 +19,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Liens d'invitation /rejoindre/<code> : ouvrent l'appli
+                 directement (App Links, vérifiés par
+                 public/.well-known/assetlinks.json). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="nhl-prono-drjd.vercel.app"
+                    android:pathPrefix="/rejoindre/" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -33,4 +46,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Le blocage en portrait ne doit pas exclure du Play Store les
+         tablettes, TV et écrans de voiture sans mode portrait. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
 </manifest>

@@ -6,9 +6,9 @@ import SubmitButton from "@/components/SubmitButton";
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; invitation?: string }>;
 }) {
-  const { error, message } = await searchParams;
+  const { error, message, invitation } = await searchParams;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -16,6 +16,15 @@ export default async function SignupPage({
         <Logo size="md" className="justify-center" />
         <h2 className="text-center text-neutral-400">Créer un compte</h2>
 
+        {invitation && (
+          <p className="rounded-md border border-sky-800 bg-sky-950 p-3 text-center text-sm text-sky-200">
+            🏒 Un ami t&apos;invite dans sa ligue ! Crée ton compte (ou{" "}
+            <Link href="/login" className="font-semibold text-sky-300 underline">
+              connecte-toi
+            </Link>
+            ) et tu la rejoindras automatiquement.
+          </p>
+        )}
         {error && (
           <p className="rounded-md border border-red-900 bg-red-950 p-3 text-sm text-red-400">
             {error}

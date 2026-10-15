@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 import PushRegistration from "@/components/PushRegistration";
+import NativeLinks from "@/components/NativeLinks";
 import HideNativeSplash from "@/components/HideNativeSplash";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import NavigationOverlay from "@/components/NavigationOverlay";
@@ -62,6 +63,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <HideNativeSplash />
         <PushRegistration />
+        <NativeLinks />
         <ServiceWorkerRegistration />
         {children}
         <NavigationOverlay />

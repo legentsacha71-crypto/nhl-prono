@@ -5,6 +5,7 @@ import { ArrowUp, Target } from "lucide-react";
 import RankAvatar from "@/components/RankAvatar";
 import { sendMessage } from "@/app/leagues/[id]/chat/actions";
 import { markSeen } from "@/lib/chatSeen";
+import { hapticTap } from "@/lib/native";
 import { getTextEntryFocus, subscribeTextEntryFocus } from "@/lib/textEntryFocus";
 import { MESSAGE_MAX_LENGTH, type ChatMessage } from "@/lib/leagueChat";
 
@@ -155,6 +156,7 @@ export default function LeagueChat({
     setMessages((current) => merge(current, [pending]));
     try {
       const sent = await sendMessage(leagueId, body);
+      void hapticTap();
       setMessages((current) => merge(current.filter((m) => m.id !== pendingId), [sent]));
     } catch {
       setMessages((current) => current.filter((m) => m.id !== pendingId));

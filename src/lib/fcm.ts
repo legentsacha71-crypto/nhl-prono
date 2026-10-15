@@ -77,15 +77,19 @@ function getFcmApp(): App {
 // continuer à réessayer un token mort à chaque notification future.
 export class FcmInvalidTokenError extends Error {}
 
+// `data` : champs envoyés avec la notification (ex. `url`, la page à ouvrir
+// quand on la touche, voir PushRegistration.tsx).
 export async function sendFcmPush(
   deviceToken: string,
   alert: FcmAlert,
+  data?: Record<string, string>,
 ): Promise<void> {
   const app = getFcmApp();
   try {
     await getMessaging(app).send({
       token: deviceToken,
       notification: { title: alert.title, body: alert.body },
+      ...(data ? { data } : {}),
     });
   } catch (err) {
     const code = (err as { code?: string } | undefined)?.code;

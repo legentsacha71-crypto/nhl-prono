@@ -63,6 +63,7 @@ export async function sendMessage(leagueId: string, rawBody: string): Promise<Ch
           sendPushToUser(m.user_id, {
             title: `💬 ${league?.name ?? "Ta ligue"}`,
             body: `${message.username} : ${text}`,
+            url: `/leagues/${leagueId}?tab=chat`,
           }),
         ),
       );

@@ -12,6 +12,8 @@ export const config = {
     // api/calendar et api/live servent des données publiques (calendriers,
     // scores en direct) mises en cache par le CDN :
     // la session ne doit ni y être lue ni rafraîchie (pas de Set-Cookie).
-    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|api/calendar|api/live|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // .well-known : fichiers de liens universels (iOS) / App Links (Android),
+    // lus par Apple et Google sans session.
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|\\.well-known|api/calendar|api/live|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

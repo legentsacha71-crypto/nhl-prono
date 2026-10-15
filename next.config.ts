@@ -10,6 +10,16 @@ const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
   : null;
 
 const nextConfig: NextConfig = {
+  // Fichier des liens universels iOS : sans extension, il doit quand même
+  // être servi en JSON pour qu'Apple le lise.
+  async headers() {
+    return [
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+    ];
+  },
   images: {
     remotePatterns: supabaseHost
       ? [

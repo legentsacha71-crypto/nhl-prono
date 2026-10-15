@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { submitPrediction } from "./actions";
+import { hapticTap } from "@/lib/native";
 import { MAX_PREDICTED_SCORE } from "@/lib/predictionRules";
 
 type Props = {
@@ -116,7 +117,10 @@ export default function PredictionForm({
       formData.set("homeScore", nextHome);
       try {
         await submitPrediction(formData);
-        if (seq === saveSeq.current) setStatus("saved");
+        if (seq === saveSeq.current) {
+          setStatus("saved");
+          void hapticTap();
+        }
         return;
       } catch (err) {
         // Appli restée ouverte pendant une mise en ligne : le serveur ne
@@ -133,7 +137,10 @@ export default function PredictionForm({
       if (seq !== saveSeq.current) return;
       try {
         await submitPrediction(formData);
-        if (seq === saveSeq.current) setStatus("saved");
+        if (seq === saveSeq.current) {
+          setStatus("saved");
+          void hapticTap();
+        }
       } catch {
         if (seq !== saveSeq.current) return;
         setStatus("error");

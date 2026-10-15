@@ -176,12 +176,15 @@ function sendApnsRequest(
   });
 }
 
+// `data` : clés personnalisées à côté de `aps` (ex. `url`, la page à
+// ouvrir quand on touche la notification, voir PushRegistration.tsx).
 export async function sendApnsPush(
   deviceToken: string,
   alert: ApnsAlert,
+  data?: Record<string, string>,
 ): Promise<void> {
   const jwt = buildApnsJwt();
-  const payload = { aps: { alert, sound: "default" } };
+  const payload = { aps: { alert, sound: "default" }, ...data };
   try {
     await sendApnsRequest(APNS_HOST, deviceToken, jwt, payload);
   } catch (err) {

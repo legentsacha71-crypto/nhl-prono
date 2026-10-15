@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { getCurrentUser } from "@/utils/supabase/user";
+import { createClient } from "@/utils/supabase/server";
 import { getCurrentUsername } from "@/lib/unreadCount";
 import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
@@ -31,15 +32,25 @@ function teamName(abbrev: string, league: "nhl" | "magnus") {
   return league === "magnus" ? getMagnusTeamName(abbrev) : shortNhlName(getTeamName(abbrev));
 }
 
-export default async function WelcomePage() {
+export default async function WelcomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ligue?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const { ligue } = await searchParams;
 
   const now = new Date();
-  const [username, nhlGames, magnusGames] = await Promise.all([
+  const supabase = await createClient();
+  const [username, nhlGames, magnusGames, { data: joinedLeague }] = await Promise.all([
     getCurrentUsername(),
     getNhlUpcomingGames().catch((): Game[] => []),
     getMagnusUpcomingGames().catch((): Game[] => []),
+    // Arrivé par un lien d'invitation : la ligue qu'il vient de rejoindre.
+    ligue
+      ? supabase.from("leagues").select("id, name").eq("id", ligue).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   // Prochains matchs encore pronostiquables, toutes compétitions confondues.
@@ -64,6 +75,16 @@ export default async function WelcomePage() {
             Pronostique les matchs, marque des points et défie tes amis.
           </p>
         </div>
+
+        {joinedLeague && (
+          <Link
+            href={`/leagues/${joinedLeague.id}`}
+            prefetch={false}
+            className="block rounded-2xl border border-emerald-700/50 bg-emerald-500/10 p-3.5 text-center text-sm text-emerald-200"
+          >
+            ✅ Tu as rejoint la ligue <span className="font-semibold">« {joinedLeague.name} »</span>
+          </Link>
+        )}
 
         <ol className="divide-y divide-neutral-800 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900">
           {STEPS.map((step, index) => (

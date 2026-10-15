@@ -20,7 +20,9 @@ import {
 // et ne fait jamais planter l'appelant (best effort, comme les notifs
 // in-app déjà en place dans profil/actions.ts).
 
-export type PushAlert = ApnsAlert;
+// `url` (facultatif) : page de l'appli à ouvrir quand on touche la
+// notification (ex. "/notifications", "/leagues/<id>?tab=chat").
+export type PushAlert = ApnsAlert & { url?: string };
 
 export async function sendPushToUser(
   userId: string,
@@ -39,6 +41,9 @@ export async function sendPushToUser(
   if (!tokens || tokens.length === 0) {
     return;
   }
+
+  const { url, ...content } = alert;
+  const data = url ? { url } : undefined;
 
   await Promise.all(
     tokens.map(async ({ token, platform }) => {
@@ -60,9 +65,9 @@ export async function sendPushToUser(
 
       try {
         if (isAndroid) {
-          await sendFcmPush(token, alert);
+          await sendFcmPush(token, content, data);
         } else {
-          await sendApnsPush(token, alert);
+          await sendApnsPush(token, content, data);
         }
       } catch (err) {
         if (

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { PENDING_LEAGUE_COOKIE } from "@/lib/joinLeague";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -39,14 +40,31 @@ export async function updateSession(request: NextRequest) {
   // La politique de confidentialité et la page d'assistance doivent rester
   // accessibles sans connexion : ce sont les URLs fournies à Apple/Google
   // lors de la soumission de l'app (politique de confidentialité + support).
+  // Lien d'invitation d'une ligue : ouvert sans connexion, il garde le code
+  // le temps de l'inscription (voir src/app/rejoindre/[code]/route.ts).
+  const isInviteLink = request.nextUrl.pathname.startsWith("/rejoindre/");
   const isPublicPage =
     request.nextUrl.pathname.startsWith("/confidentialite") ||
-    request.nextUrl.pathname.startsWith("/assistance");
+    request.nextUrl.pathname.startsWith("/assistance") ||
+    isInviteLink;
 
   if (!user && !isAuthPage && !isApiRoute && !isPublicPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  // Invité qui vient de s'inscrire ou de se connecter : on finit de lui
+  // faire rejoindre la ligue de son lien d'invitation.
+  const pendingLeague = request.cookies.get(PENDING_LEAGUE_COOKIE)?.value;
+  if (user && pendingLeague && !isInviteLink && !isApiRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/rejoindre/${encodeURIComponent(pendingLeague)}`;
+    url.search = "";
+    const redirect = NextResponse.redirect(url);
+    // Garder la session éventuellement rafraîchie par getClaims().
+    supabaseResponse.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
   }
 
   return supabaseResponse;

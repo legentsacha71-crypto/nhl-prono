@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/utils/supabase/user";
 import { respondToFriendRequest } from "@/app/profil/actions";
 import TopBar from "@/components/TopBar";
 import FriendRequestActions from "@/components/FriendRequestActions";
+import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import {
   ActivityRow,
   LiveRow,
@@ -300,6 +301,8 @@ export default async function NotificationsPage() {
             ))}
           </RowCard>
         )}
+
+        {results.some((item) => item.isNew && item.isExactScore) && <StoreReviewPrompt celebrate />}
 
         {resultGroups.length > 0 && (
           <section className="space-y-3">
