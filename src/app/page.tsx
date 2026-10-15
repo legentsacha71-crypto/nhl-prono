@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
@@ -71,6 +72,9 @@ export default async function Home() {
           .eq("user_id", user.id)
       : Promise.resolve({ count: null }),
   ]);
+
+  // Compte créé avec Apple / Google sans pseudo encore choisi.
+  if (user && !profile) redirect("/choisir-pseudo");
 
   const nhlPoints = (predictions ?? [])
     .filter((p) => !isMagnusGameId(p.game_id))

@@ -19,6 +19,12 @@ const config: CapacitorConfig = {
   // pendant le chargement du site.
   backgroundColor: "#0a0a0a",
   plugins: {
+    // Connexion Apple / Google (@capgo/capacitor-social-login) : seuls ces
+    // deux fournisseurs sont embarqués, pas les SDK Facebook / Twitter.
+    SocialLogin: {
+      providers: { apple: true, google: true, facebook: false, twitter: false },
+      logLevel: 1,
+    },
     // Écran de lancement (logo sur fond sombre) gardé affiché jusqu'à ce que
     // le site ait chargé : HideNativeSplash.tsx le masque dès le premier
     // rendu. launchShowDuration ne sert que de filet (réseau absent) : il

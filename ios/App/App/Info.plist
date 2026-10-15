@@ -48,6 +48,17 @@
 	<array>
 		<string>armv7</string>
 	</array>
+	<!-- Retour de la connexion Google (identifiant iPhone de Google Cloud,
+	     projet « la-nuit-hockey-connexion », à l'envers). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.537283520820-b4a08gcpftj4perjciq3nn8jho1heaaf</string>
+			</array>
+		</dict>
+	</array>
 	<!-- iPhone : portrait uniquement, pour que l'appli ne pivote pas quand
 	     on la consulte allongé. L'iPad garde toutes les orientations
 	     (exigées par Apple pour le multitâche). -->

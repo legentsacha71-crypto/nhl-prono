@@ -43,9 +43,15 @@ export async function updateSession(request: NextRequest) {
   // Lien d'invitation d'une ligue : ouvert sans connexion, il garde le code
   // le temps de l'inscription (voir src/app/rejoindre/[code]/route.ts).
   const isInviteLink = request.nextUrl.pathname.startsWith("/rejoindre/");
+  // Retour de connexion Apple / Google (la session se crée là) et choix du
+  // pseudo d'un compte tout neuf.
+  const isAuthFlow =
+    request.nextUrl.pathname.startsWith("/auth/") ||
+    request.nextUrl.pathname.startsWith("/choisir-pseudo");
   const isPublicPage =
     request.nextUrl.pathname.startsWith("/confidentialite") ||
     request.nextUrl.pathname.startsWith("/assistance") ||
+    request.nextUrl.pathname.startsWith("/auth/") ||
     isInviteLink;
 
   if (!user && !isAuthPage && !isApiRoute && !isPublicPage) {
@@ -57,7 +63,8 @@ export async function updateSession(request: NextRequest) {
   // Invité qui vient de s'inscrire ou de se connecter : on finit de lui
   // faire rejoindre la ligue de son lien d'invitation.
   const pendingLeague = request.cookies.get(PENDING_LEAGUE_COOKIE)?.value;
-  if (user && pendingLeague && !isInviteLink && !isApiRoute) {
+  // Pas pendant le choix du pseudo : la ligue est rejointe juste après.
+  if (user && pendingLeague && !isInviteLink && !isApiRoute && !isAuthFlow) {
     const url = request.nextUrl.clone();
     url.pathname = `/rejoindre/${encodeURIComponent(pendingLeague)}`;
     url.search = "";

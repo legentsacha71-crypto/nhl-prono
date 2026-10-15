@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signup } from "../login/actions";
 import Logo from "@/components/Logo";
 import SubmitButton from "@/components/SubmitButton";
+import SocialLoginButtons from "@/components/SocialLoginButtons";
 
 export default async function SignupPage({
   searchParams,
@@ -35,6 +36,8 @@ export default async function SignupPage({
             {message}
           </p>
         )}
+
+        <SocialLoginButtons />
 
         <form action={signup} className="space-y-4">
           <div>
