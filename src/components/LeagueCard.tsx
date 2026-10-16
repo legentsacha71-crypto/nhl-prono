@@ -1,4 +1,4 @@
-import Image from "next/image";
+import CompetitionTag from "@/components/CompetitionTag";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import UnreadDot from "@/components/UnreadDot";
@@ -9,16 +9,10 @@ function rankLabel(rank: number) {
   return rank === 1 ? "1er" : `${rank}e`;
 }
 
-const COMPETITION = {
-  nhl: { logo: "/logos/nhl.png", label: "NHL" },
-  magnus: { logo: "/logos/magnus.png", label: "Magnus" },
-} as const;
-
-// Carte d'une ligue : la compétition où le joueur y joue (logo), sa place et
+// Carte d'une ligue : la compétition où le joueur y joue, sa place et
 // le leader, puis le dernier message du chat.
 export default function LeagueCard({ league, href, currentUserId }: { league: MyLeague; href: string; currentUserId: string }) {
   const { memberCount, playerCount, myRank, leader, lastMessage } = league;
-  const competition = COMPETITION[league.competition];
   const ranked = memberCount > 1 && myRank > 0 && playerCount > 1;
   // Ligue toute neuve : tout le monde à 0, pas encore de leader.
   const fresh = ranked && (leader?.points ?? 0) === 0;
@@ -55,13 +49,7 @@ export default function LeagueCard({ league, href, currentUserId }: { league: My
         </span>
         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-400">
           {memberCount > 1 && (
-            <Image
-              src={competition.logo}
-              alt={competition.label}
-              width={14}
-              height={14}
-              className="h-3.5 w-3.5 shrink-0 object-contain"
-            />
+            <CompetitionTag competition={league.competition} size="xs" />
           )}
           <span className="truncate">{standing}</span>
         </span>

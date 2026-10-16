@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -17,6 +16,7 @@ import SocialLinks from "@/components/SocialLinks";
 import SubmitButton from "@/components/SubmitButton";
 import TopPicksCarousel from "@/components/TopPicksCarousel";
 import StoreReviewPrompt from "@/components/StoreReviewPrompt";
+import CompetitionTag from "@/components/CompetitionTag";
 import { getTopPicks } from "@/lib/topPicks";
 
 export default async function Home() {
@@ -130,26 +130,14 @@ export default async function Home() {
 
           <div className="mt-4 flex items-center justify-center gap-3 border-t border-neutral-800/80 pt-3">
             <div className="flex flex-1 items-center justify-center gap-2">
-              <Image
-                src="/logos/nhl.png"
-                alt="NHL"
-                width={20}
-                height={20}
-                className="h-5 w-5 object-contain opacity-90"
-              />
+              <CompetitionTag competition="nhl" />
               <span className="font-display text-2xl text-neutral-100">
                 {nhlPoints}
               </span>
             </div>
             <div className="h-8 w-px bg-neutral-800" />
             <div className="flex flex-1 items-center justify-center gap-2">
-              <Image
-                src="/logos/magnus.png"
-                alt="Ligue Magnus"
-                width={20}
-                height={20}
-                className="h-5 w-5 object-contain opacity-90"
-              />
+              <CompetitionTag competition="magnus" />
               <span className="font-display text-2xl text-neutral-100">
                 {magnusPoints}
               </span>

@@ -24,12 +24,22 @@ const FAQ = [
   {
     question: "Comment supprimer mon compte ?",
     answer:
-      "Depuis la page Profil de l'app, une option permet de supprimer définitivement ton compte et tes données associées.",
+      "Depuis le menu de l'appli (les trois barres en haut à gauche), l'option « Supprimer mon compte » efface définitivement ton compte et tes données associées.",
   },
   {
     question: "Je vois une erreur ou un score incorrect, que faire ?",
     answer:
-      "Les matchs et scores proviennent de l'API officielle de la LNH ; en cas d'écart temporaire (match en cours, mise à jour en retard), l'affichage se corrige généralement en quelques minutes. Si le problème persiste, contacte-nous.",
+      "Les calendriers et les scores sont récupérés automatiquement depuis des sources publiques ; en cas d'écart temporaire (match en cours, mise à jour en retard), l'affichage se corrige généralement en quelques minutes. Si le problème persiste, contacte-nous.",
+  },
+  {
+    question: "Est-ce qu'on parie de l'argent ?",
+    answer:
+      "Non. La Nuit Hockey est un jeu de pronostics entièrement gratuit, sans aucune mise ni gain d'argent : on y gagne seulement des points pour le classement entre amis.",
+  },
+  {
+    question: "La Nuit Hockey est-elle liée à la NHL ou à la Ligue Magnus ?",
+    answer:
+      "Non. La Nuit Hockey est une appli indépendante. Elle n'est ni affiliée à la NHL, à ses équipes, à la Fédération française de hockey sur glace (FFHG, Ligue Magnus) ou à ses clubs, ni approuvée ou sponsorisée par eux. Les noms des ligues et des équipes ne sont cités que pour désigner les matchs.",
   },
 ];
 

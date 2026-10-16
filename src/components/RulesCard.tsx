@@ -45,6 +45,10 @@ export function RulesList() {
           </span>
         </li>
       ))}
+      <li className="pt-1 text-[11px] leading-snug text-neutral-500">
+        Jeu gratuit, sans argent en jeu. La Nuit Hockey est une appli indépendante, non affiliée à la
+        NHL ni à la FFHG (Ligue Magnus), et non approuvée par elles.
+      </li>
     </ul>
   );
 }

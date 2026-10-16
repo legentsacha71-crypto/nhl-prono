@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState, type ReactNode } from "react";
 
 type League = "nhl" | "magnus";
@@ -13,12 +12,9 @@ type LeagueSwitchProps = {
 };
 
 /**
- * Bouton on/off pour choisir la compétition affichée (NHL / Ligue Magnus).
- * Affiche les logos officiels des deux ligues (public/logos/nhl.png,
- * public/logos/magnus.png) — choix assumé malgré le risque de marque lié à
- * la reproduction de logos déposés dans une app commerciale déjà publiée
- * (contrairement à TeamBadge.tsx, qui évite volontairement les logos
- * officiels des équipes NHL).
+ * Bouton pour choisir la compétition affichée (NHL / Ligue Magnus), en
+ * texte : les logos officiels des ligues, marques déposées, ne sont plus
+ * affichés (risque de refus App Store), comme pour les équipes (TeamBadge).
  *
  * Les deux contenus sont déjà rendus côté serveur et passés en props ; on ne
  * fait qu'afficher l'un ou l'autre côté client, sans rechargement.
@@ -37,41 +33,26 @@ export default function LeagueSwitch({
           type="button"
           role="switch"
           aria-checked={league === "magnus"}
-          aria-label="Choisir la compétition"
+          aria-label="Choisir la compétition : NHL ou Ligue Magnus"
           onClick={() => setLeague((l) => (l === "nhl" ? "magnus" : "nhl"))}
-          className="relative flex h-12 w-24 items-center justify-between rounded-full border border-neutral-800 bg-neutral-900 p-1 transition-transform duration-150 active:scale-95"
+          className="relative grid h-11 w-48 grid-cols-2 items-center rounded-full border border-neutral-800 bg-neutral-900 p-1 transition-transform duration-150 active:scale-95"
         >
           <span
-            className={`absolute left-1 top-1 h-10 w-10 rounded-full bg-sky-600 transition-transform duration-300 ease-out ${
-              league === "nhl" ? "translate-x-0" : "translate-x-12"
+            aria-hidden="true"
+            className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-sky-600 transition-transform duration-300 ease-out ${
+              league === "nhl" ? "translate-x-0" : "translate-x-full"
             }`}
           />
-          <span
-            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full p-1.5 transition-opacity duration-300 ${
-              league === "nhl" ? "opacity-100" : "opacity-40"
-            }`}
-          >
-            <Image
-              src="/logos/nhl.png"
-              alt="NHL"
-              width={40}
-              height={40}
-              className="h-full w-full object-contain"
-            />
-          </span>
-          <span
-            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full p-1.5 transition-opacity duration-300 ${
-              league === "magnus" ? "opacity-100" : "opacity-40"
-            }`}
-          >
-            <Image
-              src="/logos/magnus.png"
-              alt="Ligue Magnus"
-              width={40}
-              height={40}
-              className="h-full w-full object-contain"
-            />
-          </span>
+          {(["nhl", "magnus"] as const).map((key) => (
+            <span
+              key={key}
+              className={`relative z-10 text-center font-display text-lg leading-none tracking-wider transition-colors duration-300 ${
+                league === key ? "text-white" : "text-neutral-500"
+              }`}
+            >
+              {key === "nhl" ? "NHL" : "Magnus"}
+            </span>
+          ))}
         </button>
       </div>
 
