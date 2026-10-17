@@ -6,6 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { registerPushToken, logPushDebug } from "@/app/notifications/actions";
 import PushPermissionSheet, { type PushAsk } from "@/components/PushPermissionSheet";
+import { outdatedAppPlatform } from "@/lib/appUpdate";
 import { hapticSuccess, hasNativePlugin } from "@/lib/native";
 import { createClient } from "@/utils/supabase/client";
 
@@ -108,6 +109,9 @@ export default function PushRegistration() {
       await registerDevice(current, session.user.id);
       return;
     }
+    // Ancienne version de l'appli : c'est la fenêtre de mise à jour qui
+    // s'affiche (AppUpdatePrompt), on demandera après.
+    if (outdatedAppPlatform()) return;
     const variant: PushAsk = receive === "denied" ? "settings" : "soft";
     if (askedWithin(ASK_AGAIN_MS[variant])) return;
     markAsked();
