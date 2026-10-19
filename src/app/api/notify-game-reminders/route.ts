@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
-import { sendPushToUser } from "@/lib/push";
+import { loadAllNotifPrefs, sendPushToUser } from "@/lib/push";
+import { pushAllowed, type NotifPrefs } from "@/lib/notifPrefs";
 
 // Fenêtre autour de "1h avant le match" : le déclenchement externe (cron
 // Supabase toutes les 10 min, voir supabase/cron_jobs.sql) n'appelle jamais
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest) {
   });
 
   let notified = 0;
+  // Réglages de notifications, chargés seulement s'il y a un match à rappeler.
+  const prefs = games.length > 0 ? await loadAllNotifPrefs() : new Map<string, NotifPrefs>();
 
   for (const game of games) {
     const [{ data: tokenRows }, { data: predictionRows }, { data: sentRows }] =
@@ -54,16 +57,24 @@ export async function GET(request: NextRequest) {
     const candidates = new Set((tokenRows ?? []).map((r) => r.user_id));
 
     const targets = [...candidates].filter(
-      (userId) => !predicted.has(userId) && !alreadySent.has(userId),
+      (userId) =>
+        !predicted.has(userId) &&
+        !alreadySent.has(userId) &&
+        pushAllowed(prefs.get(userId), "reminders"),
     );
 
     for (const userId of targets) {
       try {
-        await sendPushToUser(userId, {
-          title: "Pronostic bientôt verrouillé",
-          body: `${game.homeTeam.abbrev} – ${game.awayTeam.abbrev} commence dans 1h — fais ton pronostic avant le verrouillage !`,
-          url: "/matches",
-        });
+        await sendPushToUser(
+          userId,
+          {
+            title: "Pronostic bientôt verrouillé",
+            body: `${game.homeTeam.abbrev} – ${game.awayTeam.abbrev} commence dans 1h — fais ton pronostic avant le verrouillage !`,
+            url: "/matches",
+          },
+          "reminders",
+          prefs.get(userId) ?? {},
+        );
         await supabase
           .from("game_reminders_sent")
           .insert({ user_id: userId, game_id: game.id });

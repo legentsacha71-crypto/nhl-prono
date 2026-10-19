@@ -1,6 +1,24 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { isPushCategory, NOTIF_PREFS_KEY, type NotifPrefs } from "@/lib/notifPrefs";
+
+// Réglages de notifications du joueur (page /notifications/reglages). La page
+// envoie l'ensemble de ses choix à chaque changement : deux interrupteurs
+// touchés coup sur coup ne s'écrasent pas.
+export async function updateNotifPrefs(prefs: NotifPrefs): Promise<{ error?: string }> {
+  const clean: NotifPrefs = {};
+  for (const [category, enabled] of Object.entries(prefs ?? {})) {
+    if (isPushCategory(category) && typeof enabled === "boolean") clean[category] = enabled;
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Connecte-toi pour changer tes réglages." };
+  const { error } = await supabase.auth.updateUser({ data: { [NOTIF_PREFS_KEY]: clean } });
+  return error ? { error: "Réglage non enregistré, réessaie." } : {};
+}
 
 // Instrumentation temporaire (diagnostic) : PushRegistration.tsx tourne côté
 // natif où le seul log disponible (console.error) ne remonte nulle part

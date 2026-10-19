@@ -328,7 +328,7 @@ export async function sendFriendRequest(formData: FormData) {
         title: "Nouvelle demande d'ami",
         body: `${requesterName} t'a envoyé une demande d'ami.`,
         url: "/amis",
-      });
+      }, "friends");
     } catch (pushError) {
       console.error("Échec de l'envoi du push de demande d'ami :", pushError);
     }
@@ -399,7 +399,7 @@ export async function respondToFriendRequest(formData: FormData) {
         title: "Demande d'ami acceptée",
         body: `${accepterName} a accepté ta demande d'ami.`,
         url: "/amis",
-      });
+      }, "friends");
     } catch (pushError) {
       console.error("Échec de l'envoi du push d'ami accepté :", pushError);
     }

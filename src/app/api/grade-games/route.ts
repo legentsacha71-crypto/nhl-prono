@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { getGameResult } from "@/lib/gameResults";
+import { getGameResult, type GameResult } from "@/lib/gameResults";
 import { isMagnusGameId } from "@/lib/competition";
 import {
   getTeamStats as getNhlTeamStats,
@@ -17,6 +17,50 @@ import {
 } from "@/lib/scoring";
 import { sendPushToUser } from "@/lib/push";
 import { exactEventBody } from "@/lib/leagueChat";
+import {
+  findOvertakes,
+  leaguesOf,
+  snapshotLeagues,
+  type LeagueInfo,
+  type LeagueSnapshot,
+} from "@/lib/leagueMoves";
+import { parisClock, parisTodayStart } from "@/lib/rankingWeek";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// Notif « tu t'es fait doubler » : le message commence par cet emoji, ce qui
+// sert aussi à n'en envoyer qu'une par jour et par joueur.
+const OVERTAKE_PREFIX = "😤";
+
+// Compare les classements des ligues d'avant la notation à ceux d'après, et
+// prévient chaque joueur dépassé (cloche + notif), une fois par jour au plus.
+async function notifyOvertakes(
+  supabase: SupabaseClient,
+  leagues: LeagueInfo[],
+  before: LeagueSnapshot,
+): Promise<number> {
+  const after = await snapshotLeagues(supabase, leagues);
+  const todayStart = parisTodayStart().toISOString();
+  const done = new Set<string>();
+  for (const overtake of findOvertakes(leagues, before, after)) {
+    if (done.has(overtake.userId)) continue;
+    done.add(overtake.userId);
+    const { count } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", overtake.userId)
+      .like("message", `${OVERTAKE_PREFIX}%`)
+      .gte("created_at", todayStart);
+    if ((count ?? 0) > 0) continue;
+    const text = `${overtake.byUsername} t'est passé devant dans ${overtake.where}.`;
+    await supabase.from("notifications").insert({ user_id: overtake.userId, message: `${OVERTAKE_PREFIX} ${text}` });
+    await sendPushToUser(
+      overtake.userId,
+      { title: "😤 Tu t'es fait doubler", body: text, url: `/leagues/${overtake.leagueId}` },
+      "leagues",
+    );
+  }
+  return done.size;
+}
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -74,10 +118,39 @@ export async function GET(request: NextRequest) {
     return ids;
   }
 
+  // Matchs terminés, cherchés avant toute notation.
+  const finished = new Map<number, GameResult>();
   for (const gameId of gameIds) {
     try {
       const result = await getGameResult(gameId);
-      if (!result.isFinal) continue;
+      if (result.isFinal) finished.set(gameId, result);
+    } catch (err) {
+      console.error(`Erreur lors de la lecture du match ${gameId}:`, err);
+    }
+  }
+
+  // « Tu t'es fait doubler » : classements des ligues concernées juste avant
+  // la notation. Seulement de 9 h à 23 h, heure de Paris : les mouvements de
+  // la nuit sont racontés par le récap du matin.
+  const { hour } = parisClock();
+  let overtakeLeagues: LeagueInfo[] = [];
+  let rankingsBefore: LeagueSnapshot | null = null;
+  if (hour >= 9 && hour < 23 && finished.size > 0) {
+    try {
+      const { data: rows } = await supabase
+        .from("predictions")
+        .select("user_id")
+        .in("game_id", [...finished.keys()])
+        .is("points", null);
+      overtakeLeagues = await leaguesOf(supabase, [...new Set((rows ?? []).map((r) => r.user_id as string))]);
+      if (overtakeLeagues.length > 0) rankingsBefore = await snapshotLeagues(supabase, overtakeLeagues);
+    } catch (err) {
+      console.error("Classements des ligues avant notation :", err);
+    }
+  }
+
+  for (const [gameId, result] of finished) {
+    try {
 
       const isMagnus = isMagnusGameId(gameId);
       const stats = isMagnus ? magnusStats : nhlStats;
@@ -168,7 +241,7 @@ export async function GET(request: NextRequest) {
             title: "WOOWW SCORE EXACT 🔥",
             body: `${result.homeAbbrev} – ${result.awayAbbrev} : ${prediction.home_score}-${prediction.away_score}, ${points} points !`,
             url: "/notifications",
-          });
+          }, "results");
 
           // Annonce dans le chat de ses ligues — best effort aussi.
           const leagueIds = await userLeagueIds(prediction.user_id);
@@ -203,5 +276,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ gradedGames, gradedPredictions });
+  let overtakes = 0;
+  if (rankingsBefore && gradedPredictions > 0) {
+    try {
+      overtakes = await notifyOvertakes(supabase, overtakeLeagues, rankingsBefore);
+    } catch (err) {
+      console.error("Notifs de dépassement :", err);
+    }
+  }
+
+  return NextResponse.json({ gradedGames, gradedPredictions, overtakes });
 }

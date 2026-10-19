@@ -11,6 +11,7 @@ import {
   fcmMissingEnvVars,
   FcmInvalidTokenError,
 } from "@/lib/fcm";
+import { pushAllowed, readNotifPrefs, type NotifPrefs, type PushCategory } from "@/lib/notifPrefs";
 
 // Point d'entrée unique à utiliser depuis les server actions / routes API :
 // envoie une notif à tous les appareils enregistrés d'un utilisateur
@@ -24,14 +25,43 @@ import {
 // notification (ex. "/notifications", "/leagues/<id>?tab=chat").
 export type PushAlert = ApnsAlert & { url?: string };
 
-export async function sendPushToUser(
-  userId: string,
-  alert: PushAlert,
-): Promise<void> {
+async function adminClient() {
   // Import différé pour éviter tout cycle d'import avec admin.ts, qui n'a
   // pas besoin de connaître ce module.
   const { createAdminClient } = await import("@/utils/supabase/admin");
-  const admin = createAdminClient();
+  return createAdminClient();
+}
+
+// Réglages de notifications de tous les joueurs, en une passe : pour les
+// envois groupés (rappels, récap), plutôt qu'une lecture par joueur.
+export async function loadAllNotifPrefs(): Promise<Map<string, NotifPrefs>> {
+  const admin = await adminClient();
+  const prefs = new Map<string, NotifPrefs>();
+  for (let page = 1; ; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    for (const user of data.users) prefs.set(user.id, readNotifPrefs(user.user_metadata));
+    if (data.users.length < 1000) break;
+  }
+  return prefs;
+}
+
+// `category` : rien n'est envoyé si le joueur l'a coupée dans ses réglages.
+// `prefs` : ses réglages s'ils sont déjà chargés (loadAllNotifPrefs).
+export async function sendPushToUser(
+  userId: string,
+  alert: PushAlert,
+  category: PushCategory,
+  prefs?: NotifPrefs,
+): Promise<void> {
+  const admin = await adminClient();
+
+  let userPrefs = prefs;
+  if (!userPrefs) {
+    const { data } = await admin.auth.admin.getUserById(userId);
+    userPrefs = readNotifPrefs(data.user?.user_metadata);
+  }
+  if (!pushAllowed(userPrefs, category)) return;
 
   const { data: tokens } = await admin
     .from("device_push_tokens")

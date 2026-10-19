@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getCurrentUser } from "@/utils/supabase/user";
@@ -258,6 +259,13 @@ export default async function NotificationsPage() {
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="relative overflow-hidden rounded-2xl border border-sky-900/40 bg-gradient-to-br from-sky-600/20 via-neutral-900 to-neutral-950 p-5 shadow-xl shadow-black/30">
           <div className="pointer-events-none absolute -right-6 -top-6 text-8xl opacity-10">🔔</div>
+          <Link
+            href="/notifications/reglages"
+            aria-label="Réglages des notifications"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-800/60 hover:text-sky-400"
+          >
+            <Settings size={20} aria-hidden="true" />
+          </Link>
           <div className="text-center">
             <h1 className="text-3xl font-black italic tracking-tight text-neutral-50">
               Tes <span className="text-sky-400">notifs</span>

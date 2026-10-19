@@ -2,17 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
-import { registerPushToken, logPushDebug } from "@/app/notifications/actions";
 import PushPermissionSheet, { type PushAsk } from "@/components/PushPermissionSheet";
 import { outdatedAppPlatform } from "@/lib/appUpdate";
-import { hapticSuccess, hasNativePlugin } from "@/lib/native";
+import { hapticSuccess } from "@/lib/native";
+import { pushPlatform, registerDevice, requestPushPermission, type PushPlatform } from "@/lib/pushDevice";
 import { createClient } from "@/utils/supabase/client";
 
-// Notifications push de l'appli (APNs sur iPhone, Firebase sur Android :
-// @capacitor/push-notifications choisit tout seul, seule la valeur de
-// `platform` transmise à registerPushToken() diffère).
+// Notifications push de l'appli (inscription du téléphone : pushDevice.ts).
 //
 // Au lancement, pour un joueur connecté :
 // - notifications autorisées → l'appareil est enregistré, rien ne s'affiche ;
@@ -25,11 +22,6 @@ import { createClient } from "@/utils/supabase/client";
 //
 // Vit dans RootLayout : rien ne s'affiche hors de l'appli native, ni dans
 // les anciennes versions sans le module de notifications (iPhone 1.0).
-
-// Capacitor.getPlatform() est typé `string` côté SDK (pas de littéral).
-function isPushPlatform(value: string): value is "ios" | "android" {
-  return value === "ios" || value === "android";
-}
 
 // Pas de fenêtre pendant la connexion, l'inscription, le choix du pseudo ni
 // l'écran de bienvenue : elle viendra à la page suivante.
@@ -55,47 +47,15 @@ function markAsked() {
   }
 }
 
-// Écouteurs posés une seule fois par lancement ; l'enregistrement est refait
-// si un autre joueur se connecte sur le même téléphone.
-let listeners: Promise<void> | null = null;
-let registeredUserId: string | null = null;
-
-function addListeners(platform: "ios" | "android"): Promise<void> {
-  listeners ??= (async () => {
-    await PushNotifications.addListener("registration", (token) => {
-      registerPushToken(token.value, platform).catch((err) => {
-        logPushDebug("registerPushToken a rejeté", err instanceof Error ? err.message : String(err)).catch(() => {});
-      });
-    });
-    await PushNotifications.addListener("registrationError", (err) => {
-      logPushDebug("registrationError", JSON.stringify(err)).catch(() => {});
-    });
-  })();
-  return listeners;
-}
-
-async function registerDevice(platform: "ios" | "android", userId: string): Promise<void> {
-  if (registeredUserId === userId) return;
-  registeredUserId = userId;
-  try {
-    await addListeners(platform);
-    await PushNotifications.register();
-  } catch (err) {
-    registeredUserId = null;
-    logPushDebug("register() a levé une exception", err instanceof Error ? err.message : String(err)).catch(() => {});
-  }
-}
-
 export default function PushRegistration() {
   const pathname = usePathname();
   const [ask, setAsk] = useState<PushAsk | null>(null);
-  const [platform, setPlatform] = useState<"ios" | "android">("ios");
+  const [platform, setPlatform] = useState<PushPlatform>("ios");
   const userIdRef = useRef<string | null>(null);
 
   const evaluate = useCallback(async (path: string) => {
-    if (!hasNativePlugin("PushNotifications")) return;
-    const current = Capacitor.getPlatform();
-    if (!isPushPlatform(current) || document.visibilityState !== "visible") return;
+    const current = pushPlatform();
+    if (!current || document.visibilityState !== "visible") return;
     if (QUIET_PATHS.some((p) => path.startsWith(p))) return;
 
     const {
@@ -140,15 +100,8 @@ export default function PushRegistration() {
       window.location.href = "app-settings:";
       return;
     }
-    try {
-      const { receive } = await PushNotifications.requestPermissions();
-      logPushDebug("requestPermissions", receive).catch(() => {});
-      if (receive === "granted" && userIdRef.current) {
-        void hapticSuccess();
-        await registerDevice(platform, userIdRef.current);
-      }
-    } catch (err) {
-      logPushDebug("requestPermissions a échoué", err instanceof Error ? err.message : String(err)).catch(() => {});
+    if (userIdRef.current && (await requestPushPermission(platform, userIdRef.current))) {
+      void hapticSuccess();
     }
   }
 

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getUpcomingGames as getNhlUpcomingGames } from "@/lib/nhl";
 import { getUpcomingGames as getMagnusUpcomingGames } from "@/lib/magnus";
-import { sendPushToUser } from "@/lib/push";
+import { loadAllNotifPrefs, sendPushToUser } from "@/lib/push";
+import { pushAllowed } from "@/lib/notifPrefs";
 import { reminderMessage, tonightGames as pickTonightGames } from "@/lib/matchDayReminder";
 
 // Appelé par le cron Supabase à 11h00 et 12h00 UTC (voir
@@ -85,12 +86,18 @@ export async function GET(request: NextRequest) {
     predictedCount.set(row.user_id, (predictedCount.get(row.user_id) ?? 0) + 1);
   }
 
+  const prefs = await loadAllNotifPrefs();
   let notified = 0;
   for (const userId of candidates) {
     const remaining = tonightGames.length - (predictedCount.get(userId) ?? 0);
-    if (remaining <= 0) continue;
+    if (remaining <= 0 || !pushAllowed(prefs.get(userId), "reminders")) continue;
     try {
-      await sendPushToUser(userId, { ...reminderMessage(tonightGames, remaining), url: "/matches" });
+      await sendPushToUser(
+        userId,
+        { ...reminderMessage(tonightGames, remaining), url: "/matches" },
+        "reminders",
+        prefs.get(userId) ?? {},
+      );
       notified++;
     } catch (err) {
       console.error(`Échec du rappel quotidien pour user ${userId}:`, err);

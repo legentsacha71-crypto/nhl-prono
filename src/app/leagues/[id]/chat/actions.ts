@@ -64,7 +64,7 @@ export async function sendMessage(leagueId: string, rawBody: string): Promise<Ch
             title: `💬 ${league?.name ?? "Ta ligue"}`,
             body: `${message.username} : ${text}`,
             url: `/leagues/${leagueId}?tab=chat`,
-          }),
+          }, "chat"),
         ),
       );
     });

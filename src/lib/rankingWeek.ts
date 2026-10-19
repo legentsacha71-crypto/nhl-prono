@@ -56,6 +56,25 @@ function parisMidnightUTC(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month - 1, day) - parisOffsetMinutes(noon) * 60_000);
 }
 
+// Heure et minute à Paris (créneaux des notifications).
+export function parisClock(date: Date = new Date()): { hour: number; minute: number } {
+  const { hour, minute } = parisParts(date);
+  return { hour, minute };
+}
+
+// Minuit du jour en cours, heure de Paris.
+export function parisTodayStart(now: Date = new Date()): Date {
+  const { year, month, day } = parisParts(now);
+  return parisMidnightUTC(year, month, day);
+}
+
+// Début de la dernière nuit de hockey : la veille à midi, heure de Paris
+// (même découpage que la page Notifications, voir notificationFeed.ts).
+export function parisLastNightStart(now: Date = new Date()): Date {
+  const { year, month, day } = parisParts(now);
+  return new Date(parisMidnightUTC(year, month, day - 1).getTime() + 12 * 60 * 60_000);
+}
+
 // weeksAgo = 0 : la semaine en cours ; 1 : la précédente ; etc.
 export function parisWeekBounds(now: Date = new Date(), weeksAgo = 0): WeekBounds {
   const { year, month, day, weekday } = parisParts(now);

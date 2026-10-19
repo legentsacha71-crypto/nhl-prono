@@ -70,3 +70,11 @@ select cron.schedule(
   '0 11,12 * * *',
   $$ select private.call_cron_route('/api/notify-match-day') $$
 );
+
+-- Récap du matin à 9h heure de Paris : 7h UTC en heure d'été, 8h UTC en
+-- heure d'hiver. La route ignore celui des deux appels qui ne tombe pas à 9h.
+select cron.schedule(
+  'recap-du-matin',
+  '0 7,8 * * *',
+  $$ select private.call_cron_route('/api/notify-morning-recap') $$
+);

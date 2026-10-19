@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import {
+  Bell,
   BookOpen,
   ChevronRight,
   Menu,
@@ -151,7 +153,8 @@ function UsernameForm({
 }
 
 // Bouton "trois traits" en haut à gauche de l'accueil, qui ouvre un panneau
-// latéral : règles du jeu, changement de pseudo, suppression du compte.
+// latéral : réglages des notifications, règles du jeu, changement de
+// pseudo, suppression du compte.
 // Le panneau est rendu dans <body> (portail) : la barre du haut a un
 // backdrop-blur, qui piégerait sinon un élément `fixed` à l'intérieur de la
 // barre au lieu de couvrir tout l'écran.
@@ -234,6 +237,16 @@ export default function HomeMenu({
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          <Link
+            href="/notifications/reglages"
+            onClick={close}
+            className="flex w-full items-center gap-3 border-b border-neutral-800 px-5 py-4 text-left text-sm font-medium text-neutral-100 transition-colors duration-150 active:bg-neutral-800/60"
+          >
+            <Bell size={20} aria-hidden="true" className="shrink-0" />
+            <span className="flex-1">Réglages des notifications</span>
+            <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-neutral-500" />
+          </Link>
+
           <MenuSection
             id={`${baseId}-rules`}
             icon={BookOpen}

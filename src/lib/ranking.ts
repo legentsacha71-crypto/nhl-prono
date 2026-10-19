@@ -203,14 +203,16 @@ export type LeagueCompetitionRankings = Record<
 // création de la ligue : tout le monde y repart de 0, y compris ceux qui la
 // rejoignent plus tard. Les bonus de saison (Coupe Stanley, meilleur
 // buteur) comptent en NHL. L'anneau de l'avatar reste celui des points de
-// toute la saison.
+// toute la saison. `until` : classement tel qu'il était à cette date (seuls
+// comptent les matchs commencés avant), pour le récap du matin.
 export async function getLeagueCompetitionRankings(
   supabase: SupabaseClient,
   userIds: string[],
-  since: Date
+  since: Date,
+  until: Date = FAR_FUTURE
 ): Promise<LeagueCompetitionRankings> {
   const [rows, bonus] = await Promise.all([
-    fetchTotals(supabase, { userIds, range: { start: since, end: FAR_FUTURE } }),
+    fetchTotals(supabase, { userIds, range: { start: since, end: until } }),
     seasonBonus(supabase, userIds),
   ]);
   const build = (competition: Competition) => {
