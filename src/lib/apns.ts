@@ -191,7 +191,18 @@ export async function sendApnsPush(
     if (!(err instanceof ApnsWrongEnvironmentError)) {
       throw err;
     }
-    await sendApnsRequest(APNS_HOST_SANDBOX, deviceToken, jwt, payload);
+    try {
+      await sendApnsRequest(APNS_HOST_SANDBOX, deviceToken, jwt, payload);
+    } catch (sandboxErr) {
+      // Refusé en production (clé réservée au test) puis « BadDeviceToken »
+      // en sandbox : c'est un jeton App Store parfaitement valide, c'est la
+      // clé APNs qui n'a pas le droit d'envoyer en production. On ne le
+      // signale surtout pas comme invalide : push.ts le supprimerait.
+      if (sandboxErr instanceof ApnsInvalidTokenError) {
+        throw new Error("APNs : la clé n'est pas autorisée en production (BadEnvironmentKeyInToken)");
+      }
+      throw sandboxErr;
+    }
   }
 }
 
