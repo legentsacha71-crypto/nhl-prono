@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, Target, X } from "lucide-react";
 import { isPublicPath } from "@/lib/publicPaths";
+import { msUntilRollEnds } from "@/lib/pointsRoll";
 
 type Item = { id: string; points: number; exact: boolean };
 type Toast = { points: number; count: number; exact: number };
@@ -66,8 +67,15 @@ export default function PointsToast() {
       };
       const fresh = takeNew(userId, items);
       if (fresh.length === 0) return;
-      // Sur l'accueil, les nouveaux points tournent dans le compteur.
-      if (pathname === "/") router.refresh();
+      // Sur l'accueil, les nouveaux points tournent d'abord dans le compteur
+      // (page rafraîchie) ; l'alerte n'arrive qu'une fois les rouleaux
+      // arrêtés, pour ne pas annoncer le même gain deux fois à la fois.
+      if (pathname === "/") {
+        router.refresh();
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        const wait = msUntilRollEnds();
+        if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait + 250));
+      }
       setLeaving(false);
       setToast({
         points: fresh.reduce((sum, item) => sum + item.points, 0),

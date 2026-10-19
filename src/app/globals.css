@@ -105,6 +105,89 @@ body {
   animation: toast-out 300ms ease-in both;
 }
 
+/* « +45 » des points gagnés (PointsCounter) : apparaît en douceur à droite
+   du total, puis décrit un arc pour retomber dans les chiffres en s'effaçant,
+   au moment où ils tournent. Trois couches pour un mouvement sans à-coup :
+   l'horizontale (et la taille), la verticale (monte puis redescend) et le
+   fondu final. */
+@keyframes gain-arc-x {
+  0% {
+    opacity: 0;
+    transform: translate(14px, -50%) scale(0.7);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(6px, -50%) scale(1);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(6px, -50%) scale(1);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-60px, -50%) scale(0.45);
+  }
+}
+
+@keyframes gain-arc-y {
+  0%,
+  40% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.45, 1);
+  }
+  68% {
+    transform: translateY(-30px);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4);
+  }
+  100% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes gain-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-gain-arc-x {
+  animation: gain-arc-x 1000ms both;
+}
+
+.animate-gain-arc-y {
+  animation: gain-arc-y 1000ms both;
+}
+
+.animate-gain-fade {
+  animation: gain-fade 1000ms linear both;
+}
+
+/* Le total « encaisse » le +45 quand il s'y fond, juste avant de tourner. */
+@keyframes gain-hit {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1.07);
+    filter: brightness(1.35);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.animate-gain-hit {
+  animation: gain-hit 420ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav-liquid {
     transition: none;
@@ -113,6 +196,14 @@ body {
   .animate-toast-in,
   .animate-toast-out {
     animation-duration: 1ms;
+  }
+
+  .animate-gain-arc-x {
+    display: none;
+  }
+
+  .animate-gain-hit {
+    animation: none;
   }
 }
 

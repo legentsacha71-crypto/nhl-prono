@@ -45,7 +45,7 @@ export default async function Home() {
     user
       ? supabase
           .from("predictions")
-          .select("game_id, points")
+          .select("game_id, points, is_exact_score")
           .eq("user_id", user.id)
           .not("points", "is", null)
       : Promise.resolve({ data: [] }),
@@ -83,6 +83,7 @@ export default async function Home() {
   const magnusPoints = (predictions ?? [])
     .filter((p) => isMagnusGameId(p.game_id))
     .reduce((sum, p) => sum + (p.points ?? 0), 0);
+  const exactCount = (predictions ?? []).filter((p) => p.is_exact_score).length;
   const totalPoints =
     nhlPoints +
     magnusPoints +
@@ -126,7 +127,7 @@ export default async function Home() {
             Tes points
           </p>
           <p className="font-display text-6xl leading-none text-sky-400 drop-shadow-[0_0_18px_rgba(56,189,248,0.35)]">
-            <PointsCounter id={`total:${user.id}`} value={totalPoints} tick />
+            <PointsCounter id={`total:${user.id}`} value={totalPoints} exactCount={exactCount} tick showGain />
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-3 border-t border-neutral-800/80 pt-3">
