@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, Target, X } from "lucide-react";
 import { isPublicPath } from "@/lib/publicPaths";
 
@@ -42,6 +42,7 @@ function takeNew(userId: string, items: Item[]): Item[] {
 // (l'appli reste souvent ouverte en arrière-plan pendant les matchs).
 export default function PointsToast() {
   const pathname = usePathname();
+  const router = useRouter();
   const hidden = isPublicPath(pathname);
   const [toast, setToast] = useState<Toast | null>(null);
   const [leaving, setLeaving] = useState(false);
@@ -65,6 +66,8 @@ export default function PointsToast() {
       };
       const fresh = takeNew(userId, items);
       if (fresh.length === 0) return;
+      // Sur l'accueil, les nouveaux points tournent dans le compteur.
+      if (pathname === "/") router.refresh();
       setLeaving(false);
       setToast({
         points: fresh.reduce((sum, item) => sum + item.points, 0),
@@ -76,7 +79,7 @@ export default function PointsToast() {
     } catch {
       // réseau indisponible : on réessaiera au prochain retour dans l'appli
     }
-  }, [dismiss]);
+  }, [dismiss, pathname, router]);
 
   useEffect(() => {
     if (hidden) return;

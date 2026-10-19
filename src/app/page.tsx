@@ -17,6 +17,7 @@ import SubmitButton from "@/components/SubmitButton";
 import TopPicksCarousel from "@/components/TopPicksCarousel";
 import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import CompetitionTag from "@/components/CompetitionTag";
+import PointsCounter from "@/components/PointsCounter";
 import { getTopPicks } from "@/lib/topPicks";
 
 export default async function Home() {
@@ -125,21 +126,21 @@ export default async function Home() {
             Tes points
           </p>
           <p className="font-display text-6xl leading-none text-sky-400 drop-shadow-[0_0_18px_rgba(56,189,248,0.35)]">
-            {totalPoints}
+            <PointsCounter id={`total:${user.id}`} value={totalPoints} tick />
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-3 border-t border-neutral-800/80 pt-3">
             <div className="flex flex-1 items-center justify-center gap-2">
               <CompetitionTag competition="nhl" />
-              <span className="font-display text-2xl text-neutral-100">
-                {nhlPoints}
+              <span className="font-display text-2xl leading-none text-neutral-100">
+                <PointsCounter id={`nhl:${user.id}`} value={nhlPoints} />
               </span>
             </div>
             <div className="h-8 w-px bg-neutral-800" />
             <div className="flex flex-1 items-center justify-center gap-2">
               <CompetitionTag competition="magnus" />
-              <span className="font-display text-2xl text-neutral-100">
-                {magnusPoints}
+              <span className="font-display text-2xl leading-none text-neutral-100">
+                <PointsCounter id={`magnus:${user.id}`} value={magnusPoints} />
               </span>
             </div>
           </div>
